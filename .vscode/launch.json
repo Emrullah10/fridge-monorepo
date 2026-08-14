@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Fridge API",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/services/fridge-api/main.js",
+      "cwd": "${workspaceFolder}/services/fridge-api",
+      "runtimeArgs": [
+        "--watch"
+      ],
+      "console": "internalConsole",
+      "restart": true,
+      "envFile": "${workspaceFolder}/.env"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "@fridge/core",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./*": "./*"
+  },
+  "private": true,
+  "dependencies": {
+    "@fridge/errors": "*",
+    "@fridge/helper": "*",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.5",
+    "tesseract.js": "^5.1.1"
+  }
+}

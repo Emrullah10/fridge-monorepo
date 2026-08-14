@@ -1,0 +1,27 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: fridge
+      POSTGRES_PASSWORD: fridge
+      POSTGRES_DB: fridge
+    ports:
+      - "55432:5432"
+    volumes:
+      - fridge_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fridge"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - fridge_ollama_data:/root/.ollama
+
+volumes:
+  fridge_postgres_data:
+  fridge_ollama_data:

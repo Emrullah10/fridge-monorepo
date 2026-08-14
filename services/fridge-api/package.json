@@ -1,0 +1,21 @@
+{
+  "name": "@fridge/api",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "node --env-file=../../.env --watch main.js",
+    "start": "node --env-file=../../.env main.js"
+  },
+  "dependencies": {
+    "@fridge/config": "*",
+    "@fridge/core": "*",
+    "@fridge/errors": "*",
+    "@fridge/helper": "*",
+    "@fridge/middlewares": "*",
+    "express": "^4.19.2",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "multer": "^2.0.0"
+  }
+}
