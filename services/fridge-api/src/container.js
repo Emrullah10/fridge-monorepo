@@ -32,6 +32,8 @@ import { makeUpdateHouseholdSettings } from '@fridge/core/src/application/use-ca
 
 import { makeAddInventoryItem } from '@fridge/core/src/application/use-cases/inventory/add-inventory-item.use-case.js';
 import { makeConsumeInventoryItem } from '@fridge/core/src/application/use-cases/inventory/consume-inventory-item.use-case.js';
+import { makeUpdateInventoryItem } from '@fridge/core/src/application/use-cases/inventory/update-inventory-item.use-case.js';
+import { makeDeleteInventoryItem } from '@fridge/core/src/application/use-cases/inventory/delete-inventory-item.use-case.js';
 import { makeListInventoryItems } from '@fridge/core/src/application/use-cases/inventory/list-inventory-items.use-case.js';
 import { makeListExpiringItems } from '@fridge/core/src/application/use-cases/inventory/list-expiring-items.use-case.js';
 
@@ -45,6 +47,8 @@ import { makeCleanupExpiredReceiptImages } from '@fridge/core/src/application/us
 
 import { makeSuggestRecipes } from '@fridge/core/src/application/use-cases/recipe/suggest-recipes.use-case.js';
 import { makeCookRecipe } from '@fridge/core/src/application/use-cases/recipe/cook-recipe.use-case.js';
+import { makeCreateRecipe } from '@fridge/core/src/application/use-cases/recipe/create-recipe.use-case.js';
+import { makeGetRecipeDetail } from '@fridge/core/src/application/use-cases/recipe/get-recipe-detail.use-case.js';
 
 import { makeSystemClock } from '@fridge/helper';
 
@@ -107,6 +111,14 @@ const buildContainer = (config) => {
       stockMovementRepo: repos.stockMovementRepo,
       productRepo: repos.productRepo,
     }),
+    updateInventoryItem: makeUpdateInventoryItem({
+      inventoryItemRepo: repos.inventoryItemRepo,
+      stockMovementRepo: repos.stockMovementRepo,
+    }),
+    deleteInventoryItem: makeDeleteInventoryItem({
+      inventoryItemRepo: repos.inventoryItemRepo,
+      stockMovementRepo: repos.stockMovementRepo,
+    }),
     listInventoryItems: makeListInventoryItems({ inventoryItemRepo: repos.inventoryItemRepo }),
     listExpiringItems: makeListExpiringItems({ inventoryItemRepo: repos.inventoryItemRepo, clock }),
 
@@ -138,6 +150,8 @@ const buildContainer = (config) => {
     }),
 
     suggestRecipes: makeSuggestRecipes({ recipeRepo: repos.recipeRepo }),
+    createRecipe: makeCreateRecipe({ recipeRepo: repos.recipeRepo }),
+    getRecipeDetail: makeGetRecipeDetail({ recipeRepo: repos.recipeRepo }),
     cookRecipe: makeCookRecipe({
       datasource,
       recipeRepo: repos.recipeRepo,

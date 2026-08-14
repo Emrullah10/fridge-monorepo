@@ -27,6 +27,14 @@ const makeRecipeRepository = ({ rawQuery }) => {
       return mapRow(rows[0]);
     },
 
+    listByHousehold: async (householdId) => {
+      const { rows } = await rawQuery(
+        `SELECT * FROM recipe WHERE household_id IS NULL OR household_id = $1 ORDER BY created_at DESC`,
+        [householdId],
+      );
+      return rows.map(mapRow);
+    },
+
     addIngredient: async ({ recipeId, productId, quantity, unit, isOptional = false }) => {
       await rawQuery(
         `INSERT INTO recipe_ingredient (recipe_id, product_id, quantity, unit, is_optional)
@@ -52,10 +60,13 @@ const makeRecipeRepository = ({ rawQuery }) => {
 
     // "Dolabımdakilerle ne pişirebilirim": recipe_ingredient ⋈ inventory_item.
     // Eksik malzeme sayısına göre sıralar — 0 eksik olanlar en üstte.
+    // SELECT * kullanıyoruz (mapRow'un tüm alanları okuyabilmesi için) —
+    // önceden sadece bir kısım kolon seçiliyordu, mapRow'daki householdId/
+    // instructions/sourceUrl/createdBy hep undefined geliyordu.
     listSuggestionsForHousehold: async (householdId) => {
       const { rows } = await rawQuery(
         `SELECT
-           r.id, r.title, r.description, r.servings, r.prep_minutes, r.cook_minutes,
+           r.*,
            COUNT(ri.id) AS total_ingredients,
            COUNT(inv.id) AS available_ingredients,
            COUNT(ri.id) - COUNT(inv.id) AS missing_count

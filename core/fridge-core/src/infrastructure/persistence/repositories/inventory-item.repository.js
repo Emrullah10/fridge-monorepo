@@ -72,6 +72,27 @@ const makeInventoryItemRepository = ({ rawQuery }) => {
       return mapRow(rows[0]);
     },
 
+    // note/openedAt önceden şemada vardı ama hiçbir kod yazmıyordu — kullanıcı
+    // envanter satırını manuel düzenleyebilsin diye şimdi bu metoddan yazılıyor.
+    update: async (id, { quantity, expiresAt, openedAt, note }) => {
+      const { rows } = await rawQuery(
+        `UPDATE inventory_item SET
+           quantity = COALESCE($2, quantity),
+           expires_at = CASE WHEN $3::boolean THEN $4::date ELSE expires_at END,
+           opened_at = CASE WHEN $5::boolean THEN $6::date ELSE opened_at END,
+           note = CASE WHEN $7::boolean THEN $8 ELSE note END,
+           updated_at = now()
+         WHERE id = $1 RETURNING *`,
+        [
+          id, quantity,
+          expiresAt !== undefined, expiresAt ?? null,
+          openedAt !== undefined, openedAt ?? null,
+          note !== undefined, note ?? null,
+        ],
+      );
+      return mapRow(rows[0]);
+    },
+
     delete: async (id) => {
       await rawQuery('DELETE FROM inventory_item WHERE id = $1', [id]);
     },

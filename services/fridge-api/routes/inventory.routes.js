@@ -48,6 +48,28 @@ const buildInventoryRouter = ({ container }) => {
     res.json({ item });
   }));
 
+  router.patch('/:itemId', asyncHandler(async (req, res) => {
+    const item = await useCases.updateInventoryItem({
+      inventoryItemId: req.params.itemId,
+      householdId: req.params.householdId,
+      quantity: req.body.quantity,
+      expiresAt: req.body.expiresAt,
+      openedAt: req.body.openedAt,
+      note: req.body.note,
+      actorUserId: req.user.id,
+    });
+    res.json({ item });
+  }));
+
+  router.delete('/:itemId', asyncHandler(async (req, res) => {
+    await useCases.deleteInventoryItem({
+      inventoryItemId: req.params.itemId,
+      householdId: req.params.householdId,
+      actorUserId: req.user.id,
+    });
+    res.status(204).end();
+  }));
+
   return router;
 };
 
