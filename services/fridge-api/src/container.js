@@ -2,7 +2,6 @@ import { makeDatasource } from '@fridge/core/src/infrastructure/persistence/data
 import { makeTokenService } from '@fridge/core/src/infrastructure/token-service.js';
 import { makeLocalDiskStorage } from '@fridge/core/src/infrastructure/storage/local-disk.adapter.js';
 import { makeTesseractOcr } from '@fridge/core/src/infrastructure/ocr/tesseract.adapter.js';
-import { makeMlkitPassthroughOcr } from '@fridge/core/src/infrastructure/ocr/mlkit-passthrough.adapter.js';
 import { makeOllamaTextParser } from '@fridge/core/src/infrastructure/parser/ollama-text.adapter.js';
 import { makeRuleBasedParser } from '@fridge/core/src/infrastructure/parser/rule-based.adapter.js';
 
@@ -60,9 +59,11 @@ const buildContainer = (config) => {
   });
   const storagePort = makeLocalDiskStorage({ baseDir: config.uploadsDir });
 
-  const ocrPort = config.ocrProvider === 'mlkit-passthrough'
-    ? makeMlkitPassthroughOcr()
-    : makeTesseractOcr({ storagePort });
+  // Tek OCR sağlayıcı: /scan (foto) yolu bunu kullanır. /scan-text zaten
+  // ham metinle geldiği için process-receipt-scan.use-case.js OCR portunu
+  // hiç çağırmaz — "mlkit-passthrough" diye ayrı bir sağlayıcıya gerek yok,
+  // olması kafa karıştırıcı ve imza uyumsuzluğuna (imagePath vs rawText) açıktı.
+  const ocrPort = makeTesseractOcr({ storagePort });
 
   const receiptParserPort = config.parserProvider === 'rule-based'
     ? makeRuleBasedParser()
@@ -115,6 +116,7 @@ const buildContainer = (config) => {
       receiptScanRepo: repos.receiptScanRepo,
       receiptLineItemRepo: repos.receiptLineItemRepo,
       productAliasRepo: repos.productAliasRepo,
+      productRepo: repos.productRepo,
       ocrPort,
       receiptParserPort,
     }),

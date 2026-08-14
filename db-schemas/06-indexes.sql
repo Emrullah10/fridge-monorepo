@@ -2,6 +2,7 @@ CREATE INDEX IF NOT EXISTS idx_household_member_user ON household_member (user_i
 CREATE INDEX IF NOT EXISTS idx_household_invite_household ON household_invite (household_id);
 
 CREATE INDEX IF NOT EXISTS idx_product_household ON product (household_id);
+CREATE INDEX IF NOT EXISTS idx_product_canonical_name_trgm ON product USING GIN (canonical_name gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_product_alias_household ON product_alias (household_id);
 -- Eşleştirme normalized_text üzerinden yapılır (fiyat/KDV arındırılmış hali),
 -- bu yüzden hem trigram hem unique index'ler o kolonda.

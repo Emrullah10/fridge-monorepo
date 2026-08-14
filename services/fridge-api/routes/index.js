@@ -5,6 +5,7 @@ import { buildInviteRouter } from './invite.routes.js';
 import { buildInventoryRouter } from './inventory.routes.js';
 import { buildReceiptRouter } from './receipt.routes.js';
 import { buildRecipeRouter } from './recipe.routes.js';
+import { buildProductRouter } from './product.routes.js';
 
 const buildRouter = ({ container, authenticate }) => {
   const router = Router();
@@ -17,6 +18,7 @@ const buildRouter = ({ container, authenticate }) => {
   router.use('/households/:householdId/inventory', buildInventoryRouter({ container }));
   router.use('/households/:householdId/receipts', buildReceiptRouter({ container }));
   router.use('/households/:householdId/recipes', buildRecipeRouter({ container }));
+  router.use('/households/:householdId/products', buildProductRouter({ container }));
 
   return router;
 };

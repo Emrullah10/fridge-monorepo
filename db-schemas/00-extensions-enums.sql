@@ -38,3 +38,7 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
   CREATE TYPE alias_source AS ENUM ('user_correction', 'seed', 'model');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE product_source AS ENUM ('seed', 'user', 'ai_generated');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;

@@ -1,7 +1,5 @@
 import { log } from '@fridge/helper';
 
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-
 const runRetentionCleanup = async ({ container }) => {
   const { useCases } = container;
   const households = await container.datasource.query('SELECT id FROM household');
@@ -17,10 +15,10 @@ const runRetentionCleanup = async ({ container }) => {
   }
 };
 
-const startRetentionCleanupWorker = ({ container }) => {
+const startRetentionCleanupWorker = ({ container, intervalMs }) => {
   const tick = () => runRetentionCleanup({ container });
   tick();
-  const timer = setInterval(tick, ONE_DAY_MS);
+  const timer = setInterval(tick, intervalMs);
   return { stop: () => clearInterval(timer) };
 };
 

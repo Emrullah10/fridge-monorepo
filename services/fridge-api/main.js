@@ -27,7 +27,7 @@ const server = app.listen(config.port, () => {
 });
 
 const scanProcessor = startScanProcessor({ container, intervalMs: config.scanWorkerIntervalMs });
-const retentionWorker = startRetentionCleanupWorker({ container });
+const retentionWorker = startRetentionCleanupWorker({ container, intervalMs: config.retentionCleanupIntervalMs });
 
 const shutdown = async () => {
   log.info('shutting_down');

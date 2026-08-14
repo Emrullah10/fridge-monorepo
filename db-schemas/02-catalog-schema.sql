@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS product (
   category_id     UUID REFERENCES product_category(id),
   default_unit    unit_kind NOT NULL DEFAULT 'piece',
   is_global       BOOLEAN NOT NULL DEFAULT false,
+  source          product_source NOT NULL DEFAULT 'user',
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

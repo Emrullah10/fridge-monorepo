@@ -17,9 +17,12 @@ const makeUploadReceiptScan = ({ receiptScanRepo, storagePort }) => {
 };
 
 // Mobil ML Kit ile metni kendisi çıkardıysa görüntü olmadan da fiş açılabilir.
+// initialStatus: 'processing' — bu akış route'ta senkron işlendiği için
+// scan_processor worker'ının aynı fişi kuyruktan çekip çift işlememesi
+// gerekir (bkz. receipt-scan.repository.js create()).
 const makeUploadReceiptScanText = ({ receiptScanRepo }) => {
   return async ({ householdId, uploadedBy }) => {
-    return receiptScanRepo.create({ householdId, uploadedBy });
+    return receiptScanRepo.create({ householdId, uploadedBy, initialStatus: 'processing' });
   };
 };
 

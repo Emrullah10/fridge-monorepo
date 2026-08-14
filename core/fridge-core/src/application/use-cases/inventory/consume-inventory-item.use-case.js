@@ -2,9 +2,9 @@ import { NotFoundError } from '@fridge/errors';
 import { InsufficientStockError } from '../../../domain/errors/index.js';
 
 const makeConsumeInventoryItem = ({ inventoryItemRepo, stockMovementRepo, productRepo }) => {
-  return async ({ inventoryItemId, quantity, actorUserId, reason = 'consumed' }) => {
+  return async ({ inventoryItemId, householdId, quantity, actorUserId, reason = 'consumed' }) => {
     const item = await inventoryItemRepo.findById(inventoryItemId);
-    if (!item) {
+    if (!item || item.householdId !== householdId) {
       throw new NotFoundError('Inventory item not found');
     }
 

@@ -5,10 +5,16 @@ const makeProcessReceiptScan = ({
   receiptScanRepo,
   receiptLineItemRepo,
   productAliasRepo,
+  productRepo,
   ocrPort,
   receiptParserPort,
 }) => {
-  const matchProduct = async ({ householdId, rawText }) => {
+  // Kademe 3: alias/trigram bulamazsa, Ollama'nın zaten ürettiği parsedName
+  // ile household'a özel bir ürün otomatik açılır. Böylece matchedProductId
+  // hiçbir satırda null kalmaz — yeni bir evde bile onay akışı çalışabilir.
+  // Kullanıcı düzeltirse (isim yanlışsa ya da mevcut bir ürünle birleştirmek
+  // isterse) normal alias öğrenmesi zaten devreye girer.
+  const matchProduct = async ({ householdId, rawText, parsedName, parsedUnit }) => {
     const exact = await productAliasRepo.findExactMatch({ householdId, rawText });
     if (exact) {
       return { matchedProductId: exact.productId, confidence: 1.0, matchMethod: 'alias' };
@@ -19,7 +25,14 @@ const makeProcessReceiptScan = ({
       return { matchedProductId: trigram.productId, confidence: trigram.similarity, matchMethod: 'trigram' };
     }
 
-    return { matchedProductId: null, confidence: null, matchMethod: null };
+    const created = await productRepo.create({
+      householdId,
+      canonicalName: parsedName,
+      defaultUnit: parsedUnit,
+      source: 'ai_generated',
+    });
+    await productAliasRepo.upsertUserCorrection({ householdId, rawText, productId: created.id, source: 'model' });
+    return { matchedProductId: created.id, confidence: null, matchMethod: 'model' };
   };
 
   return async ({ scanId, rawText: providedRawText }) => {
@@ -35,7 +48,12 @@ const makeProcessReceiptScan = ({
 
       const lineItemsWithMatches = [];
       for (const line of parsed.lineItems) {
-        const match = await matchProduct({ householdId: scan.householdId, rawText: line.rawText });
+        const match = await matchProduct({
+          householdId: scan.householdId,
+          rawText: line.rawText,
+          parsedName: line.parsedName,
+          parsedUnit: line.parsedUnit,
+        });
         lineItemsWithMatches.push({
           receiptScanId: scanId,
           householdId: scan.householdId,

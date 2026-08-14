@@ -45,6 +45,11 @@ CREATE TABLE IF NOT EXISTS receipt_line_item (
   updated_at               TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-ALTER TABLE stock_movement
-  ADD CONSTRAINT fk_stock_movement_receipt_line_item
-  FOREIGN KEY (receipt_line_item_id) REFERENCES receipt_line_item(id) ON DELETE SET NULL;
+-- ADD CONSTRAINT IF NOT EXISTS diye bir şey yok Postgres'te; migrate.js her
+-- dosyayı tekrar tekrar çalıştırılabilir (idempotent) varsaydığı için bu
+-- DO bloğu olmadan ikinci "npm run db:migrate" komple düşerdi.
+DO $$ BEGIN
+  ALTER TABLE stock_movement
+    ADD CONSTRAINT fk_stock_movement_receipt_line_item
+    FOREIGN KEY (receipt_line_item_id) REFERENCES receipt_line_item(id) ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;

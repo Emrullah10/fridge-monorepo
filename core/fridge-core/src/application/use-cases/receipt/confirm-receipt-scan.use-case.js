@@ -1,4 +1,4 @@
-import { ValidationError } from '@fridge/errors';
+import { ValidationError, NotFoundError } from '@fridge/errors';
 import { ReceiptNotReadyError } from '../../../domain/errors/index.js';
 
 // Onaylanan her satır için tek transaction içinde envanteri upsert eder ve
@@ -13,6 +13,9 @@ const makeConfirmReceiptScan = ({
 }) => {
   return async ({ scanId, actorUserId, storageLocationId, itemSelections }) => {
     const scan = await receiptScanRepo.findById(scanId);
+    if (!scan) {
+      throw new NotFoundError('Receipt scan not found');
+    }
     if (scan.status !== 'review_pending') {
       throw new ReceiptNotReadyError(scan.status);
     }

@@ -1,7 +1,37 @@
 import { Router } from 'express';
 import { asyncHandler } from '@fridge/helper';
+import { ValidationError } from '@fridge/errors';
+import { rateLimiter } from '@fridge/middlewares';
+
+// Brute-force koruması: aynı IP'den 15 dakikada en fazla 10 giriş denemesi.
+const loginRateLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 10 });
 
 const REFRESH_COOKIE_OPTS = { httpOnly: true, sameSite: 'lax', path: '/api/auth' };
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MIN_PASSWORD_LENGTH = 8;
+
+// Doğrulama olmadan undefined email/password bcrypt.hash'e gidip 500 atıyordu.
+// Şifre uzunluk kuralı da yoktu.
+const assertValidRegisterInput = ({ email, password, displayName }) => {
+  if (typeof email !== 'string' || !EMAIL_PATTERN.test(email)) {
+    throw new ValidationError('Geçerli bir e-posta adresi gerekli');
+  }
+  if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
+    throw new ValidationError(`Şifre en az ${MIN_PASSWORD_LENGTH} karakter olmalı`);
+  }
+  if (typeof displayName !== 'string' || displayName.trim().length === 0) {
+    throw new ValidationError('Ad soyad gerekli');
+  }
+};
+
+const assertValidLoginInput = ({ email, password }) => {
+  if (typeof email !== 'string' || email.length === 0) {
+    throw new ValidationError('E-posta gerekli');
+  }
+  if (typeof password !== 'string' || password.length === 0) {
+    throw new ValidationError('Şifre gerekli');
+  }
+};
 
 // Web: refresh token httpOnly cookie'de kalır (JS erişemez, XSS'e karşı güvenli).
 // Mobil (Flutter'da native cookie jar yok): aynı token body'de de döner,
@@ -13,13 +43,15 @@ const buildAuthRouter = ({ container }) => {
   const { useCases } = container;
 
   router.post('/register', asyncHandler(async (req, res) => {
-    const { email, password, displayName, locale } = req.body;
+    const { email, password, displayName, locale } = req.body ?? {};
+    assertValidRegisterInput({ email, password, displayName });
     const user = await useCases.registerUser({ email, password, displayName, locale });
     res.status(201).json({ user: { id: user.id, email: user.email, displayName: user.displayName } });
   }));
 
-  router.post('/login', asyncHandler(async (req, res) => {
-    const { email, password } = req.body;
+  router.post('/login', loginRateLimiter, asyncHandler(async (req, res) => {
+    const { email, password } = req.body ?? {};
+    assertValidLoginInput({ email, password });
     const { user, accessToken, refreshToken } = await useCases.loginUser({ email, password });
 
     if (isMobileClient(req)) {

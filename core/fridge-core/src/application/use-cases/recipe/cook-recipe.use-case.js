@@ -17,22 +17,38 @@ const makeCookRecipe = ({
       const recipeCookLogRepo = makeRecipeCookLogRepo({ rawQuery: query });
 
       const items = await inventoryItemRepo.listByHousehold(householdId);
-      const itemsByProduct = new Map(items.map((item) => [item.productId, item]));
+      // Aynı ürün birden fazla lokasyon/SKT'de ayrı satır olarak durabilir
+      // (bkz. inventory_item UNIQUE kısıtı) — hepsini grupluyoruz ki
+      // sadece sonuncusu değil, ürünün TÜM stoku görülsün.
+      const itemsByProduct = new Map();
+      for (const item of items) {
+        const list = itemsByProduct.get(item.productId) ?? [];
+        list.push(item);
+        itemsByProduct.set(item.productId, list);
+      }
 
       for (const ingredient of ingredients) {
-        const inventoryItem = itemsByProduct.get(ingredient.productId);
-        if (!inventoryItem || inventoryItem.quantity <= 0) continue;
+        const candidates = (itemsByProduct.get(ingredient.productId) ?? [])
+          // Birim uyuşmazlığında (örn. tarif "gram" istiyor, envanterde
+          // "kilogram" var) o satırı sessizce yanlış düşürmek yerine atlıyoruz
+          // — birim dönüşümü yapmadan miktarları karıştırmak veri bozar.
+          .filter((item) => item.unit === ingredient.unit && item.quantity > 0);
 
-        const deltaQuantity = -Math.min(inventoryItem.quantity, ingredient.quantity);
+        let remaining = ingredient.quantity;
+        for (const inventoryItem of candidates) {
+          if (remaining <= 0) break;
+          const deltaQuantity = -Math.min(inventoryItem.quantity, remaining);
+          remaining += deltaQuantity; // deltaQuantity negatif, yani remaining azalır
 
-        await inventoryItemRepo.adjustQuantity({ id: inventoryItem.id, deltaQuantity });
-        await stockMovementRepo.create({
-          householdId,
-          inventoryItemId: inventoryItem.id,
-          delta: deltaQuantity,
-          reason: 'recipe_used',
-          actorUserId: cookedBy,
-        });
+          await inventoryItemRepo.adjustQuantity({ id: inventoryItem.id, deltaQuantity });
+          await stockMovementRepo.create({
+            householdId,
+            inventoryItemId: inventoryItem.id,
+            delta: deltaQuantity,
+            reason: 'recipe_used',
+            actorUserId: cookedBy,
+          });
+        }
       }
 
       await recipeCookLogRepo.create({ householdId, recipeId, cookedBy });

@@ -41,6 +41,7 @@ const buildInventoryRouter = ({ container }) => {
   router.post('/:itemId/consume', asyncHandler(async (req, res) => {
     const item = await useCases.consumeInventoryItem({
       inventoryItemId: req.params.itemId,
+      householdId: req.params.householdId,
       quantity: req.body.quantity,
       actorUserId: req.user.id,
     });

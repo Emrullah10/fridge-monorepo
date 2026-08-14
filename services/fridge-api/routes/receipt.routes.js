@@ -3,6 +3,7 @@ import multer from 'multer';
 import { asyncHandler } from '@fridge/helper';
 import { requireAuth, requireHouseholdRole } from '@fridge/middlewares';
 import { NotFoundError } from '@fridge/errors';
+import { assertOwnedByHousehold } from './helpers/assert-owned-by-household.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
@@ -40,39 +41,53 @@ const buildReceiptRouter = ({ container }) => {
 
   router.get('/:scanId/status', asyncHandler(async (req, res) => {
     const scan = await repos.receiptScanRepo.findById(req.params.scanId);
-    if (!scan) throw new NotFoundError('Receipt scan not found');
+    assertOwnedByHousehold(scan, req.params.householdId, 'Receipt scan not found');
     res.json({ status: scan.status, errorMessage: scan.errorMessage });
   }));
 
   router.get('/:scanId', asyncHandler(async (req, res) => {
     const scan = await repos.receiptScanRepo.findById(req.params.scanId);
-    if (!scan) throw new NotFoundError('Receipt scan not found');
+    assertOwnedByHousehold(scan, req.params.householdId, 'Receipt scan not found');
     const lineItems = await repos.receiptLineItemRepo.listByScanId(req.params.scanId);
     res.json({ scan, lineItems });
   }));
 
   router.post('/:scanId/retry', asyncHandler(async (req, res) => {
+    const existing = await repos.receiptScanRepo.findById(req.params.scanId);
+    assertOwnedByHousehold(existing, req.params.householdId, 'Receipt scan not found');
     const scan = await useCases.retryReceiptScan({ scanId: req.params.scanId });
     res.json({ scan });
   }));
 
   router.get('/:scanId/image', asyncHandler(async (req, res) => {
     const scan = await repos.receiptScanRepo.findById(req.params.scanId);
-    if (!scan) throw new NotFoundError('Receipt scan not found');
+    assertOwnedByHousehold(scan, req.params.householdId, 'Receipt scan not found');
     if (!scan.imagePath) {
-      return res.status(404).json({ imageDeletedAt: scan.imageDeletedAt });
+      return res.status(404).json({ error: { code: 'IMAGE_NOT_FOUND', message: 'Image not available' }, imageDeletedAt: scan.imageDeletedAt });
     }
     const buffer = await container.storagePort.read({ path: scan.imagePath });
-    res.set('Content-Type', 'image/jpeg');
+    const extension = scan.imagePath.split('.').pop()?.toLowerCase();
+    const contentType = extension === 'png' ? 'image/png' : 'image/jpeg';
+    res.set('Content-Type', contentType);
     res.send(buffer);
   }));
 
   router.delete('/:scanId/image', asyncHandler(async (req, res) => {
+    const existing = await repos.receiptScanRepo.findById(req.params.scanId);
+    assertOwnedByHousehold(existing, req.params.householdId, 'Receipt scan not found');
     const scan = await useCases.deleteReceiptImage({ scanId: req.params.scanId });
     res.json({ scan });
   }));
 
   router.patch('/:scanId/items/:itemId', asyncHandler(async (req, res) => {
+    const scan = await repos.receiptScanRepo.findById(req.params.scanId);
+    assertOwnedByHousehold(scan, req.params.householdId, 'Receipt scan not found');
+
+    const lineItem = await repos.receiptLineItemRepo.findById(req.params.itemId);
+    if (!lineItem || lineItem.receiptScanId !== req.params.scanId) {
+      throw new NotFoundError('Line item not found');
+    }
+
     const item = await useCases.correctLineItem({
       lineItemId: req.params.itemId,
       householdId: req.params.householdId,
@@ -85,13 +100,16 @@ const buildReceiptRouter = ({ container }) => {
   }));
 
   router.post('/:scanId/confirm', asyncHandler(async (req, res) => {
-    const scan = await useCases.confirmReceiptScan({
+    const scan = await repos.receiptScanRepo.findById(req.params.scanId);
+    assertOwnedByHousehold(scan, req.params.householdId, 'Receipt scan not found');
+
+    const confirmed = await useCases.confirmReceiptScan({
       scanId: req.params.scanId,
       actorUserId: req.user.id,
       storageLocationId: req.body.storageLocationId,
       itemSelections: req.body.itemSelections,
     });
-    res.json({ scan });
+    res.json({ scan: confirmed });
   }));
 
   return router;

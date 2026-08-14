@@ -23,11 +23,15 @@ const mapRow = (row) => row && ({
 
 const makeReceiptScanRepository = ({ rawQuery }) => {
   return {
-    create: async ({ householdId, uploadedBy, imagePath = null, imageBytes = null, imageSha256 = null }) => {
+    // initialStatus: foto yükleme (worker'ın kuyruktan çekmesi gereken)
+    // 'uploaded' ile açılır; senkron işlenen /scan-text ise 'processing' ile
+    // açılmalı, yoksa worker aynı fişi eş zamanlı kapıp çift işler.
+    create: async ({ householdId, uploadedBy, imagePath = null, imageBytes = null, imageSha256 = null, initialStatus = 'uploaded' }) => {
+      const processingStartedAt = initialStatus === 'processing' ? new Date() : null;
       const { rows } = await rawQuery(
-        `INSERT INTO receipt_scan (household_id, uploaded_by, status, image_path, image_bytes, image_sha256)
-         VALUES ($1, $2, 'uploaded', $3, $4, $5) RETURNING *`,
-        [householdId, uploadedBy, imagePath, imageBytes, imageSha256],
+        `INSERT INTO receipt_scan (household_id, uploaded_by, status, image_path, image_bytes, image_sha256, processing_started_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+        [householdId, uploadedBy, initialStatus, imagePath, imageBytes, imageSha256, processingStartedAt],
       );
       return mapRow(rows[0]);
     },
@@ -90,6 +94,21 @@ const makeReceiptScanRepository = ({ rawQuery }) => {
         [id],
       );
       return mapRow(rows[0]);
+    },
+
+    // Süreç 'processing' sırasında çökerse (deploy, OOM) fiş sonsuza dek o
+    // durumda kalırdı — claimNextUploaded sadece 'uploaded' bakıyor, retry
+    // sadece 'failed' kabul ediyor. Bu, o boşluğu kapatan reaper sorgusu:
+    // belirtilen süreden uzun süredir 'processing'de kalan fişleri
+    // 'uploaded'a geri döndürür ki worker tekrar denesin.
+    reclaimStaleProcessing: async ({ staleAfterMs }) => {
+      const { rows } = await rawQuery(
+        `UPDATE receipt_scan SET status = 'uploaded', processing_started_at = NULL, updated_at = now()
+         WHERE status = 'processing' AND processing_started_at < now() - ($1 || ' milliseconds')::interval
+         RETURNING id`,
+        [staleAfterMs],
+      );
+      return rows.length;
     },
 
     markImageDeleted: async (id) => {

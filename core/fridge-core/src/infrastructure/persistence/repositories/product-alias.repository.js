@@ -51,15 +51,19 @@ const makeProductAliasRepository = ({ rawQuery }) => {
       return rows[0] && { ...mapRow(rows[0]), similarity: Number(rows[0].sim) };
     },
 
-    upsertUserCorrection: async ({ householdId, rawText, productId }) => {
+    // source: 'user_correction' (kullanıcı düzeltti) veya 'model' (AI otomatik
+    // ürün oluşturdu, henüz kimse doğrulamadı). Confidence bu ayrımı yansıtır.
+    upsertUserCorrection: async ({ householdId, rawText, productId, source = 'user_correction' }) => {
       const normalizedText = normalizeAliasText(rawText);
+      const confidence = source === 'user_correction' ? 1.0 : 0.5;
       const { rows } = await rawQuery(
         `INSERT INTO product_alias (household_id, raw_text, normalized_text, product_id, source, confidence, hit_count)
-         VALUES ($1, $2, $3, $4, 'user_correction', 1.0, 1)
+         VALUES ($1, $2, $3, $4, $5, $6, 1)
          ON CONFLICT (household_id, normalized_text) WHERE household_id IS NOT NULL
-         DO UPDATE SET product_id = EXCLUDED.product_id, hit_count = product_alias.hit_count + 1, updated_at = now()
+         DO UPDATE SET product_id = EXCLUDED.product_id, source = EXCLUDED.source,
+                        confidence = EXCLUDED.confidence, hit_count = product_alias.hit_count + 1, updated_at = now()
          RETURNING *`,
-        [householdId, rawText, normalizedText, productId],
+        [householdId, rawText, normalizedText, productId, source, confidence],
       );
       return mapRow(rows[0]);
     },
