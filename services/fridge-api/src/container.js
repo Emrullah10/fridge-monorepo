@@ -12,6 +12,7 @@ import { makeHouseholdMemberRepository } from '@fridge/core/src/infrastructure/p
 import { makeHouseholdInviteRepository } from '@fridge/core/src/infrastructure/persistence/repositories/household-invite.repository.js';
 import { makeStorageLocationRepository } from '@fridge/core/src/infrastructure/persistence/repositories/storage-location.repository.js';
 import { makeProductRepository } from '@fridge/core/src/infrastructure/persistence/repositories/product.repository.js';
+import { makeProductCategoryRepository } from '@fridge/core/src/infrastructure/persistence/repositories/product-category.repository.js';
 import { makeProductAliasRepository } from '@fridge/core/src/infrastructure/persistence/repositories/product-alias.repository.js';
 import { makeInventoryItemRepository } from '@fridge/core/src/infrastructure/persistence/repositories/inventory-item.repository.js';
 import { makeStockMovementRepository } from '@fridge/core/src/infrastructure/persistence/repositories/stock-movement.repository.js';
@@ -81,6 +82,7 @@ const buildContainer = (config) => {
     inviteRepo: makeHouseholdInviteRepository({ rawQuery }),
     storageLocationRepo: makeStorageLocationRepository({ rawQuery }),
     productRepo: makeProductRepository({ rawQuery }),
+    productCategoryRepo: makeProductCategoryRepository({ rawQuery }),
     productAliasRepo: makeProductAliasRepository({ rawQuery }),
     inventoryItemRepo: makeInventoryItemRepository({ rawQuery }),
     stockMovementRepo: makeStockMovementRepository({ rawQuery }),
@@ -129,10 +131,15 @@ const buildContainer = (config) => {
       receiptLineItemRepo: repos.receiptLineItemRepo,
       productAliasRepo: repos.productAliasRepo,
       productRepo: repos.productRepo,
+      productCategoryRepo: repos.productCategoryRepo,
       ocrPort,
       receiptParserPort,
     }),
-    correctLineItem: makeCorrectLineItem({ receiptLineItemRepo: repos.receiptLineItemRepo, productAliasRepo: repos.productAliasRepo }),
+    correctLineItem: makeCorrectLineItem({
+      receiptLineItemRepo: repos.receiptLineItemRepo,
+      productAliasRepo: repos.productAliasRepo,
+      productRepo: repos.productRepo,
+    }),
     confirmReceiptScan: makeConfirmReceiptScan({
       datasource,
       receiptScanRepo: repos.receiptScanRepo,

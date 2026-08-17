@@ -2,6 +2,7 @@ const mapRow = (row) => row && ({
   id: row.id,
   householdId: row.household_id,
   canonicalName: row.canonical_name,
+  brand: row.brand,
   categoryId: row.category_id,
   defaultUnit: row.default_unit,
   isGlobal: row.is_global,
@@ -15,11 +16,21 @@ const makeProductRepository = ({ rawQuery }) => {
       return mapRow(rows[0]);
     },
 
-    create: async ({ householdId = null, canonicalName, categoryId = null, defaultUnit, isGlobal = false, source = 'user' }) => {
+    create: async ({ householdId = null, canonicalName, brand = null, categoryId = null, defaultUnit, isGlobal = false, source = 'user' }) => {
       const { rows } = await rawQuery(
-        `INSERT INTO product (household_id, canonical_name, category_id, default_unit, is_global, source)
-         VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-        [householdId, canonicalName, categoryId, defaultUnit, isGlobal, source],
+        `INSERT INTO product (household_id, canonical_name, brand, category_id, default_unit, is_global, source)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+        [householdId, canonicalName, brand, categoryId, defaultUnit, isGlobal, source],
+      );
+      return mapRow(rows[0]);
+    },
+
+    // Kullanıcı fiş satırını düzeltirken marka girerse kalıcılaşır — bir
+    // dahaki sefere o ürün için AI'a ihtiyaç kalmaz (bkz. correct-line-item).
+    updateBrand: async (id, brand) => {
+      const { rows } = await rawQuery(
+        'UPDATE product SET brand = $2 WHERE id = $1 RETURNING *',
+        [id, brand],
       );
       return mapRow(rows[0]);
     },

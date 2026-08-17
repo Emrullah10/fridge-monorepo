@@ -92,6 +92,7 @@ const buildReceiptRouter = ({ container }) => {
       lineItemId: req.params.itemId,
       householdId: req.params.householdId,
       parsedName: req.body.parsedName,
+      parsedBrand: req.body.parsedBrand,
       parsedQuantity: req.body.parsedQuantity,
       parsedUnit: req.body.parsedUnit,
       matchedProductId: req.body.matchedProductId,

@@ -6,6 +6,7 @@ const makeProcessReceiptScan = ({
   receiptLineItemRepo,
   productAliasRepo,
   productRepo,
+  productCategoryRepo,
   ocrPort,
   receiptParserPort,
 }) => {
@@ -14,7 +15,11 @@ const makeProcessReceiptScan = ({
   // hiçbir satırda null kalmaz — yeni bir evde bile onay akışı çalışabilir.
   // Kullanıcı düzeltirse (isim yanlışsa ya da mevcut bir ürünle birleştirmek
   // isterse) normal alias öğrenmesi zaten devreye girer.
-  const matchProduct = async ({ householdId, rawText, parsedName, parsedUnit }) => {
+  //
+  // categoryId burada kalıcı olarak yazılıyor (sadece bu satırın önerisi
+  // için değil) — aynı ürün bir dahaki fişte alias/trigram ile eşleştiğinde
+  // kategorisi zaten hazır olsun, AI'a tekrar ihtiyaç kalmasın.
+  const matchProduct = async ({ householdId, rawText, parsedName, parsedBrand, parsedCategory, parsedUnit }) => {
     const exact = await productAliasRepo.findExactMatch({ householdId, rawText });
     if (exact) {
       return { matchedProductId: exact.productId, confidence: 1.0, matchMethod: 'alias' };
@@ -25,9 +30,12 @@ const makeProcessReceiptScan = ({
       return { matchedProductId: trigram.productId, confidence: trigram.similarity, matchMethod: 'trigram' };
     }
 
+    const category = await productCategoryRepo.findByKey(parsedCategory);
     const created = await productRepo.create({
       householdId,
       canonicalName: parsedName,
+      brand: parsedBrand,
+      categoryId: category?.id ?? null,
       defaultUnit: parsedUnit,
       source: 'ai_generated',
     });
@@ -52,6 +60,8 @@ const makeProcessReceiptScan = ({
           householdId: scan.householdId,
           rawText: line.rawText,
           parsedName: line.parsedName,
+          parsedBrand: line.parsedBrand ?? null,
+          parsedCategory: line.parsedCategory ?? null,
           parsedUnit: line.parsedUnit,
         });
         lineItemsWithMatches.push({
@@ -60,6 +70,7 @@ const makeProcessReceiptScan = ({
           lineNo: line.lineNo,
           rawText: line.rawText,
           parsedName: line.parsedName,
+          parsedBrand: line.parsedBrand ?? null,
           parsedQuantity: line.parsedQuantity,
           parsedUnit: line.parsedUnit,
           parsedPrice: line.parsedPrice ?? null,

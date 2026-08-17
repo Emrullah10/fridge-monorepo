@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS product (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+ALTER TABLE product ADD COLUMN IF NOT EXISTS brand TEXT;
+
 CREATE TABLE IF NOT EXISTS product_alias (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   household_id      UUID REFERENCES household(id) ON DELETE CASCADE,

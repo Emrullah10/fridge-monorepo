@@ -1,4 +1,8 @@
 services:
+  # KULLANILMIYOR (2026-08-16'dan beri). Proje artık makinedeki Homebrew
+  # Postgres 15'i kullanıyor: postgres://fridge:fridge@localhost:5432/fridge
+  # Bu servis referans/geri dönüş için duruyor; ayağa kaldırırsan .env'deki
+  # DATABASE_URL portunu 55432'ye çevirmen gerekir.
   postgres:
     image: postgres:16-alpine
     environment:

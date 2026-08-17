@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS receipt_line_item (
   line_no                  INT NOT NULL,
   raw_text                 TEXT NOT NULL,
   parsed_name              TEXT,
+  parsed_brand             TEXT,
   parsed_quantity          NUMERIC(10,3),
   parsed_unit              unit_kind,
   parsed_price             NUMERIC(10,2),
@@ -44,6 +45,8 @@ CREATE TABLE IF NOT EXISTS receipt_line_item (
   created_at               TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at               TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE receipt_line_item ADD COLUMN IF NOT EXISTS parsed_brand TEXT;
 
 -- ADD CONSTRAINT IF NOT EXISTS diye bir şey yok Postgres'te; migrate.js her
 -- dosyayı tekrar tekrar çalıştırılabilir (idempotent) varsaydığı için bu

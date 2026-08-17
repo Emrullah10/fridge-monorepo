@@ -53,6 +53,11 @@ const makeFakes = (overrides = {}) => {
     ...overrides.productRepo,
   };
 
+  const productCategoryRepo = {
+    findByKey: async (key) => (key ? { id: `category-${key}`, key } : null),
+    ...overrides.productCategoryRepo,
+  };
+
   const ocrPort = {
     extractText: async () => ({ rawText: 'fallback ocr text', provider: 'tesseract' }),
     ...overrides.ocrPort,
@@ -81,6 +86,7 @@ const makeFakes = (overrides = {}) => {
     receiptLineItemRepo,
     productAliasRepo,
     productRepo,
+    productCategoryRepo,
     ocrPort,
     receiptParserPort,
   };
