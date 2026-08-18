@@ -27,6 +27,10 @@ const makeHouseholdInviteRepository = ({ rawQuery }) => {
     updateStatus: async (id, status) => {
       await rawQuery('UPDATE household_invite SET status = $2 WHERE id = $1', [id, status]);
     },
+
+    deleteByInvitedBy: async (userId) => {
+      await rawQuery('DELETE FROM household_invite WHERE invited_by = $1', [userId]);
+    },
   };
 };
 

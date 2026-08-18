@@ -32,6 +32,11 @@ const makeHouseholdRepository = ({ rawQuery }) => {
       return rows.map(mapRow);
     },
 
+    findByCreatedBy: async (userId) => {
+      const { rows } = await rawQuery('SELECT * FROM household WHERE created_by = $1', [userId]);
+      return rows.map(mapRow);
+    },
+
     updateSettings: async (id, { receiptImageRetentionDays }) => {
       const { rows } = await rawQuery(
         `UPDATE household SET receipt_image_retention_days = $2, updated_at = now()
@@ -39,6 +44,19 @@ const makeHouseholdRepository = ({ rawQuery }) => {
         [id, receiptImageRetentionDays],
       );
       return mapRow(rows[0]);
+    },
+
+    transferOwnership: async (id, newOwnerUserId) => {
+      const { rows } = await rawQuery(
+        `UPDATE household SET created_by = $2, updated_at = now()
+         WHERE id = $1 RETURNING *`,
+        [id, newOwnerUserId],
+      );
+      return mapRow(rows[0]);
+    },
+
+    deleteById: async (id) => {
+      await rawQuery('DELETE FROM household WHERE id = $1', [id]);
     },
   };
 };

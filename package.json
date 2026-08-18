@@ -2,6 +2,9 @@
   "name": "fridge-monorepo",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=20.12"
+  },
   "workspaces": [
     "core/*",
     "services/*",
@@ -9,6 +12,7 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspace=services/fridge-api",
+    "start": "npm run start --workspace=services/fridge-api",
     "test": "node --test test/**/*.test.js core/*/test/**/*.test.js",
     "test:unit": "node --test core/*/test/unit/**/*.test.js",
     "test:integration": "node --test test/integration/**/*.test.js",

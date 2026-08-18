@@ -10,6 +10,13 @@ const readEnv = (env = process.env) => {
   const missing = REQUIRED_KEYS.filter((key) => !env[key]);
   if (isProduction) {
     missing.push(...REQUIRED_IN_PRODUCTION_KEYS.filter((key) => !env[key]));
+    // gemini-text sağlayıcısı key'siz sessizce boot ediyordu, her tarama
+    // runtime'da 400 ile patlıyordu. rule-based fallback key gerektirmiyor,
+    // bu yüzden sadece gemini-text seçiliyken zorunlu kılınıyor.
+    const parserProvider = env.PARSER_PROVIDER || 'gemini-text';
+    if (parserProvider === 'gemini-text' && !env.GEMINI_API_KEY) {
+      missing.push('GEMINI_API_KEY');
+    }
   }
   if (missing.length > 0) {
     throw new Error(`Missing required env vars: ${missing.join(', ')}`);

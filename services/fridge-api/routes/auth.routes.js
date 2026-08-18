@@ -1,12 +1,18 @@
 import { Router } from 'express';
 import { asyncHandler } from '@fridge/helper';
 import { ValidationError } from '@fridge/errors';
-import { rateLimiter } from '@fridge/middlewares';
+import { rateLimiter, requireAuth } from '@fridge/middlewares';
 
 // Brute-force koruması: aynı IP'den 15 dakikada en fazla 10 giriş denemesi.
 const loginRateLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 10 });
 
-const REFRESH_COOKIE_OPTS = { httpOnly: true, sameSite: 'lax', path: '/api/auth' };
+const REFRESH_COOKIE_OPTS = {
+  httpOnly: true,
+  sameSite: 'lax',
+  path: '/api/auth',
+  secure: process.env.NODE_ENV === 'production',
+  maxAge: 30 * 24 * 60 * 60 * 1000, // token-service.js REFRESH_TOKEN_TTL ile eşleşir
+};
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -79,6 +85,18 @@ const buildAuthRouter = ({ container }) => {
     if (refreshToken) {
       await useCases.logoutUser({ refreshToken });
     }
+    res.clearCookie('refresh_token', REFRESH_COOKIE_OPTS);
+    res.status(204).end();
+  }));
+
+  // Play Store hesap silme politikası: kullanıcı kimliğini şifreyle yeniden
+  // doğrular (çalıntı/unutulmuş oturumla yanlışlıkla silmeyi önler).
+  router.delete('/me', requireAuth(), asyncHandler(async (req, res) => {
+    const { password } = req.body ?? {};
+    if (typeof password !== 'string' || password.length === 0) {
+      throw new ValidationError('Şifre gerekli');
+    }
+    await useCases.deleteAccount({ userId: req.user.id, password });
     res.clearCookie('refresh_token', REFRESH_COOKIE_OPTS);
     res.status(204).end();
   }));

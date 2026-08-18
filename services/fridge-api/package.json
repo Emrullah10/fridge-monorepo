@@ -3,9 +3,12 @@
   "version": "1.0.0",
   "type": "module",
   "private": true,
+  "engines": {
+    "node": ">=20.12"
+  },
   "scripts": {
-    "dev": "node --env-file=../../.env --watch main.js",
-    "start": "node --env-file=../../.env main.js"
+    "dev": "node --watch main.js",
+    "start": "node main.js"
   },
   "dependencies": {
     "@fridge/config": "*",
@@ -13,9 +16,10 @@
     "@fridge/errors": "*",
     "@fridge/helper": "*",
     "@fridge/middlewares": "*",
-    "express": "^4.19.2",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "helmet": "^8.3.0",
     "multer": "^2.0.0"
   }
 }

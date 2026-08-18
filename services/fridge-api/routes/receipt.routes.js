@@ -1,11 +1,22 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { asyncHandler } from '@fridge/helper';
-import { requireAuth, requireHouseholdRole } from '@fridge/middlewares';
-import { NotFoundError } from '@fridge/errors';
+import { requireAuth, requireHouseholdRole, rateLimiter } from '@fridge/middlewares';
+import { NotFoundError, ValidationError } from '@fridge/errors';
 import { assertOwnedByHousehold } from './helpers/assert-owned-by-household.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
+const MAX_RAW_TEXT_LENGTH = 20000;
+
+// /scan-text her satırda parser'ı (Gemini API, ücretli) tetikliyor —
+// doğrulanmamış/sınırsız bırakılırsa hem 500 hatası hem sınırsız API
+// harcaması riski. dakikada 20 istek tek kullanıcı için cömert bir üst sınır.
+const scanTextRateLimiter = rateLimiter({
+  windowMs: 60 * 1000,
+  maxRequests: 20,
+  keyFn: (req) => req.user?.id ?? req.ip,
+});
 
 const buildReceiptRouter = ({ container }) => {
   const router = Router({ mergeParams: true });
@@ -28,14 +39,22 @@ const buildReceiptRouter = ({ container }) => {
     res.status(202).json({ scanId: scan.id, status: scan.status });
   }));
 
-  router.post('/scan-text', asyncHandler(async (req, res) => {
+  router.post('/scan-text', scanTextRateLimiter, asyncHandler(async (req, res) => {
+    const { rawText } = req.body ?? {};
+    if (typeof rawText !== 'string' || rawText.trim().length === 0) {
+      throw new ValidationError('rawText gerekli');
+    }
+    if (rawText.length > MAX_RAW_TEXT_LENGTH) {
+      throw new ValidationError(`rawText ${MAX_RAW_TEXT_LENGTH} karakteri aşamaz`);
+    }
+
     const scan = await useCases.uploadReceiptScanText({
       householdId: req.params.householdId,
       uploadedBy: req.user.id,
     });
     // Ham metni doğrudan işlenmiş kabul ediyoruz; kademe 1 atlandığı için
     // processReceiptScan'e rawText geçirilir (ocrPort mlkit-passthrough olmalı).
-    await useCases.processReceiptScan({ scanId: scan.id, rawText: req.body.rawText });
+    await useCases.processReceiptScan({ scanId: scan.id, rawText });
     res.status(202).json({ scanId: scan.id, status: 'processing' });
   }));
 

@@ -27,6 +27,10 @@ const makeUserRepository = ({ rawQuery }) => {
       );
       return mapRow(rows[0]);
     },
+
+    deleteById: async (id) => {
+      await rawQuery('DELETE FROM app_user WHERE id = $1', [id]);
+    },
   };
 };
 

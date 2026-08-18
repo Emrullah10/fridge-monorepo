@@ -25,6 +25,7 @@ import { makeRegisterUser } from '@fridge/core/src/application/use-cases/auth/re
 import { makeLoginUser } from '@fridge/core/src/application/use-cases/auth/login-user.use-case.js';
 import { makeRefreshSession } from '@fridge/core/src/application/use-cases/auth/refresh-session.use-case.js';
 import { makeLogoutUser } from '@fridge/core/src/application/use-cases/auth/logout-user.use-case.js';
+import { makeDeleteAccount } from '@fridge/core/src/application/use-cases/auth/delete-account.use-case.js';
 
 import { makeCreateHousehold } from '@fridge/core/src/application/use-cases/household/create-household.use-case.js';
 import { makeCreateInvite } from '@fridge/core/src/application/use-cases/household/create-invite.use-case.js';
@@ -97,6 +98,14 @@ const buildContainer = (config) => {
     loginUser: makeLoginUser({ userRepo: repos.userRepo, sessionRepo: repos.sessionRepo, tokenService }),
     refreshSession: makeRefreshSession({ sessionRepo: repos.sessionRepo, tokenService }),
     logoutUser: makeLogoutUser({ sessionRepo: repos.sessionRepo, tokenService }),
+    deleteAccount: makeDeleteAccount({
+      datasource,
+      userRepo: repos.userRepo,
+      makeUserRepo: makeUserRepository,
+      makeHouseholdRepo: makeHouseholdRepository,
+      makeHouseholdMemberRepo: makeHouseholdMemberRepository,
+      makeHouseholdInviteRepo: makeHouseholdInviteRepository,
+    }),
 
     createHousehold: makeCreateHousehold({
       householdRepo: repos.householdRepo,
