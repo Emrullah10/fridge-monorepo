@@ -29,7 +29,7 @@ const CATEGORY_TO_STORAGE_KIND = {
 
 // db-schemas/seed.js'teki 17 kategori anahtarının tam listesi — AI'ın
 // kategori tahminini doğrulamak için tek doğruluk kaynağı (bkz.
-// ollama-text.adapter.js RESPONSE_SCHEMA enum'u).
+// line-item-finalizer.js RESPONSE_SCHEMA enum'u).
 const ALL_CATEGORY_KEYS = [
   'dairy', 'dairy.milk', 'dairy.cheese', 'dairy.yogurt',
   'produce', 'meat', 'bakery',

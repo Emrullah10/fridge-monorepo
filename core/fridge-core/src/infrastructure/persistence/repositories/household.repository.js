@@ -1,16 +1,17 @@
 const mapRow = (row) => row && ({
   id: row.id,
   name: row.name,
+  kind: row.kind,
   createdBy: row.created_by,
   receiptImageRetentionDays: row.receipt_image_retention_days,
 });
 
 const makeHouseholdRepository = ({ rawQuery }) => {
   return {
-    create: async ({ name, createdBy }) => {
+    create: async ({ name, kind = 'home', createdBy }) => {
       const { rows } = await rawQuery(
-        `INSERT INTO household (name, created_by) VALUES ($1, $2) RETURNING *`,
-        [name, createdBy],
+        `INSERT INTO household (name, kind, created_by) VALUES ($1, $2, $3) RETURNING *`,
+        [name, kind, createdBy],
       );
       return mapRow(rows[0]);
     },

@@ -22,9 +22,9 @@ const readEnv = (env = process.env) => {
     jwtAccessSecret: env.JWT_ACCESS_SECRET || 'dev-access-secret',
     jwtRefreshSecret: env.JWT_REFRESH_SECRET || 'dev-refresh-secret',
     uploadsDir: env.UPLOADS_DIR || 'uploads',
-    parserProvider: env.PARSER_PROVIDER || 'ollama-text',
-    ollamaBaseUrl: env.OLLAMA_BASE_URL || 'http://localhost:11434',
-    ollamaModel: env.OLLAMA_MODEL || 'llama3.1:8b',
+    parserProvider: env.PARSER_PROVIDER || 'gemini-text',
+    geminiApiKey: env.GEMINI_API_KEY,
+    geminiModel: env.GEMINI_MODEL || 'gemini-2.5-flash',
     scanWorkerIntervalMs: Number(env.SCAN_WORKER_INTERVAL_MS || 5000),
     retentionCleanupIntervalMs: Number(env.RETENTION_CLEANUP_INTERVAL_MS || 24 * 60 * 60 * 1000),
   };

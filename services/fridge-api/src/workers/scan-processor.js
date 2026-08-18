@@ -35,7 +35,7 @@ const startScanProcessor = ({ container, intervalMs }) => {
   };
 
   // setInterval yerine self-scheduling setTimeout: bir tick'in işi
-  // intervalMs'den uzun sürerse (Ollama/Tesseract yavaşsa) önceki tick
+  // intervalMs'den uzun sürerse (AI parser/Tesseract yavaşsa) önceki tick
   // bitmeden yenisi başlamaz — kuyrukta çok fiş varsa sınırsız paralel
   // işlem doğup belleği patlatma riski böyle önlenir.
   const scheduleNext = () => {

@@ -9,7 +9,11 @@ const buildHouseholdRouter = ({ container }) => {
   router.use(requireAuth());
 
   router.post('/', asyncHandler(async (req, res) => {
-    const household = await useCases.createHousehold({ name: req.body.name, ownerUserId: req.user.id });
+    const household = await useCases.createHousehold({
+      name: req.body.name,
+      kind: req.body.kind,
+      ownerUserId: req.user.id,
+    });
     res.status(201).json({ household });
   }));
 

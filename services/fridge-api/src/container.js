@@ -2,7 +2,7 @@ import { makeDatasource } from '@fridge/core/src/infrastructure/persistence/data
 import { makeTokenService } from '@fridge/core/src/infrastructure/token-service.js';
 import { makeLocalDiskStorage } from '@fridge/core/src/infrastructure/storage/local-disk.adapter.js';
 import { makeTesseractOcr } from '@fridge/core/src/infrastructure/ocr/tesseract.adapter.js';
-import { makeOllamaTextParser } from '@fridge/core/src/infrastructure/parser/ollama-text.adapter.js';
+import { makeGeminiTextParser } from '@fridge/core/src/infrastructure/parser/gemini-text.adapter.js';
 import { makeRuleBasedParser } from '@fridge/core/src/infrastructure/parser/rule-based.adapter.js';
 
 import { makeUserRepository } from '@fridge/core/src/infrastructure/persistence/repositories/user.repository.js';
@@ -72,7 +72,7 @@ const buildContainer = (config) => {
 
   const receiptParserPort = config.parserProvider === 'rule-based'
     ? makeRuleBasedParser()
-    : makeOllamaTextParser({ baseUrl: config.ollamaBaseUrl, model: config.ollamaModel });
+    : makeGeminiTextParser({ apiKey: config.geminiApiKey, model: config.geminiModel });
 
   const repos = {
     userRepo: makeUserRepository({ rawQuery }),

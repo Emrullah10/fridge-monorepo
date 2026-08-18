@@ -34,4 +34,20 @@ describe('findBrandInText', () => {
     assert.equal(findBrandInText('EKMEK TAM BUGDAY'), null);
     assert.equal(findBrandInText('AYRAN'), null);
   });
+
+  test('kısa marka kelime sınırı olmadan başka kelimenin içinde eşleşmez — regresyon kilidi', () => {
+    // "Sek" -> ŞEKER/EKSEK, "Tat" -> PATATES/SALATA/TATLI içinde yanlışlıkla eşleşiyordu
+    assert.equal(findBrandInText('PATATES 1KG'), null);
+    assert.equal(findBrandInText('TOZ SEKER 1KG'), null);
+    assert.equal(findBrandInText('MEZE RUS SALATASI'), null);
+  });
+
+  test('kısa marka tam token olarak geçince hâlâ bulunur', () => {
+    assert.equal(findBrandInText('SEK SUT 1LT'), 'Sek');
+    assert.equal(findBrandInText('TAT SALCA 700G'), 'Tat');
+  });
+
+  test('uzunluğa göre öncelik: daha spesifik marka kazanır', () => {
+    assert.equal(findBrandInText('PINAR ET SUCUK'), 'Pınar Et');
+  });
 });

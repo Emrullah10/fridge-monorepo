@@ -19,13 +19,5 @@ services:
       timeout: 5s
       retries: 10
 
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - fridge_ollama_data:/root/.ollama
-
 volumes:
   fridge_postgres_data:
-  fridge_ollama_data:

@@ -1,6 +1,6 @@
 import { createWorker } from 'tesseract.js';
 
-// Kademe 1: belge tarama. Deterministik, bedava, Ollama'ya bağımlı değil.
+// Kademe 1: belge tarama. Deterministik, bedava, AI parser sağlayıcısına bağımlı değil.
 const makeTesseractOcr = ({ storagePort }) => {
   return {
     extractText: async ({ imagePath }) => {

@@ -6,6 +6,7 @@ const TURKISH_BRANDS = [
   // Süt / süt ürünleri
   'Sütaş', 'Pınar', 'İçim', 'Sek', 'Danone', 'Activia', 'Milkten', 'Eker',
   'Muratbey', 'Yörsan', 'Ekol', 'Enka', 'Akhisar', 'Tikveşli', 'Sarıyer',
+  'Birşah',
   // Et / şarküteri
   'Namet', 'Aytaç', 'Maret', 'Banvit', 'CP', 'Erpiliç', 'Beypiliç', 'Şenpiliç',
   'Bolulu', 'Pınar Et',
@@ -39,7 +40,23 @@ const squash = (text) =>
     .replace(/[İI]/g, 'I')
     .replace(/[^A-Z0-9ĞÜŞÖÇ]/g, '');
 
-const SQUASHED_BRANDS = TURKISH_BRANDS.map((brand) => ({ brand, squashed: squash(brand) }));
+// Uzunluğa göre azalan sırayla: alt dize taramasında en spesifik marka önce
+// denensin ("Pınar Et", "Pınar"dan; "Coca-Cola", kısa bir eşleşmeden önce).
+const SQUASHED_BRANDS = TURKISH_BRANDS
+  .map((brand) => ({ brand, squashed: squash(brand) }))
+  .sort((a, b) => b.squashed.length - a.squashed.length);
+
+// Kısa markalarda (<5 karakter) çıplak alt dize eşleşmesi çok fazla yanlış
+// pozitif üretiyor ("Sek" -> ŞEKER/EKSEK, "CP" -> herhangi "...CP...", "Tat"
+// -> PATATES/SALATA/TATLI). Bu markalar için ham metni token'lara bölüp tam
+// token eşitliği arıyoruz.
+const SHORT_BRAND_LENGTH_THRESHOLD = 5;
+
+const tokenizeSquashed = (rawText) =>
+  (rawText ?? '')
+    .split(/[^A-Za-zİıĞğÜüŞşÖöÇç0-9]+/)
+    .map((token) => squash(token))
+    .filter(Boolean);
 
 // Basit Levenshtein — OCR bozukluğuyla gelen "KIZTILAY" gibi varyantları
 // gerçek markaya ("KIZILAY") bağlamak için. Marka listesi küçük olduğundan
@@ -66,10 +83,27 @@ const findBrandInText = (rawText) => {
   const squashedText = squash(rawText);
   if (!squashedText) return null;
 
+  const tokens = tokenizeSquashed(rawText);
+
   for (const { brand, squashed } of SQUASHED_BRANDS) {
-    if (squashed.length >= 2 && squashedText.includes(squashed)) {
-      return brand;
+    if (squashed.length < 2) continue;
+
+    if (squashed.length < SHORT_BRAND_LENGTH_THRESHOLD) {
+      // Kısa marka: sadece tam token eşleşmesi kabul edilir.
+      if (tokens.includes(squashed)) return brand;
+      continue;
     }
+
+    // Uzun marka: alt dize eşleşmesi kabul edilir, ama eşleşmenin hemen
+    // öncesinde bir harf varsa (marka başka bir kelimenin ortasından
+    // çıkıyorsa) reddedilir. Rakamla başlayan markalar ("7Days") ölçü
+    // birimine bitişik gelebildiği için ("55G7DAYS") bu kontrolden muaf.
+    const index = squashedText.indexOf(squashed);
+    if (index === -1) continue;
+    const precedingChar = index > 0 ? squashedText[index - 1] : '';
+    const brandStartsWithDigit = /^[0-9]/.test(squashed);
+    if (!brandStartsWithDigit && precedingChar && /[A-ZĞÜŞÖÇ]/.test(precedingChar)) continue;
+    return brand;
   }
 
   // Bulanık arama: OCR'da ayraçlar (boşluk/nokta) da kaybolabildiği için

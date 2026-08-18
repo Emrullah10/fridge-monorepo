@@ -1,27 +1,30 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { finalizeItem, resolveBrand, buildFinalName } from '../../../src/infrastructure/parser/ollama-text.adapter.js';
+import { finalizeItem, resolveBrand, buildFinalName } from '../../../src/infrastructure/parser/line-item-finalizer.js';
 
 describe('resolveBrand', () => {
-  test('sözlük otoriter — modelin ters yaptığı marka/ürün-türü kararını ezer', () => {
-    // Gerçek başarısızlık: model "Kruvasan"ı marka sandı, oysa 7Days marka.
-    const brand = resolveBrand({ rawText: 'KRUVASAN 55G7DAYS', parsedBrand: 'Kruvasan' });
+  // parsedBrand artık AI şemasında yok (performans: token azaltma, bkz.
+  // process-receipt-scan.use-case.js dosya başı yorumu) — resolveBrand
+  // tamamen sözlüğe (turkish-brands.js) dayanıyor, item.parsedBrand'a hiç
+  // bakmıyor. Bu testler o kasıtlı davranışı kilitliyor.
+  test('sözlükteki marka bulunur — modelin katkısı olmadan', () => {
+    // Gerçek başarısızlık zamanında: model "Kruvasan"ı marka sanmıştı, oysa
+    // 7Days marka. Artık modele hiç sorulmuyor, sözlük tek karar mercii.
+    const brand = resolveBrand({ rawText: 'KRUVASAN 55G7DAYS' });
     assert.equal(brand, '7Days');
   });
 
-  test('halüsinasyon kalkanı — ham metinde hiç geçmeyen marka atılır', () => {
-    const brand = resolveBrand({ rawText: 'EKMEK TAM BUGDAY', parsedBrand: 'Uydurma Marka' });
+  test('sözlükte olmayan marka null döner — artık model fallback yok', () => {
+    // Önceki turda model çıktısına bakan bir fallback vardı; kaldırıldı.
+    // Kapsanmayan markalar sözlüğe eklenerek (bkz. turkish-brands.js) telafi
+    // ediliyor, "Zorbaş" gibi listede olmayanlar bilinçli olarak null kalır.
+    const brand = resolveBrand({ rawText: 'ZORBAŞ SÜT 1LT' });
     assert.equal(brand, null);
   });
 
-  test('sözlükte olmayan ama ham metinde gerçekten geçen marka korunur', () => {
-    const brand = resolveBrand({ rawText: 'ZORBAŞ SÜT 1LT', parsedBrand: 'Zorbaş' });
-    assert.equal(brand, 'Zorbaş');
-  });
-
   test('marka yoksa null döner', () => {
-    assert.equal(resolveBrand({ rawText: 'AYRAN', parsedBrand: null }), null);
+    assert.equal(resolveBrand({ rawText: 'AYRAN' }), null);
   });
 });
 

@@ -1,6 +1,10 @@
-import { normalizeOcrArtifacts, stripHomoglyphs } from './text-normalize.js';
+import { stripHomoglyphs } from './text-normalize.js';
 import { findBrandInText, squash } from './turkish-brands.js';
 import { ALL_CATEGORY_KEYS } from '../../domain/storage-suggestion.js';
+
+// Modelden (Ollama/Gemini fark etmez) bağımsız, saf deterministik
+// post-processing katmanı. Fiş ayrıştırma sağlayıcısı ne olursa olsun aynı
+// kurallar uygulanmalı — bu dosya provider adaptörleri arasında paylaşılır.
 
 const RESPONSE_SCHEMA = {
   type: 'object',
@@ -15,7 +19,6 @@ const RESPONSE_SCHEMA = {
         properties: {
           rawText: { type: 'string' },
           parsedName: { type: 'string' },
-          parsedBrand: { type: ['string', 'null'] },
           parsedCategory: { type: ['string', 'null'], enum: [...ALL_CATEGORY_KEYS, null] },
           parsedQuantity: { type: 'number' },
           parsedUnit: { type: 'string', enum: ['piece', 'gram', 'kilogram', 'milliliter', 'liter', 'package'] },
@@ -40,33 +43,29 @@ KURALLAR:
    - "1KG", "2 KG" -> parsedUnit "kilogram", parsedQuantity = o sayı
    - Sadece "KG" yazıyorsa (miktar belirsiz) -> parsedUnit "kilogram", parsedQuantity = 1
    - Ölçü yoksa -> parsedUnit "piece", parsedQuantity = 1
-3. parsedBrand: satırda bir marka/üretici adı varsa AYNEN KORU, ASLA ÇEVİRME veya
-   ATMA. Marka yoksa veya emin değilsen null bırak.
+3. parsedName: kısaltmayı açık ve DOĞRU YAZILMIŞ Türkçe isme çevir; satırda bir
+   marka/üretici adı varsa (özel isim, genelde İngilizce/yabancı köklü ya da
+   tescilli görünür: "7DAYS", "MİLKTEN", "CP", "TODAY" gibi) AYNEN KORUYUP
+   "Marka Ürün" biçiminde başa ekle — satırdaki sırası ne olursa olsun.
    MARKA İLE ÜRÜN TÜRÜNÜ KARIŞTIRMA: "kruvasan", "labne", "waffle", "kaymak",
    "sosis", "yoğurt", "ekmek" gibi kelimeler ÜRÜN TÜRÜDÜR, marka değildir.
-   Marka genelde bir FİRMA/MARKA ADIDIR (özel isim, çoğu zaman İngilizce/yabancı
-   köklü ya da tescilli görünür): "7DAYS", "MİLKTEN", "CP", "TODAY" gibi.
-   Örnek: "DMS SUT 1LT" -> parsedBrand "DMS" (DMS marka, süt ürün türü),
-   "MİLKTEN 300 G LABNE" -> parsedBrand "Milkten" (Milkten marka, labne ürün türü),
-   "KRUVASAN 55G7DAYS" -> parsedBrand "7Days" (7Days marka, kruvasan ürün türü —
-   DİKKAT: burada marka satırın SONUNDA, ürün türü BAŞINDA yazıyor),
-   "COCA COLA 2.5LT" -> parsedBrand "Coca-Cola", "EKMEK TAM BUGDAY" -> parsedBrand
-   null (marka yok, sadece ürün türü var).
-4. parsedName: kısaltmayı açık ve DOĞRU YAZILMIŞ Türkçe isme çevir; marka varsa
-   "Marka Ürün" biçiminde başa ekle (marka + ürün türü, satırdaki sıraları ne
-   olursa olsun). Ölçüyü isme tekrar ekleme, o zaten birimde var.
+   Ölçüyü isme tekrar ekleme, o zaten birimde var.
    Örnek: "DMS SUT 1LT" -> "DMS Süt", "MİLKTEN 300 G LABNE" -> "Milkten Labne",
-   "KRUVASAN 55G7DAYS" -> "7Days Kruvasan", "EKMEK TAM BUGDAY" -> "Tam Buğday Ekmeği".
-5. parsedCategory: ürünün kategorisini şu listeden seç (TAM OLARAK bu
+   "KRUVASAN 55G7DAYS" -> "7Days Kruvasan" (DİKKAT: marka satırın SONUNDA,
+   ürün türü BAŞINDA yazıyor), "EKMEK TAM BUGDAY" -> "Tam Buğday Ekmeği".
+4. parsedCategory: ürünün kategorisini şu listeden seç (TAM OLARAK bu
    anahtarlardan biri): ${ALL_CATEGORY_KEYS.join(', ')}.
    Emin değilsen "other" değil, null bırak — yanlış kategori vermektense
    boş bırakmak daha iyi.
    Örnek: "Milkten Kaymak" -> "dairy", "Today Waffle" -> "bakery",
    "7Days Kruvasan" -> "bakery", "CP Sosis" -> "meat", "Ayran" -> "dairy".
-6. merchantName: fişin en üstündeki mağaza/market adını yaz (örn. "MIGROS TICARET A.S.").
-7. Ürün OLMAYAN satırları atla: TOPLAM, TOPKDV, KDV, TARIH, SAAT, FIS NO, KASIYER,
-   TESEKKURLER, ARA TOPLAM, NAKIT, KREDI KARTI gibi satırlar ürün değildir.
-8. parsedPrice: satırdaki fiyat (virgül ondalık ayracıdır: "32,50" -> 32.50).
+5. merchantName: fişin en üstündeki mağaza/market adını yaz (örn. "MIGROS TICARET A.S.").
+6. Ürün OLMAYAN satırları atla: TOPLAM, TOPKDV, KDV, TARIH, SAAT, FIS NO, KASIYER,
+   TESEKKURLER, ARA TOPLAM, NAKIT, KREDI KARTI, POS, EFT, BANKA, SATIS,
+   BELGE, MERSIS gibi satırlar ürün değildir. Sadece rakam/yüzde/tutardan
+   oluşan satırlar da ürün değildir: "*9,90", "82,55", "%08" gibi tek
+   başına fiyat/oran satırlarını asla ürün olarak döndürme.
+7. parsedPrice: satırdaki fiyat (virgül ondalık ayracıdır: "32,50" -> 32.50).
 
 Sadece JSON döndür, açıklama ekleme.`;
 
@@ -120,17 +119,12 @@ const stripMeasurementFromName = (name) =>
 // Marka çözümü iki kademeli: önce sözlük (deterministik, otoriter — modelin
 // kararını ezer), sonra modelin kendi tahmini ama halüsinasyon kalkanıyla:
 // model bir marka uydurduysa ve o marka ham metinde hiç geçmiyorsa atılır.
-const resolveBrand = (item) => {
-  const dictBrand = findBrandInText(item.rawText);
-  if (dictBrand) return dictBrand;
-
-  const modelBrand = item.parsedBrand?.trim();
-  if (!modelBrand) return null;
-
-  const cleanedBrand = stripHomoglyphs(modelBrand);
-  const brandAppearsInText = squash(item.rawText).includes(squash(cleanedBrand));
-  return brandAppearsInText ? cleanedBrand : null;
-};
+// parsedBrand artık şemada yok (performans: model daha az token üretiyor) —
+// marka çözümü tamamen sözlüğe (turkish-brands.js) dayanıyor. Sözlükte
+// olmayan bir marka artık hiç yakalanmaz; bu durumda model yine de prompt
+// kural 3 gereği markayı parsedName'e gömmeye çalışır (buildFinalName buna
+// dokunmaz).
+const resolveBrand = (item) => findBrandInText(item.rawText);
 
 // Marka isimde HİÇ geçmiyorsa başa ekler ("Marka Ürün" biçimi, kural 4).
 // "İçeriyor mu" kontrolü (sadece "başta mı" değil) kasıtlı: model bazen
@@ -166,51 +160,15 @@ const finalizeItem = (item) => {
   };
 };
 
-// Kademe 2: ham metin -> yapılandırılmış satır kalemleri. Vision değil, metin modeli.
-const makeOllamaTextParser = ({ baseUrl, model, fetchFn = fetch }) => {
-  return {
-    parse: async ({ rawText }) => {
-      // Modele göndermeden önce sık OCR kod sayfası kaymalarını düzelt
-      // (İ/Ì, Ğ/à karışması) — model daha temiz girdi görsün.
-      const cleanedRawText = normalizeOcrArtifacts(rawText);
-
-      const response = await fetchFn(`${baseUrl}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model,
-          format: RESPONSE_SCHEMA,
-          stream: false,
-          // Fiş ayrıştırma yaratıcılık değil kural takibi istiyor; düşük
-          // temperature modelin miktar/birim uydurmasını belirgin azaltıyor.
-          options: { temperature: 0.1 },
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: cleanedRawText },
-          ],
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Ollama request failed: ${response.status} ${response.statusText}`);
-      }
-
-      const body = await response.json();
-      const parsed = JSON.parse(body.message.content);
-
-      return {
-        lineItems: parsed.lineItems.map((item, index) => ({
-          lineNo: index + 1,
-          ...finalizeItem(item),
-        })),
-        merchantName: parsed.merchantName ?? null,
-        purchasedAt: parsed.purchasedAt ?? null,
-        totalAmount: parsed.totalAmount ?? extractTotalAmount(cleanedRawText),
-        provider: 'ollama-text',
-        model,
-      };
-    },
-  };
+export {
+  RESPONSE_SCHEMA,
+  SYSTEM_PROMPT,
+  finalizeItem,
+  resolveBrand,
+  buildFinalName,
+  resolveCategory,
+  extractTotalAmount,
+  // Alias ön-eşleştirmesinde (process-receipt-scan) AI'a hiç gitmeyen
+  // satırların miktar/birimini çıkarmak için de kullanılıyor.
+  normalizeMeasurement,
 };
-
-export { makeOllamaTextParser, RESPONSE_SCHEMA, finalizeItem, resolveBrand, buildFinalName, resolveCategory };

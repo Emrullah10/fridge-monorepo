@@ -35,6 +35,17 @@ const makeProductRepository = ({ rawQuery }) => {
       return mapRow(rows[0]);
     },
 
+    // AI'ın uydurduğu bir isim kullanıcı tarafından düzeltildiğinde
+    // kalıcılaşır — aksi halde sonraki fişte alias eşleşip eski yanlış ismi
+    // geri getirir (bkz. correct-line-item).
+    updateCanonicalName: async (id, canonicalName) => {
+      const { rows } = await rawQuery(
+        'UPDATE product SET canonical_name = $2 WHERE id = $1 RETURNING *',
+        [id, canonicalName],
+      );
+      return mapRow(rows[0]);
+    },
+
     // Household'a özel + global ürünleri birlikte arar. Ürün seçici (fiş
     // düzeltme, manuel envanter ekleme) bunu kullanır. Boş query tüm
     // ürünleri en yeni önce döner — kullanıcı liste halinde de görebilir.

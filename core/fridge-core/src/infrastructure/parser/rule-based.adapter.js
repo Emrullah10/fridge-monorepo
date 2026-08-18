@@ -1,4 +1,4 @@
-// Ollama kapalıyken kullanılan basit fallback: her satırı ham haliyle,
+// AI parser (Gemini) erişilemezken kullanılan basit fallback: her satırı ham haliyle,
 // miktar/birim tahmini yapmadan tek kalem olarak döner. Kullanıcı elle düzeltir.
 const makeRuleBasedParser = () => {
   return {

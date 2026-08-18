@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS app_user (
 CREATE TABLE IF NOT EXISTS household (
   id                            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name                          TEXT NOT NULL,
+  kind                          household_kind NOT NULL DEFAULT 'home',
   created_by                    UUID NOT NULL REFERENCES app_user(id),
   receipt_image_retention_days  INT DEFAULT 365,
   created_at                    TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -44,3 +45,8 @@ CREATE TABLE IF NOT EXISTS user_session (
   expires_at        TIMESTAMPTZ NOT NULL,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Var olan kurulumlar için: household.kind sonradan eklendi (2026-08-18).
+-- migrate.js tracking tablosu kullanmadığı için bu blok her çalıştırmada
+-- yeniden koşar; IF NOT EXISTS sayesinde no-op olur.
+ALTER TABLE household ADD COLUMN IF NOT EXISTS kind household_kind NOT NULL DEFAULT 'home';
