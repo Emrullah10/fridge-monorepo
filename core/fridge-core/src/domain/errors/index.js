@@ -42,6 +42,19 @@ class HouseholdNotFoundError extends NotFoundError {
   }
 }
 
+class LocationNotEmptyError extends ConflictError {
+  constructor(itemCount) {
+    super('Bu bölümde ürün var, önce ürünleri başka bir bölüme taşı veya sil');
+    this.itemCount = itemCount;
+  }
+}
+
+class LastLocationError extends ValidationError {
+  constructor() {
+    super('Bir alanda en az bir bölüm olmalı');
+  }
+}
+
 export {
   EmailAlreadyRegisteredError,
   InvalidCredentialsError,
@@ -50,4 +63,6 @@ export {
   InsufficientStockError,
   ReceiptNotReadyError,
   HouseholdNotFoundError,
+  LocationNotEmptyError,
+  LastLocationError,
 };

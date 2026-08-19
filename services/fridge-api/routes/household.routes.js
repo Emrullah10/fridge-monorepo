@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { asyncHandler } from '@fridge/helper';
 import { requireAuth, requireHouseholdRole } from '@fridge/middlewares';
+import { translateDomainError } from '@fridge/errors';
+import { LocationNotEmptyError } from '@fridge/core/src/domain/errors/index.js';
 
 const buildHouseholdRouter = ({ container }) => {
   const router = Router();
@@ -29,6 +31,60 @@ const buildHouseholdRouter = ({ container }) => {
       const locations = await repos.storageLocationRepo.listByHousehold(req.params.householdId);
       res.json({ locations });
     }),
+  );
+
+  router.post(
+    '/:householdId/locations',
+    requireHouseholdRole({ householdMemberRepo: repos.householdMemberRepo, minRole: 'member' }),
+    asyncHandler(async (req, res) => {
+      const location = await useCases.createStorageLocation({
+        householdId: req.params.householdId,
+        name: req.body.name,
+        kind: req.body.kind,
+        icon: req.body.icon,
+        sortOrder: req.body.sortOrder,
+      });
+      res.status(201).json({ location });
+    }),
+  );
+
+  router.patch(
+    '/:householdId/locations/:locationId',
+    requireHouseholdRole({ householdMemberRepo: repos.householdMemberRepo, minRole: 'member' }),
+    asyncHandler(async (req, res) => {
+      const { location, warnings } = await useCases.updateStorageLocation({
+        locationId: req.params.locationId,
+        householdId: req.params.householdId,
+        name: req.body.name,
+        kind: req.body.kind,
+        icon: req.body.icon,
+        sortOrder: req.body.sortOrder,
+      });
+      res.json({ location, warnings });
+    }),
+  );
+
+  router.delete(
+    '/:householdId/locations/:locationId',
+    requireHouseholdRole({ householdMemberRepo: repos.householdMemberRepo, minRole: 'admin' }),
+    async (req, res, next) => {
+      try {
+        await useCases.deleteStorageLocation({
+          locationId: req.params.locationId,
+          householdId: req.params.householdId,
+          strategy: req.query.strategy,
+          targetLocationId: req.query.targetLocationId,
+        });
+        res.status(204).end();
+      } catch (error) {
+        if (error instanceof LocationNotEmptyError) {
+          const { httpStatus, body } = translateDomainError(error);
+          res.status(httpStatus).json({ ...body, itemCount: error.itemCount });
+          return;
+        }
+        next(error);
+      }
+    },
   );
 
   router.post(

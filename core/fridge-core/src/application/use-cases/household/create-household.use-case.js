@@ -1,6 +1,4 @@
-// household.kind ile aynı enum (db-schemas/00-extensions-enums.sql). Bilinmeyen
-// bir değer DB'de enum hatasına yol açacağı için burada 'other'a düşürülür.
-const HOUSEHOLD_KINDS = ['home', 'office', 'summerhouse', 'other'];
+import { HOUSEHOLD_KINDS } from '../../../domain/storage-kinds.js';
 
 const DEFAULT_LOCATIONS = [
   { name: 'Buzdolabı', kind: 'fridge', sortOrder: 0 },
