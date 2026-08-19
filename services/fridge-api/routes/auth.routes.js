@@ -46,7 +46,7 @@ const isMobileClient = (req) => req.headers['x-client-type'] === 'mobile';
 
 const buildAuthRouter = ({ container }) => {
   const router = Router();
-  const { useCases } = container;
+  const { useCases, repos } = container;
 
   router.post('/register', asyncHandler(async (req, res) => {
     const { email, password, displayName, locale } = req.body ?? {};
@@ -84,6 +84,15 @@ const buildAuthRouter = ({ container }) => {
     const refreshToken = isMobileClient(req) ? req.body?.refreshToken : req.cookies?.refresh_token;
     if (refreshToken) {
       await useCases.logoutUser({ refreshToken });
+    }
+    // Çıkış yapan cihazın push token'ı silinmezse, aynı cihazda başka bir
+    // kullanıcı giriş yaptığında (paylaşılan cihaz) eski kullanıcı hâlâ
+    // bildirim alabilir — device-token upsert'i user_id'yi devretse de bu
+    // gecikme kadar bir sızıntı penceresi kalır. userId'ye scope'lamıyoruz
+    // (refresh token süresi dolmuş olabilir, req.user set olmayabilir);
+    // token zaten bu isteği yapan cihazın kendi bildirdiği değer.
+    if (typeof req.body?.deviceToken === 'string' && req.body.deviceToken.length > 0) {
+      await repos.deviceTokenRepo.deleteByTokens([req.body.deviceToken]);
     }
     res.clearCookie('refresh_token', REFRESH_COOKIE_OPTS);
     res.status(204).end();

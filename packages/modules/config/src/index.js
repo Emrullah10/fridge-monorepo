@@ -34,6 +34,12 @@ const readEnv = (env = process.env) => {
     geminiModel: env.GEMINI_MODEL || 'gemini-2.5-flash',
     scanWorkerIntervalMs: Number(env.SCAN_WORKER_INTERVAL_MS || 5000),
     retentionCleanupIntervalMs: Number(env.RETENTION_CLEANUP_INTERVAL_MS || 24 * 60 * 60 * 1000),
+    // FCM_ENABLED=true olsa bile kimlik bilgisi eksikse container no-op
+    // adaptöre düşer — push'un yokluğu hiçbir isteği asla 500'e düşürmemeli.
+    fcmEnabled: env.FCM_ENABLED === 'true',
+    fcmServiceAccountPath: env.FCM_SERVICE_ACCOUNT_PATH,
+    fcmServiceAccountBase64: env.FCM_SERVICE_ACCOUNT_BASE64,
+    fcmProjectId: env.FCM_PROJECT_ID,
   };
 };
 

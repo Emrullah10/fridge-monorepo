@@ -1,9 +1,12 @@
+import { readFileSync } from 'node:fs';
 import { makeDatasource } from '@fridge/core/src/infrastructure/persistence/datasource.js';
 import { makeTokenService } from '@fridge/core/src/infrastructure/token-service.js';
 import { makeLocalDiskStorage } from '@fridge/core/src/infrastructure/storage/local-disk.adapter.js';
 import { makeTesseractOcr } from '@fridge/core/src/infrastructure/ocr/tesseract.adapter.js';
 import { makeGeminiTextParser } from '@fridge/core/src/infrastructure/parser/gemini-text.adapter.js';
 import { makeRuleBasedParser } from '@fridge/core/src/infrastructure/parser/rule-based.adapter.js';
+import { makeFcmNotifier } from '@fridge/core/src/infrastructure/notification/fcm.adapter.js';
+import { makeNoopNotifier } from '@fridge/core/src/infrastructure/notification/noop.adapter.js';
 
 import { makeUserRepository } from '@fridge/core/src/infrastructure/persistence/repositories/user.repository.js';
 import { makeSessionRepository } from '@fridge/core/src/infrastructure/persistence/repositories/session.repository.js';
@@ -20,6 +23,9 @@ import { makeReceiptScanRepository } from '@fridge/core/src/infrastructure/persi
 import { makeReceiptLineItemRepository } from '@fridge/core/src/infrastructure/persistence/repositories/receipt-line-item.repository.js';
 import { makeRecipeRepository } from '@fridge/core/src/infrastructure/persistence/repositories/recipe.repository.js';
 import { makeRecipeCookLogRepository } from '@fridge/core/src/infrastructure/persistence/repositories/recipe-cook-log.repository.js';
+import { makeDeviceTokenRepository } from '@fridge/core/src/infrastructure/persistence/repositories/device-token.repository.js';
+import { makeNotificationRepository } from '@fridge/core/src/infrastructure/persistence/repositories/notification.repository.js';
+import { makeNotificationPreferenceRepository } from '@fridge/core/src/infrastructure/persistence/repositories/notification-preference.repository.js';
 
 import { makeRegisterUser } from '@fridge/core/src/application/use-cases/auth/register-user.use-case.js';
 import { makeLoginUser } from '@fridge/core/src/application/use-cases/auth/login-user.use-case.js';
@@ -31,6 +37,10 @@ import { makeCreateHousehold } from '@fridge/core/src/application/use-cases/hous
 import { makeCreateInvite } from '@fridge/core/src/application/use-cases/household/create-invite.use-case.js';
 import { makeAcceptInvite } from '@fridge/core/src/application/use-cases/household/accept-invite.use-case.js';
 import { makeUpdateHouseholdSettings } from '@fridge/core/src/application/use-cases/household/update-household-settings.use-case.js';
+import { makeCreateStorageLocation } from '@fridge/core/src/application/use-cases/storage-location/create-storage-location.use-case.js';
+import { makeUpdateStorageLocation } from '@fridge/core/src/application/use-cases/storage-location/update-storage-location.use-case.js';
+import { makeDeleteStorageLocation } from '@fridge/core/src/application/use-cases/storage-location/delete-storage-location.use-case.js';
+import { makeNotifyHousehold } from '@fridge/core/src/application/use-cases/notification/notify-household.use-case.js';
 
 import { makeAddInventoryItem } from '@fridge/core/src/application/use-cases/inventory/add-inventory-item.use-case.js';
 import { makeConsumeInventoryItem } from '@fridge/core/src/application/use-cases/inventory/consume-inventory-item.use-case.js';
@@ -75,6 +85,28 @@ const buildContainer = (config) => {
     ? makeRuleBasedParser()
     : makeGeminiTextParser({ apiKey: config.geminiApiKey, model: config.geminiModel });
 
+  // Kimlik bilgisi eksikse (dosya yok/okunamıyor) no-op'a düş — push'un
+  // yokluğu asla bir isteği 500'e düşürmemeli.
+  let notificationPort;
+  if (config.fcmEnabled) {
+    try {
+      let serviceAccount;
+      if (config.fcmServiceAccountBase64) {
+        serviceAccount = JSON.parse(Buffer.from(config.fcmServiceAccountBase64, 'base64').toString('utf8'));
+      } else if (config.fcmServiceAccountPath) {
+        serviceAccount = JSON.parse(readFileSync(config.fcmServiceAccountPath, 'utf8'));
+      }
+      if (!serviceAccount) throw new Error('FCM service account not configured');
+      notificationPort = makeFcmNotifier({ serviceAccount, projectId: config.fcmProjectId });
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('fcm_init_failed', error.message);
+      notificationPort = makeNoopNotifier();
+    }
+  } else {
+    notificationPort = makeNoopNotifier();
+  }
+
   const repos = {
     userRepo: makeUserRepository({ rawQuery }),
     sessionRepo: makeSessionRepository({ rawQuery }),
@@ -91,6 +123,9 @@ const buildContainer = (config) => {
     receiptLineItemRepo: makeReceiptLineItemRepository({ rawQuery }),
     recipeRepo: makeRecipeRepository({ rawQuery }),
     recipeCookLogRepo: makeRecipeCookLogRepository({ rawQuery }),
+    deviceTokenRepo: makeDeviceTokenRepository({ rawQuery }),
+    notificationRepo: makeNotificationRepository({ rawQuery }),
+    notificationPreferenceRepo: makeNotificationPreferenceRepository({ rawQuery }),
   };
 
   const useCases = {
@@ -113,8 +148,30 @@ const buildContainer = (config) => {
       storageLocationRepo: repos.storageLocationRepo,
     }),
     createInvite: makeCreateInvite({ inviteRepo: repos.inviteRepo, clock }),
-    acceptInvite: makeAcceptInvite({ inviteRepo: repos.inviteRepo, householdMemberRepo: repos.householdMemberRepo, clock }),
+    acceptInvite: makeAcceptInvite({
+      datasource,
+      makeInviteRepo: makeHouseholdInviteRepository,
+      makeHouseholdMemberRepo: makeHouseholdMemberRepository,
+      householdRepo: repos.householdRepo,
+      userRepo: repos.userRepo,
+      notifyHousehold: makeNotifyHousehold({
+        householdMemberRepo: repos.householdMemberRepo,
+        deviceTokenRepo: repos.deviceTokenRepo,
+        notificationRepo: repos.notificationRepo,
+        notificationPreferenceRepo: repos.notificationPreferenceRepo,
+        notificationPort,
+      }),
+      clock,
+    }),
     updateHouseholdSettings: makeUpdateHouseholdSettings({ householdRepo: repos.householdRepo }),
+
+    createStorageLocation: makeCreateStorageLocation({ storageLocationRepo: repos.storageLocationRepo }),
+    updateStorageLocation: makeUpdateStorageLocation({ storageLocationRepo: repos.storageLocationRepo }),
+    deleteStorageLocation: makeDeleteStorageLocation({
+      storageLocationRepo: repos.storageLocationRepo,
+      makeStorageLocationRepo: makeStorageLocationRepository,
+      datasource,
+    }),
 
     addInventoryItem: makeAddInventoryItem({ inventoryItemRepo: repos.inventoryItemRepo, stockMovementRepo: repos.stockMovementRepo }),
     consumeInventoryItem: makeConsumeInventoryItem({
@@ -177,7 +234,7 @@ const buildContainer = (config) => {
     }),
   };
 
-  return { config, datasource, tokenService, storagePort, repos, useCases };
+  return { config, datasource, tokenService, storagePort, notificationPort, repos, useCases };
 };
 
 export { buildContainer };
