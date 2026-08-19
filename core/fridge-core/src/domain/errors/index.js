@@ -2,7 +2,7 @@ import { ConflictError, ValidationError, NotFoundError } from '@fridge/errors';
 
 class EmailAlreadyRegisteredError extends ConflictError {
   constructor(email) {
-    super(`Email already registered: ${email}`);
+    super('Bu e-posta adresiyle zaten bir hesap var');
   }
 }
 
