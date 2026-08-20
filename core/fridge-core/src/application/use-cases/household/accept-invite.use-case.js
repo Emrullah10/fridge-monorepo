@@ -29,12 +29,18 @@ const makeAcceptInvite = ({
         throw new NotFoundError('Invite not found');
       }
 
+      // Paylaşımlı (alana-sabit) kodlar 'pending' dışındaysa (revoked/expired)
+      // reddedilir ama başarıyla kullanılınca TÜKETİLMEZ — birden fazla kişi
+      // aynı kodla katılabilsin diye. Tek kullanımlık eski kodlar (isShared
+      // false — geriye dönük uyumluluk) hâlâ 'accepted' yazılıp tüketilir.
       if (invite.status !== 'pending') {
         throw new InviteAlreadyUsedError();
       }
 
-      if (invite.expiresAt.getTime() < clock.now().getTime()) {
-        await inviteRepo.updateStatus(invite.id, 'expired');
+      if (invite.expiresAt && invite.expiresAt.getTime() < clock.now().getTime()) {
+        if (!invite.isShared) {
+          await inviteRepo.updateStatus(invite.id, 'expired');
+        }
         throw new InviteExpiredError();
       }
 
@@ -52,7 +58,9 @@ const makeAcceptInvite = ({
         didJoin = true;
       }
 
-      await inviteRepo.updateStatus(invite.id, 'accepted');
+      if (!invite.isShared) {
+        await inviteRepo.updateStatus(invite.id, 'accepted');
+      }
       householdId = invite.householdId;
     });
 

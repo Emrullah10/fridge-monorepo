@@ -32,9 +32,14 @@ import { makeLoginUser } from '@fridge/core/src/application/use-cases/auth/login
 import { makeRefreshSession } from '@fridge/core/src/application/use-cases/auth/refresh-session.use-case.js';
 import { makeLogoutUser } from '@fridge/core/src/application/use-cases/auth/logout-user.use-case.js';
 import { makeDeleteAccount } from '@fridge/core/src/application/use-cases/auth/delete-account.use-case.js';
+import { makeUpdateProfile } from '@fridge/core/src/application/use-cases/auth/update-profile.use-case.js';
+import { makeChangePassword } from '@fridge/core/src/application/use-cases/auth/change-password.use-case.js';
 
 import { makeCreateHousehold } from '@fridge/core/src/application/use-cases/household/create-household.use-case.js';
 import { makeCreateInvite } from '@fridge/core/src/application/use-cases/household/create-invite.use-case.js';
+import { makeRevokeInvite } from '@fridge/core/src/application/use-cases/household/revoke-invite.use-case.js';
+import { makeLeaveHousehold } from '@fridge/core/src/application/use-cases/household/leave-household.use-case.js';
+import { makeDeleteHousehold } from '@fridge/core/src/application/use-cases/household/delete-household.use-case.js';
 import { makeAcceptInvite } from '@fridge/core/src/application/use-cases/household/accept-invite.use-case.js';
 import { makeUpdateHouseholdSettings } from '@fridge/core/src/application/use-cases/household/update-household-settings.use-case.js';
 import { makeCreateStorageLocation } from '@fridge/core/src/application/use-cases/storage-location/create-storage-location.use-case.js';
@@ -128,6 +133,14 @@ const buildContainer = (config) => {
     notificationPreferenceRepo: makeNotificationPreferenceRepository({ rawQuery }),
   };
 
+  const notifyHousehold = makeNotifyHousehold({
+    householdMemberRepo: repos.householdMemberRepo,
+    deviceTokenRepo: repos.deviceTokenRepo,
+    notificationRepo: repos.notificationRepo,
+    notificationPreferenceRepo: repos.notificationPreferenceRepo,
+    notificationPort,
+  });
+
   const useCases = {
     registerUser: makeRegisterUser({ userRepo: repos.userRepo }),
     loginUser: makeLoginUser({ userRepo: repos.userRepo, sessionRepo: repos.sessionRepo, tokenService }),
@@ -141,6 +154,8 @@ const buildContainer = (config) => {
       makeHouseholdMemberRepo: makeHouseholdMemberRepository,
       makeHouseholdInviteRepo: makeHouseholdInviteRepository,
     }),
+    updateProfile: makeUpdateProfile({ userRepo: repos.userRepo }),
+    changePassword: makeChangePassword({ userRepo: repos.userRepo }),
 
     createHousehold: makeCreateHousehold({
       householdRepo: repos.householdRepo,
@@ -148,19 +163,16 @@ const buildContainer = (config) => {
       storageLocationRepo: repos.storageLocationRepo,
     }),
     createInvite: makeCreateInvite({ inviteRepo: repos.inviteRepo, clock }),
+    revokeInvite: makeRevokeInvite({ inviteRepo: repos.inviteRepo }),
+    leaveHousehold: makeLeaveHousehold({ householdRepo: repos.householdRepo, householdMemberRepo: repos.householdMemberRepo }),
+    deleteHousehold: makeDeleteHousehold({ householdRepo: repos.householdRepo }),
     acceptInvite: makeAcceptInvite({
       datasource,
       makeInviteRepo: makeHouseholdInviteRepository,
       makeHouseholdMemberRepo: makeHouseholdMemberRepository,
       householdRepo: repos.householdRepo,
       userRepo: repos.userRepo,
-      notifyHousehold: makeNotifyHousehold({
-        householdMemberRepo: repos.householdMemberRepo,
-        deviceTokenRepo: repos.deviceTokenRepo,
-        notificationRepo: repos.notificationRepo,
-        notificationPreferenceRepo: repos.notificationPreferenceRepo,
-        notificationPort,
-      }),
+      notifyHousehold,
       clock,
     }),
     updateHouseholdSettings: makeUpdateHouseholdSettings({ householdRepo: repos.householdRepo }),
@@ -200,6 +212,7 @@ const buildContainer = (config) => {
       productCategoryRepo: repos.productCategoryRepo,
       ocrPort,
       receiptParserPort,
+      notifyHousehold,
     }),
     correctLineItem: makeCorrectLineItem({
       receiptLineItemRepo: repos.receiptLineItemRepo,

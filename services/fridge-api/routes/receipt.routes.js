@@ -58,6 +58,19 @@ const buildReceiptRouter = ({ container }) => {
     res.status(202).json({ scanId: scan.id, status: 'processing' });
   }));
 
+  router.get('/', asyncHandler(async (req, res) => {
+    const status = typeof req.query.status === 'string' ? req.query.status : null;
+    const limit = Math.min(Number(req.query.limit) || 50, 100);
+    const offset = Number(req.query.offset) || 0;
+    const scans = await repos.receiptScanRepo.listByHousehold({
+      householdId: req.params.householdId,
+      status,
+      limit,
+      offset,
+    });
+    res.json({ scans });
+  }));
+
   router.get('/:scanId/status', asyncHandler(async (req, res) => {
     const scan = await repos.receiptScanRepo.findById(req.params.scanId);
     assertOwnedByHousehold(scan, req.params.householdId, 'Receipt scan not found');

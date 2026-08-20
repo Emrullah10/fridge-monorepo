@@ -53,11 +53,33 @@ const boot = (container) => {
 
   app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
+  // Giriş yapmamış kullanıcı da açılışta görebilmeli — authenticate'ten
+  // önce mount edilir. Mobil bunu her açılışta karşılaştırıp minSupported'ın
+  // altındaysa kapatılamaz güncelleme ekranı, latest'in altındaysa
+  // kapatılabilir banner gösterir.
+  app.get('/app-config', (req, res) => res.json({
+    latestVersion: container.config.appLatestVersion,
+    minSupportedVersion: container.config.appMinSupportedVersion,
+    storeUrl: container.config.appStoreUrl,
+  }));
+
   // Play Store store listing'in istediği halka açık gizlilik politikası
   // ve hesap silme sayfaları — ayrı hosting gerektirmesin diye API'den
   // servis ediliyor.
   app.get('/privacy', (req, res) => res.sendFile(join(publicDir, 'privacy.html')));
   app.get('/delete-account', (req, res) => res.sendFile(join(publicDir, 'delete-account.html')));
+
+  // Android App Links doğrulaması: /join/KOD linkinin tıklanınca tarayıcı
+  // yerine doğrudan uygulamayı açması için Android bu dosyayı HTTPS
+  // üzerinden (yönlendirmesiz, doğrudan) okuyabilmeli — authenticate'ten
+  // önce, herkese açık olmalı.
+  app.get('/.well-known/assetlinks.json', (req, res) =>
+    res.sendFile(join(publicDir, '.well-known', 'assetlinks.json')));
+
+  // Uygulama yüklü değilse veya doğrulama başarısız olursa (örn. iOS,
+  // masaüstü tarayıcı) tıklanan link burada açılır — kod gösterilir,
+  // Play Store'a yönlendirme sunulur.
+  app.get('/join/:code', (req, res) => res.sendFile(join(publicDir, 'join.html')));
 
   app.use('/api', buildRouter({ container, authenticate }));
 

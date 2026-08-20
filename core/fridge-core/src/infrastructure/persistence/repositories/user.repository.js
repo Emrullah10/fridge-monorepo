@@ -31,6 +31,22 @@ const makeUserRepository = ({ rawQuery }) => {
     deleteById: async (id) => {
       await rawQuery('DELETE FROM app_user WHERE id = $1', [id]);
     },
+
+    update: async (id, { displayName, locale }) => {
+      const { rows } = await rawQuery(
+        `UPDATE app_user SET display_name = $2, locale = $3, updated_at = now()
+         WHERE id = $1 RETURNING *`,
+        [id, displayName, locale],
+      );
+      return mapRow(rows[0]);
+    },
+
+    updatePassword: async (id, passwordHash) => {
+      await rawQuery(
+        `UPDATE app_user SET password_hash = $2, updated_at = now() WHERE id = $1`,
+        [id, passwordHash],
+      );
+    },
   };
 };
 

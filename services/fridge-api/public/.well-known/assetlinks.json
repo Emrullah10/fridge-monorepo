@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.fridge.fridge_mobil",
+      "sha256_cert_fingerprints": [
+        "61:3F:6D:A5:7A:B1:F4:3A:8C:B9:A4:A9:1F:46:21:B1:B4:3F:D3:80:81:6F:AD:88:15:46:46:20:4E:B8:C3:95"
+      ]
+    }
+  }
+]

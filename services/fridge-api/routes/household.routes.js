@@ -87,6 +87,8 @@ const buildHouseholdRouter = ({ container }) => {
     },
   );
 
+  // Alanın kalıcı, çok kullanımlı davet kodu — idempotent, dialog her
+  // açıldığında aynı kodu döner (createInvite kendisi aktif kod arar).
   router.post(
     '/:householdId/invites',
     requireHouseholdRole({ householdMemberRepo: repos.householdMemberRepo, minRole: 'admin' }),
@@ -95,8 +97,56 @@ const buildHouseholdRouter = ({ container }) => {
         householdId: req.params.householdId,
         invitedByUserId: req.user.id,
         invitedEmail: req.body.invitedEmail ?? null,
+        expiresInDays: req.body.expiresInDays ?? null,
       });
       res.status(201).json({ invite });
+    }),
+  );
+
+  // "Kodu yenile": eskisini iptal eder, bir sonraki POST /invites çağrısı
+  // yenisini üretir (mobil bu ikisini art arda çağırır).
+  router.post(
+    '/:householdId/invites/rotate',
+    requireHouseholdRole({ householdMemberRepo: repos.householdMemberRepo, minRole: 'admin' }),
+    asyncHandler(async (req, res) => {
+      await useCases.revokeInvite({ householdId: req.params.householdId });
+      const invite = await useCases.createInvite({
+        householdId: req.params.householdId,
+        invitedByUserId: req.user.id,
+        expiresInDays: req.body.expiresInDays ?? null,
+      });
+      res.status(201).json({ invite });
+    }),
+  );
+
+  router.get(
+    '/:householdId/members',
+    requireHouseholdRole({ householdMemberRepo: repos.householdMemberRepo, minRole: 'viewer' }),
+    asyncHandler(async (req, res) => {
+      const members = await repos.householdMemberRepo.listMembers(req.params.householdId);
+      res.json({ members });
+    }),
+  );
+
+  // Sahip doğrudan ayrılamaz (leave-household.use-case.js OwnerCannotLeaveError
+  // fırlatır) — önce sahipliği devretmeli ya da alanı silmeli.
+  router.delete(
+    '/:householdId/members/me',
+    requireHouseholdRole({ householdMemberRepo: repos.householdMemberRepo, minRole: 'viewer' }),
+    asyncHandler(async (req, res) => {
+      await useCases.leaveHousehold({ householdId: req.params.householdId, userId: req.user.id });
+      res.status(204).end();
+    }),
+  );
+
+  // Yalnızca sahip silebilir (kullanıcı kararı) — CASCADE ile tüm envanter/
+  // fiş/üye verisini de siler, geri dönüşü yok.
+  router.delete(
+    '/:householdId',
+    requireHouseholdRole({ householdMemberRepo: repos.householdMemberRepo, minRole: 'owner' }),
+    asyncHandler(async (req, res) => {
+      await useCases.deleteHousehold({ householdId: req.params.householdId });
+      res.status(204).end();
     }),
   );
 

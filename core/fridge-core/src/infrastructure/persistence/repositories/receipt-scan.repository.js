@@ -126,6 +126,19 @@ const makeReceiptScanRepository = ({ rawQuery }) => {
       );
       return rows.map(mapRow);
     },
+
+    // Fiş geçmişi ekranı: household'a ait taramaları en yeniden eskiye
+    // listeler. status verilirse filtrelenir (örn. sadece review_pending).
+    listByHousehold: async ({ householdId, status = null, limit = 50, offset = 0 }) => {
+      const { rows } = await rawQuery(
+        `SELECT * FROM receipt_scan
+         WHERE household_id = $1 AND ($2::scan_status IS NULL OR status = $2)
+         ORDER BY created_at DESC
+         LIMIT $3 OFFSET $4`,
+        [householdId, status, limit, offset],
+      );
+      return rows.map(mapRow);
+    },
   };
 };
 

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fridge — Alana Katıl</title>
+<style>
+  body { font-family: -apple-system, system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 48px 24px; line-height: 1.6; color: #1a1a1a; text-align: center; }
+  h1 { font-size: 1.4rem; margin-bottom: 0.5rem; }
+  .code { font-family: monospace; font-size: 1.1rem; background: #f0f5ef; border-radius: 8px; padding: 12px 16px; margin: 24px 0; letter-spacing: 0.05em; }
+  a.button { display: inline-block; background: #096444; color: white; text-decoration: none; padding: 14px 28px; border-radius: 999px; font-weight: 600; }
+  p.hint { color: #666; font-size: 0.9rem; margin-top: 24px; }
+</style>
+</head>
+<body>
+<h1>Fridge'e davet edildin</h1>
+<p>Bu link, bir Fridge alanına katılman için gönderildi.</p>
+<div class="code" id="code"></div>
+<a class="button" id="store-link" href="#">Fridge'i Aç / İndir</a>
+<p class="hint">Uygulama zaten yüklüyse bu link doğrudan uygulamayı açar. Yüklü değilse Play Store'a yönlendirilirsin — indirdikten sonra davet kodunu "Davet Koduyla Katıl" ekranına elle girebilirsin.</p>
+<script>
+  const parts = window.location.pathname.split('/').filter(Boolean);
+  const code = parts[parts.length - 1] || '';
+  document.getElementById('code').textContent = code;
+  // TODO: gerçek Play Store yayın linki hazır olunca güncellenmeli.
+  document.getElementById('store-link').href =
+    'https://play.google.com/store/apps/details?id=com.fridge.fridge_mobil';
+</script>
+</body>
+</html>
