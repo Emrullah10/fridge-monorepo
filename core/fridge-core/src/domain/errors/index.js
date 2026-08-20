@@ -55,6 +55,12 @@ class LastLocationError extends ValidationError {
   }
 }
 
+class OwnerCannotLeaveError extends ValidationError {
+  constructor() {
+    super('Alan sahibi ayrılamaz — önce sahipliği devret ya da alanı sil');
+  }
+}
+
 export {
   EmailAlreadyRegisteredError,
   InvalidCredentialsError,
@@ -65,4 +71,5 @@ export {
   HouseholdNotFoundError,
   LocationNotEmptyError,
   LastLocationError,
+  OwnerCannotLeaveError,
 };

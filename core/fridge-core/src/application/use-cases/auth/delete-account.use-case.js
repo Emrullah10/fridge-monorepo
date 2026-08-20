@@ -45,6 +45,15 @@ const makeDeleteAccount = ({
 
         if (nextOwner) {
           await txHouseholdRepo.transferOwnership(household.id, nextOwner.userId);
+          // transferOwnership yalnızca household.created_by'ı günceller —
+          // household_member.role de 'owner'a yükseltilmezse rol rütbesi
+          // (require-household-role.js) yeni sahibi hâlâ eski rolünde
+          // (örn. 'member') görür ve admin-only işlemler ona kapalı kalırdı.
+          await txHouseholdMemberRepo.updateRole({
+            householdId: household.id,
+            userId: nextOwner.userId,
+            role: 'owner',
+          });
         } else {
           await txHouseholdRepo.deleteById(household.id);
         }

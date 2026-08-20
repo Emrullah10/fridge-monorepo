@@ -9,6 +9,7 @@ const makeFakes = ({ users = new Map(), households = new Map(), members = new Ma
   const deletedHouseholdIds = [];
   const ownershipTransfers = [];
   const deletedInvitesByUser = [];
+  const roleUpdates = [];
 
   const datasource = {
     withTransaction: async (fn) => fn({ query: 'fake-tx-query' }),
@@ -30,6 +31,7 @@ const makeFakes = ({ users = new Map(), households = new Map(), members = new Ma
 
   const makeHouseholdMemberRepo = () => ({
     listMembers: async (householdId) => members.get(householdId) ?? [],
+    updateRole: async ({ householdId, userId, role }) => roleUpdates.push({ householdId, userId, role }),
   });
 
   const makeHouseholdInviteRepo = () => ({
@@ -47,6 +49,7 @@ const makeFakes = ({ users = new Map(), households = new Map(), members = new Ma
     deletedHouseholdIds,
     ownershipTransfers,
     deletedInvitesByUser,
+    roleUpdates,
   };
 };
 
@@ -94,5 +97,6 @@ describe('makeDeleteAccount', () => {
     assert.deepEqual(fakes.deletedHouseholdIds, []);
     assert.deepEqual(fakes.ownershipTransfers, [{ id: 'hh-1', newOwnerUserId: 'user-2' }]);
     assert.deepEqual(fakes.deletedUserIds, ['user-1']);
+    assert.deepEqual(fakes.roleUpdates, [{ householdId: 'hh-1', userId: 'user-2', role: 'owner' }]);
   });
 });

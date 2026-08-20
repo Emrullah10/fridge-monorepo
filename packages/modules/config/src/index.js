@@ -40,6 +40,12 @@ const readEnv = (env = process.env) => {
     fcmServiceAccountPath: env.FCM_SERVICE_ACCOUNT_PATH,
     fcmServiceAccountBase64: env.FCM_SERVICE_ACCOUNT_BASE64,
     fcmProjectId: env.FCM_PROJECT_ID,
+    // Mobil açılışta GET /app-config ile karşılaştırır — buradan kapatılabilir
+    // banner ("yeni sürüm var") ya da kapatılamaz zorunlu güncelleme ekranı
+    // tetiklenir. Sadece env değişikliği yeterli, yeniden yayın gerekmez.
+    appLatestVersion: env.APP_LATEST_VERSION || '1.0.0',
+    appMinSupportedVersion: env.APP_MIN_SUPPORTED_VERSION || '1.0.0',
+    appStoreUrl: env.APP_STORE_URL || 'https://play.google.com/store/apps/details?id=com.fridge.fridge_mobil',
   };
 };
 

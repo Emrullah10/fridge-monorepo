@@ -1,4 +1,5 @@
 import { normalizeMeasurement } from '../../../infrastructure/parser/line-item-finalizer.js';
+import { NOTIFICATION_TYPES } from '../../../domain/notification-types.js';
 
 // Ön-eşleştirme sonrası fişin tamamı modele gitmeyebiliyor (hatta hiç
 // gitmeyebiliyor), dolayısıyla toplam tutarı modelden beklemek güvenilmez —
@@ -76,6 +77,7 @@ const makeProcessReceiptScan = ({
   productCategoryRepo,
   ocrPort,
   receiptParserPort,
+  notifyHousehold,
 }) => {
   // Kademe 3: alias/trigram bulamazsa, AI parser'ın zaten ürettiği parsedName
   // ile household'a özel bir ürün otomatik açılır. Böylece matchedProductId
@@ -215,7 +217,7 @@ const makeProcessReceiptScan = ({
 
       await receiptLineItemRepo.createMany(lineItemsWithMatches);
 
-      return receiptScanRepo.markReviewPending(scanId, {
+      const result = await receiptScanRepo.markReviewPending(scanId, {
         rawText,
         ocrProvider,
         parserProvider: parsed.provider,
@@ -224,6 +226,20 @@ const makeProcessReceiptScan = ({
         purchasedAt: parsed.purchasedAt,
         totalAmount: parsed.totalAmount ?? extractTotalFromRawText(rawText),
       });
+
+      // Tarayan kişi dahil TÜM üyeler bilgilendirilir — excludeUserId
+      // verilmiyor, çünkü kullanıcı ekrandan çıkmış/uygulamayı kapatmış
+      // olabilir ve sonucu ancak bildirimle öğrenebilir.
+      if (notifyHousehold) {
+        await notifyHousehold({
+          householdId: scan.householdId,
+          type: NOTIFICATION_TYPES.RECEIPT_PROCESSED,
+          context: { householdId: scan.householdId, scanId },
+          dedupeKey: `receipt_processed:${scanId}`,
+        });
+      }
+
+      return result;
     } catch (error) {
       return receiptScanRepo.markFailed(scanId, error.message);
     }

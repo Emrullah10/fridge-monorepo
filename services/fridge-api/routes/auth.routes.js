@@ -98,6 +98,33 @@ const buildAuthRouter = ({ container }) => {
     res.status(204).end();
   }));
 
+  // Uygulama yeniden açıldığında oturum token'dan geri yükleniyor ama
+  // kullanıcı bilgisi (ad/e-posta) hiçbir yerde saklanmıyordu — mobil
+  // AuthController._restoreSession() sadece token varlığına bakıp user'ı
+  // null bırakıyordu. Bu endpoint o boşluğu dolduruyor.
+  router.get('/me', requireAuth(), asyncHandler(async (req, res) => {
+    const user = await repos.userRepo.findById(req.user.id);
+    res.json({ user: { id: user.id, email: user.email, displayName: user.displayName, locale: user.locale } });
+  }));
+
+  router.patch('/me', requireAuth(), asyncHandler(async (req, res) => {
+    const user = await useCases.updateProfile({
+      userId: req.user.id,
+      displayName: req.body?.displayName,
+      locale: req.body?.locale,
+    });
+    res.json({ user: { id: user.id, email: user.email, displayName: user.displayName, locale: user.locale } });
+  }));
+
+  router.post('/change-password', requireAuth(), asyncHandler(async (req, res) => {
+    await useCases.changePassword({
+      userId: req.user.id,
+      currentPassword: req.body?.currentPassword,
+      newPassword: req.body?.newPassword,
+    });
+    res.status(204).end();
+  }));
+
   // Play Store hesap silme politikası: kullanıcı kimliğini şifreyle yeniden
   // doğrular (çalıntı/unutulmuş oturumla yanlışlıkla silmeyi önler).
   router.delete('/me', requireAuth(), asyncHandler(async (req, res) => {
