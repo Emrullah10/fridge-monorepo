@@ -36,6 +36,19 @@ const makeHouseholdMemberRepository = ({ rawQuery }) => {
       return rows.map((row) => ({ ...mapRow(row), displayName: row.display_name, email: row.email }));
     },
 
+    // Hane üyelerinin diyet profilleri — tarif önerisi/AI Chef alerjen/diyet
+    // kısıtlarını buradan alır. Profili olmayan üyeler null döner.
+    listDietProfiles: async (householdId) => {
+      const { rows } = await rawQuery(
+        `SELECT u.diet_profile
+         FROM household_member hm
+         JOIN app_user u ON u.id = hm.user_id
+         WHERE hm.household_id = $1`,
+        [householdId],
+      );
+      return rows.map((row) => row.diet_profile ?? null);
+    },
+
     removeMember: async ({ householdId, userId }) => {
       await rawQuery(
         `DELETE FROM household_member WHERE household_id = $1 AND user_id = $2`,

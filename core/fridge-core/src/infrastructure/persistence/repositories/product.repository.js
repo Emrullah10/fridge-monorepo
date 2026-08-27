@@ -7,6 +7,10 @@ const mapRow = (row) => row && ({
   defaultUnit: row.default_unit,
   isGlobal: row.is_global,
   source: row.source,
+  packSize: row.pack_size === null ? null : Number(row.pack_size),
+  packUnit: row.pack_unit,
+  barcode: row.barcode ?? null,
+  nutrition: row.nutrition ?? null,
 });
 
 const makeProductRepository = ({ rawQuery }) => {
@@ -16,12 +20,17 @@ const makeProductRepository = ({ rawQuery }) => {
       return mapRow(rows[0]);
     },
 
-    create: async ({ householdId = null, canonicalName, brand = null, categoryId = null, defaultUnit, isGlobal = false, source = 'user' }) => {
+    create: async ({ householdId = null, canonicalName, brand = null, categoryId = null, defaultUnit, isGlobal = false, source = 'user', packSize = null, packUnit = null, barcode = null, nutrition = null }) => {
       const { rows } = await rawQuery(
-        `INSERT INTO product (household_id, canonical_name, brand, category_id, default_unit, is_global, source)
-         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-        [householdId, canonicalName, brand, categoryId, defaultUnit, isGlobal, source],
+        `INSERT INTO product (household_id, canonical_name, brand, category_id, default_unit, is_global, source, pack_size, pack_unit, barcode, nutrition)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::jsonb) RETURNING *`,
+        [householdId, canonicalName, brand, categoryId, defaultUnit, isGlobal, source, packSize, packUnit, barcode, nutrition === null ? null : JSON.stringify(nutrition)],
       );
+      return mapRow(rows[0]);
+    },
+
+    findByBarcode: async (barcode) => {
+      const { rows } = await rawQuery('SELECT * FROM product WHERE barcode = $1 LIMIT 1', [barcode]);
       return mapRow(rows[0]);
     },
 
@@ -42,6 +51,29 @@ const makeProductRepository = ({ rawQuery }) => {
       const { rows } = await rawQuery(
         'UPDATE product SET canonical_name = $2 WHERE id = $1 RETURNING *',
         [id, canonicalName],
+      );
+      return mapRow(rows[0]);
+    },
+
+    // Kullanıcı fiş onay ekranında kategoriyi düzeltirse kalıcılaşır — bu,
+    // AI tarif üretiminin envanteri doğru sınıflandırması için tek geribesleme
+    // mekanizmasıdır (bkz. recipe-eligibility.js, correct-line-item).
+    updateCategoryId: async (id, categoryId) => {
+      const { rows } = await rawQuery(
+        'UPDATE product SET category_id = $2 WHERE id = $1 RETURNING *',
+        [id, categoryId],
+      );
+      return mapRow(rows[0]);
+    },
+
+    // Kullanıcı fiş onay ekranında paket boyutunu düzeltirse (ör. "6X200ML"
+    // satırında birim çözülemediyse) kalıcılaşır — updateBrand/updateCategoryId
+    // ile aynı desen. AI kaynaklı olsun olmasın her zaman düzeltilebilir
+    // (paket boyutu objektif bir üretici gerçeği, "AI mı yazdı" ayrımı yok).
+    updatePackSize: async (id, { packSize, packUnit }) => {
+      const { rows } = await rawQuery(
+        'UPDATE product SET pack_size = $2, pack_unit = $3 WHERE id = $1 RETURNING *',
+        [id, packSize, packUnit],
       );
       return mapRow(rows[0]);
     },

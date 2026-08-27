@@ -39,22 +39,34 @@ const makeConfirmReceiptScan = ({
           throw new ValidationError(`Line item ${lineItem.id} has no matched product`);
         }
 
+        // Fiş satırındaki fiyat SATIR TOPLAMI (ör. "6X200 ... 32,50"). Envanter
+        // birim fiyat tuttuğu için miktara bölünür — 14-product-pack-size.sql
+        // sonrası multipack'te parsedQuantity paket ADEDİ, bu doğru bölme.
+        // Fiyat yoksa (OCR kaçırdı / eski veri) null geçilir, analitik bu kalemi
+        // "fiyatsız" sayar, sessizce 0 kabul etmez.
+        const qty = lineItem.parsedQuantity;
+        const unitPrice = lineItem.parsedPrice != null && qty > 0
+          ? Math.round((lineItem.parsedPrice / qty) * 100) / 100
+          : null;
+
         const inventoryItem = await inventoryItemRepo.upsertQuantity({
           householdId: scan.householdId,
           storageLocationId: selection.storageLocationId ?? storageLocationId,
           productId,
           unit: lineItem.parsedUnit,
           expiresAt: selection.expiresAt ?? null,
-          deltaQuantity: lineItem.parsedQuantity,
+          deltaQuantity: qty,
+          unitPrice,
         });
 
         await stockMovementRepo.create({
           householdId: scan.householdId,
           inventoryItemId: inventoryItem.id,
-          delta: lineItem.parsedQuantity,
+          delta: qty,
           reason: 'receipt',
           actorUserId,
           receiptLineItemId: lineItem.id,
+          unitPrice,
         });
 
         await query(

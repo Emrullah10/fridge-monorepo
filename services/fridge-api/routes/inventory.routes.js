@@ -33,16 +33,23 @@ const buildInventoryRouter = ({ container }) => {
       unit: req.body.unit,
       quantity: req.body.quantity,
       expiresAt: req.body.expiresAt ?? null,
+      unitPrice: req.body.unitPrice,
       actorUserId: req.user.id,
     });
     res.status(201).json({ item });
   }));
 
+  // reason: 'consumed' (kullanıldı, para tasarrufu sayılır) | 'expired' |
+  // 'discarded' (bozuldu/atıldı, israf sayılır). Geçersiz/eksik → 'consumed'.
+  const CONSUME_REASONS = new Set(['consumed', 'expired', 'discarded']);
+
   router.post('/:itemId/consume', asyncHandler(async (req, res) => {
+    const reason = CONSUME_REASONS.has(req.body.reason) ? req.body.reason : 'consumed';
     const item = await useCases.consumeInventoryItem({
       inventoryItemId: req.params.itemId,
       householdId: req.params.householdId,
       quantity: req.body.quantity,
+      reason,
       actorUserId: req.user.id,
     });
     res.json({ item });
@@ -56,15 +63,21 @@ const buildInventoryRouter = ({ container }) => {
       expiresAt: req.body.expiresAt,
       openedAt: req.body.openedAt,
       note: req.body.note,
+      unitPrice: req.body.unitPrice,
       actorUserId: req.user.id,
     });
     res.json({ item });
   }));
 
+  // ?reason=discarded|expired — kalem tamamen siliniyor; israf ayrımı için.
+  const DELETE_REASONS = new Set(['discarded', 'expired', 'consumed']);
+
   router.delete('/:itemId', asyncHandler(async (req, res) => {
+    const reason = DELETE_REASONS.has(req.query.reason) ? req.query.reason : 'discarded';
     await useCases.deleteInventoryItem({
       inventoryItemId: req.params.itemId,
       householdId: req.params.householdId,
+      reason,
       actorUserId: req.user.id,
     });
     res.status(204).end();

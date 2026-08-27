@@ -2,7 +2,7 @@ import { test, describe, after } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { rawQuery, closeTestPool } from '../config/db-client.js';
-import { createTestUser, createTestHousehold, createTestStorageLocation, createTestProduct } from '../config/fixtures.js';
+import { createTestUser, createTestHousehold, createTestStorageLocation, createTestProduct, findCategoryIdByKey } from '../config/fixtures.js';
 import { makeInventoryItemRepository } from '../../core/fridge-core/src/infrastructure/persistence/repositories/inventory-item.repository.js';
 
 const repo = makeInventoryItemRepository({ rawQuery });
@@ -63,6 +63,40 @@ describe('inventory-item.repository — upsert doğruluğu', () => {
 
     const items = await repo.listByHousehold(householdId);
     assert.equal(items.length, 2, 'farklı SKT ayrı satır olmalı');
+  });
+});
+
+describe('inventory-item.repository — ürün zenginleştirme (brand/category)', () => {
+  test('listByHousehold brand, categoryId ve productSource döndürür', async () => {
+    const userId = await createTestUser('enrich');
+    const householdId = await createTestHousehold(userId);
+    const locationId = await createTestStorageLocation(householdId);
+    const categoryId = await findCategoryIdByKey('beverages');
+    const productId = await createTestProduct(householdId, 'Maden Suyu', 'piece', { brand: 'Kızılay', categoryId });
+
+    await repo.upsertQuantity({
+      householdId, storageLocationId: locationId, productId, unit: 'piece', deltaQuantity: 6,
+    });
+
+    const items = await repo.listByHousehold(householdId);
+    assert.equal(items.length, 1);
+    assert.equal(items[0].productBrand, 'Kızılay');
+    assert.equal(items[0].categoryId, 'beverages');
+    assert.equal(items[0].productSource, 'user');
+  });
+
+  test('kategorisiz ürünlerde categoryId null döner, çökmez (LEFT JOIN)', async () => {
+    const userId = await createTestUser('enrich-null-cat');
+    const householdId = await createTestHousehold(userId);
+    const locationId = await createTestStorageLocation(householdId);
+    const productId = await createTestProduct(householdId, 'Kategorisiz Ürün');
+
+    await repo.upsertQuantity({
+      householdId, storageLocationId: locationId, productId, unit: 'piece', deltaQuantity: 1,
+    });
+
+    const items = await repo.listByHousehold(householdId);
+    assert.equal(items[0].categoryId, null);
   });
 });
 

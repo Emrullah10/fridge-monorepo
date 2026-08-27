@@ -8,7 +8,7 @@
  * @property {number} [parsedPrice]
  *
  * @typedef {Object} ReceiptParserPort
- * @property {(input: { rawText: string }) => Promise<{ lineItems: ParsedLineItem[], merchantName: string|null, purchasedAt: string|null, totalAmount: number|null, provider: string, model: string }>} parse
+ * @property {(input: { rawText: string, merchantHint?: string|null }) => Promise<{ lineItems: ParsedLineItem[], merchantName: string|null, purchasedAt: string|null, totalAmount: number|null, provider: string, model: string }>} parse
  */
 
 export {};

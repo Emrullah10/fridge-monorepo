@@ -1,5 +1,6 @@
 import { stripHomoglyphs } from './text-normalize.js';
 import { findBrandInText, squash } from './turkish-brands.js';
+import { categoryHintForBrand } from './brand-category-hints.js';
 import { ALL_CATEGORY_KEYS } from '../../domain/storage-suggestion.js';
 
 // Modelden (Ollama/Gemini fark etmez) bağımsız, saf deterministik
@@ -66,6 +67,29 @@ KURALLAR:
    oluşan satırlar da ürün değildir: "*9,90", "82,55", "%08" gibi tek
    başına fiyat/oran satırlarını asla ürün olarak döndürme.
 7. parsedPrice: satırdaki fiyat (virgül ondalık ayracıdır: "32,50" -> 32.50).
+8. Kullanıcı mesajının başında "MARKET: X" satırı varsa bu fişin hangi
+   zincirden geldiğini bilirsin. Zincire özgü kısaltmaları buna göre aç
+   (örn. ŞOK fişlerinde "PYT" = "Piyale", MİGROS fişlerinde "M." ön eki
+   Migros özel markasıdır). MARKET satırını ürün olarak döndürme. Emin
+   değilsen MARKET bilgisini yoksay, yanlış tahmin etmektense atla.
+9. BİTİŞİK/KISALTILMIŞ İSİMLERİ AÇARKEN UYDURMA. Fiş OCR'ı kelimeleri
+   birbirine yapıştırabilir ("MANGOANA" gibi). Açarken YALNIZCA çok yaygın,
+   tartışmasız ürün adlarını kullan ("MANGOANA" -> "Mango Ananas", bilinen
+   bir Kızılay maden suyu aromasıdır; "Mango Suyu" DEĞİLDİR). Emin
+   değilsen kısaltmayı AÇMADAN bırak — yanlış açılım, hiç açmamaktan daha
+   kötüdür çünkü kullanıcıyı yanlış yönlendirir.
+10. MARKA İÇECEK/MADEN SUYU MARKASIYSA ÜRÜNÜ İÇECEK OLARAK YORUMLA. Satırda
+    bilinen bir içecek markası geçiyorsa (Kızılay, Uludağ, Erikli, Sırma,
+    Beypazarı, Hamidiye, Coca-Cola, Fanta, Pepsi, Cappy, Dimes) parsedCategory
+    "beverages" olmalı — "Kızılay Mango Ananas" bir MEYVE SUYU değil, aromalı
+    MADEN SUYUDUR.
+11. ÇOKLU PAKET SATIRLARI ("6X200ML", "4X1LT", "2 X 500G" gibi):
+    parsedQuantity PAKET SAYISI olmalı (N), parsedUnit "piece" olmalı.
+    N ile M'yi ASLA ÇARPMA. Örnek: "6X200ML" -> parsedQuantity=6,
+    parsedUnit="piece" (parsedQuantity=1200, parsedUnit="milliliter" YANLIŞ).
+    Birim soneki satırda kayıp/bitişikse ("6X200KIZTILAY" gibi ML hiç
+    yazmıyor) yine parsedQuantity=6, parsedUnit="piece" yaz — hacim/ağırlık
+    birimi UYDURMA.
 
 Sadece JSON döndür, açıklama ekleme.`;
 
@@ -83,7 +107,83 @@ const UNIT_BY_SUFFIX = {
   ML: 'milliliter',
 };
 
+// "NxM[BİRİM]" çoklu paket deseni: "6X200ML", "4X1LT", "2 X 500G" ve OCR'ın
+// birim sonekini yuttuğu bitişik varyantlar ("MANGOANA6X200KIZTILAY" — burada
+// ML hiç yazmıyor). Gerçek olay (2026-08-26): model bu deseni tutarsız
+// yorumluyordu — aynı ham satır 8 taramada 1200 ml, 1 adet, 6 adet, 1 ml gibi
+// 4 farklı sonuç üretti. Prompt düzeltmesi tek başına yetmiyor, bu yüzden
+// deterministik bir katman gerekiyor.
+//
+// count (paket adedi) 2-99 aralığıyla sınırlı: tek paket ("1X500ML") çoklu
+// paket DEĞİLDİR — bu durumda eski tek-ölçü davranışı (SUT 1LT -> 1 liter)
+// aynen çalışmaya devam etmeli.
+// (?<!\d)/(?!\d) demir noktaları: harfe bitişik eşleşmeyi bozmaz ("A6X200"),
+// ama bir sayının ortasından yanlış parça koparmayı engeller.
+const MULTIPACK_PATTERN = /(?<!\d)([2-9]|[1-9]\d)\s*[xX×]\s*(\d+(?:[.,]\d+)?)\s*(KG|GR?|LT?|ML)?(?!\d)/;
+
+// Marka kategorisi bilindiğinde ve birim soneki OCR'da kaybolduğunda son
+// çare: bu üç grup neredeyse istisnasız hacim/ml ile satılır (bkz.
+// brand-category-hints.js'deki "sözlük modelin kararını ezer" felsefesi).
+// Kapsam KASITLI DAR — gıda/bakkaliye gruplarında birim tahmini riskli.
+const DEFAULT_PACK_UNIT_BY_CATEGORY = {
+  beverages: 'milliliter',
+  cleaning: 'milliliter',
+  personal_care: 'milliliter',
+};
+
+// rawText'ten "N adet x M birim" çoklu paket bilgisini deterministik çıkarır.
+// Dönüş: { count, size, unit } | null. unit çözülemezse null olabilir —
+// çağıran taraf bu durumda packSize/packUnit'i boş bırakıp SADECE count'u
+// (adet sayısını) kullanır; yanlış birim UYDURMAKTANSA eksik bırakmak
+// tercih edilir (bkz. dosya başı "MİKTAR UYDURMA" ilkesi).
+const parseMultipack = (rawText) => {
+  const match = MULTIPACK_PATTERN.exec(rawText ?? '');
+  if (!match) return null;
+
+  const count = Number(match[1]);
+  const size = Number(match[2].replace(',', '.'));
+  if (!Number.isFinite(count) || count < 2 || count > 99) return null;
+  if (!Number.isFinite(size) || size <= 0) return null;
+
+  const suffix = match[3]?.toUpperCase();
+  if (suffix) {
+    const unit = UNIT_BY_SUFFIX[suffix];
+    return unit ? { count, size, unit } : null;
+  }
+
+  // Birim soneki yok. Boyut 1000'i geçiyorsa muhtemelen yıl/kod bulaşması
+  // ("12X2026" gibi), çoklu paket değil — reddet.
+  if (size >= 1000) return null;
+
+  return { count, size, unit: null };
+};
+
+// Birim soneki kaybolduğunda (parseMultipack unit=null döndürdüğünde) AI'ın
+// kendi parsedUnit'i ölçülebilir bir birimse onu ipucu olarak kullan — AI
+// genelde miktarı yanlış hesaplasa da (6*200=1200) birimi doğru veriyordu.
+const MEASURABLE_UNITS = new Set(['gram', 'kilogram', 'milliliter', 'liter']);
+
+const resolveMeasurableUnit = (unit) => (MEASURABLE_UNITS.has(unit) ? unit : null);
+
 const normalizeMeasurement = (item) => {
+  const multipack = parseMultipack(item.rawText);
+  if (multipack) {
+    // Çoklu paket: miktar PAKET SAYISI, birim 'piece'. Tek paketin boyutu
+    // ayrı alanlarda taşınır — 6*200=1200 gibi bir çarpım ASLA yapılmaz.
+    const packUnit = multipack.unit ?? resolveMeasurableUnit(item.parsedUnit);
+    return {
+      ...item,
+      parsedQuantity: multipack.count,
+      parsedUnit: 'piece',
+      // Birim henüz çözülemese de boyutu (200 gibi) taşımaya devam ediyoruz
+      // — finalizeItem marka kategorisi kademesinden sonra packUnit'i tekrar
+      // çözmeyi dener ve o kademe de başarısız olursa ANCAK O ZAMAN boyutu
+      // null'a düşürür (CHECK kısıtı: ikisi birlikte dolu/boş olmalı).
+      parsedPackSize: multipack.size,
+      parsedPackUnit: packUnit,
+    };
+  }
+
   const match = MEASUREMENT_PATTERN.exec(item.rawText ?? '');
   if (!match) return item;
 
@@ -91,10 +191,7 @@ const normalizeMeasurement = (item) => {
   const unit = UNIT_BY_SUFFIX[match[2].toUpperCase()];
   if (!unit || !Number.isFinite(amount)) return item;
 
-  // Satır başındaki çarpanı (örn. "2 X YUMURTA") koru: 2 paket x 500g.
-  const multiplier = item.parsedQuantity > 1 && item.parsedUnit === 'piece' ? item.parsedQuantity : 1;
-
-  return { ...item, parsedQuantity: amount * multiplier, parsedUnit: unit };
+  return { ...item, parsedQuantity: amount, parsedUnit: unit };
 };
 
 // Model toplam tutarı bazen atlıyor; fiş metninde açıkça yazdığı için
@@ -152,11 +249,31 @@ const resolveCategory = (item) => {
 const finalizeItem = (item) => {
   const measured = normalizeMeasurement(item);
   const brand = resolveBrand(measured);
+  // Bazı marka grupları (içecek/temizlik/kişisel bakım) kategoriyi kesin
+  // belirler — marka sözlüğü burada da AI'ın kararını EZER, sadece NULL'u
+  // doldurmaz (bkz. brand-category-hints.js). "Kızılay" gibi bir maden suyu
+  // markası, isim ne kadar bozuk çıkarsa çıksın ("Kızılay Mangoana") ürünü
+  // her zaman beverages yapar.
+  const brandCategory = categoryHintForBrand(brand);
+
+  // Çoklu paket tespit edildiyse (normalizeMeasurement parsedPackSize/Unit
+  // ürettiyse) ama birim hâlâ çözülemediyse, marka kategorisi bilindikten
+  // SONRA son bir deneme yapılır — resolveBrand/categoryHintForBrand
+  // normalizeMeasurement'tan sonra çalıştığı için bu kademe burada.
+  let packSize = measured.parsedPackSize ?? null;
+  let packUnit = measured.parsedPackUnit ?? null;
+  if (packSize !== null && packUnit === null) {
+    packUnit = DEFAULT_PACK_UNIT_BY_CATEGORY[brandCategory] ?? null;
+    packSize = packUnit ? packSize : null;
+  }
+
   return {
     ...measured,
     parsedBrand: brand,
     parsedName: buildFinalName(measured.parsedName, brand),
-    parsedCategory: resolveCategory(measured),
+    parsedCategory: brandCategory ?? resolveCategory(measured),
+    parsedPackSize: packSize,
+    parsedPackUnit: packUnit,
   };
 };
 
@@ -171,4 +288,5 @@ export {
   // Alias ön-eşleştirmesinde (process-receipt-scan) AI'a hiç gitmeyen
   // satırların miktar/birimini çıkarmak için de kullanılıyor.
   normalizeMeasurement,
+  parseMultipack,
 };

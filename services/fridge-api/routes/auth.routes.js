@@ -102,9 +102,17 @@ const buildAuthRouter = ({ container }) => {
   // kullanıcı bilgisi (ad/e-posta) hiçbir yerde saklanmıyordu — mobil
   // AuthController._restoreSession() sadece token varlığına bakıp user'ı
   // null bırakıyordu. Bu endpoint o boşluğu dolduruyor.
+  const publicUser = (user) => ({
+    id: user.id,
+    email: user.email,
+    displayName: user.displayName,
+    locale: user.locale,
+    dietProfile: user.dietProfile ?? null,
+  });
+
   router.get('/me', requireAuth(), asyncHandler(async (req, res) => {
     const user = await repos.userRepo.findById(req.user.id);
-    res.json({ user: { id: user.id, email: user.email, displayName: user.displayName, locale: user.locale } });
+    res.json({ user: publicUser(user) });
   }));
 
   router.patch('/me', requireAuth(), asyncHandler(async (req, res) => {
@@ -112,8 +120,10 @@ const buildAuthRouter = ({ container }) => {
       userId: req.user.id,
       displayName: req.body?.displayName,
       locale: req.body?.locale,
+      // 'dietProfile' anahtarı yoksa dokunma; null gelirse temizle.
+      dietProfile: Object.hasOwn(req.body ?? {}, 'dietProfile') ? req.body.dietProfile : undefined,
     });
-    res.json({ user: { id: user.id, email: user.email, displayName: user.displayName, locale: user.locale } });
+    res.json({ user: publicUser(user) });
   }));
 
   router.post('/change-password', requireAuth(), asyncHandler(async (req, res) => {

@@ -5,6 +5,10 @@ import { makeLocalDiskStorage } from '@fridge/core/src/infrastructure/storage/lo
 import { makeTesseractOcr } from '@fridge/core/src/infrastructure/ocr/tesseract.adapter.js';
 import { makeGeminiTextParser } from '@fridge/core/src/infrastructure/parser/gemini-text.adapter.js';
 import { makeRuleBasedParser } from '@fridge/core/src/infrastructure/parser/rule-based.adapter.js';
+import { makeGeminiRecipeGenerator } from '@fridge/core/src/infrastructure/recipe/gemini-recipe.adapter.js';
+import { makeGeminiShoppingSuggester } from '@fridge/core/src/infrastructure/shopping/gemini-shopping.adapter.js';
+import { makeGeminiChefChat } from '@fridge/core/src/infrastructure/chef/gemini-chef.adapter.js';
+import { makeOpenFoodFactsLookup } from '@fridge/core/src/infrastructure/barcode/openfoodfacts.adapter.js';
 import { makeFcmNotifier } from '@fridge/core/src/infrastructure/notification/fcm.adapter.js';
 import { makeNoopNotifier } from '@fridge/core/src/infrastructure/notification/noop.adapter.js';
 
@@ -23,9 +27,13 @@ import { makeReceiptScanRepository } from '@fridge/core/src/infrastructure/persi
 import { makeReceiptLineItemRepository } from '@fridge/core/src/infrastructure/persistence/repositories/receipt-line-item.repository.js';
 import { makeRecipeRepository } from '@fridge/core/src/infrastructure/persistence/repositories/recipe.repository.js';
 import { makeRecipeCookLogRepository } from '@fridge/core/src/infrastructure/persistence/repositories/recipe-cook-log.repository.js';
+import { makeRecipeFavoriteRepository } from '@fridge/core/src/infrastructure/persistence/repositories/recipe-favorite.repository.js';
+import { makeShoppingListRepository } from '@fridge/core/src/infrastructure/persistence/repositories/shopping-list.repository.js';
 import { makeDeviceTokenRepository } from '@fridge/core/src/infrastructure/persistence/repositories/device-token.repository.js';
 import { makeNotificationRepository } from '@fridge/core/src/infrastructure/persistence/repositories/notification.repository.js';
 import { makeNotificationPreferenceRepository } from '@fridge/core/src/infrastructure/persistence/repositories/notification-preference.repository.js';
+import { makeInsightsRepository } from '@fridge/core/src/infrastructure/persistence/repositories/insights.repository.js';
+import { makeChefChatRepository } from '@fridge/core/src/infrastructure/persistence/repositories/chef-chat.repository.js';
 
 import { makeRegisterUser } from '@fridge/core/src/application/use-cases/auth/register-user.use-case.js';
 import { makeLoginUser } from '@fridge/core/src/application/use-cases/auth/login-user.use-case.js';
@@ -66,6 +74,20 @@ import { makeSuggestRecipes } from '@fridge/core/src/application/use-cases/recip
 import { makeCookRecipe } from '@fridge/core/src/application/use-cases/recipe/cook-recipe.use-case.js';
 import { makeCreateRecipe } from '@fridge/core/src/application/use-cases/recipe/create-recipe.use-case.js';
 import { makeGetRecipeDetail } from '@fridge/core/src/application/use-cases/recipe/get-recipe-detail.use-case.js';
+import { makeUpdateRecipe } from '@fridge/core/src/application/use-cases/recipe/update-recipe.use-case.js';
+import { makeDeleteRecipe } from '@fridge/core/src/application/use-cases/recipe/delete-recipe.use-case.js';
+import { makeGenerateAiRecipes } from '@fridge/core/src/application/use-cases/recipe/generate-ai-recipes.use-case.js';
+
+import { makeGetShoppingList } from '@fridge/core/src/application/use-cases/shopping/get-shopping-list.use-case.js';
+import { makeAddShoppingItem } from '@fridge/core/src/application/use-cases/shopping/add-shopping-item.use-case.js';
+import { makeSuggestShoppingItems } from '@fridge/core/src/application/use-cases/shopping/suggest-shopping-items.use-case.js';
+import { makeSuggestAiShoppingItems } from '@fridge/core/src/application/use-cases/shopping/suggest-ai-shopping-items.use-case.js';
+import { makeAddShoppingItemsFromText } from '@fridge/core/src/application/use-cases/shopping/add-shopping-items-from-text.use-case.js';
+import { makeAddRecipeMissingToList } from '@fridge/core/src/application/use-cases/shopping/add-recipe-missing-to-list.use-case.js';
+import { makeTransferCheckedToInventory } from '@fridge/core/src/application/use-cases/shopping/transfer-checked-to-inventory.use-case.js';
+import { makeGetHouseholdInsights } from '@fridge/core/src/application/use-cases/insights/get-household-insights.use-case.js';
+import { makeSendChefMessage } from '@fridge/core/src/application/use-cases/chef/send-chef-message.use-case.js';
+import { makeLookupBarcode } from '@fridge/core/src/application/use-cases/product/lookup-barcode.use-case.js';
 
 import { makeSystemClock } from '@fridge/helper';
 
@@ -79,6 +101,7 @@ const buildContainer = (config) => {
     refreshSecret: config.jwtRefreshSecret,
   });
   const storagePort = makeLocalDiskStorage({ baseDir: config.uploadsDir });
+  const barcodeLookupPort = makeOpenFoodFactsLookup();
 
   // Tek OCR sağlayıcı: /scan (foto) yolu bunu kullanır. /scan-text zaten
   // ham metinle geldiği için process-receipt-scan.use-case.js OCR portunu
@@ -89,6 +112,24 @@ const buildContainer = (config) => {
   const receiptParserPort = config.parserProvider === 'rule-based'
     ? makeRuleBasedParser()
     : makeGeminiTextParser({ apiKey: config.geminiApiKey, model: config.geminiModel });
+
+  // recipeAiEnabled=false ise null kalır — recipe.routes.js bunu görüp 503
+  // döner, key eksikken sessizce boot edip runtime'da patlamak yerine.
+  const recipeGeneratorPort = config.recipeAiEnabled
+    ? makeGeminiRecipeGenerator({ apiKey: config.geminiApiKey, model: config.geminiRecipeModel })
+    : null;
+
+  // shoppingAiEnabled=false ise null kalır — shopping.routes.js bunu görüp
+  // 503 döner, recipeGeneratorPort ile aynı desen.
+  const shoppingSuggesterPort = config.shoppingAiEnabled
+    ? makeGeminiShoppingSuggester({ apiKey: config.geminiApiKey, model: config.geminiShoppingModel })
+    : null;
+
+  // chefAiEnabled=false ise null kalır — chef.routes.js bunu görüp 503 döner,
+  // recipeGeneratorPort ile aynı desen.
+  const chefChatPort = config.chefAiEnabled
+    ? makeGeminiChefChat({ apiKey: config.geminiApiKey, model: config.geminiChefModel })
+    : null;
 
   // Kimlik bilgisi eksikse (dosya yok/okunamıyor) no-op'a düş — push'un
   // yokluğu asla bir isteği 500'e düşürmemeli.
@@ -128,9 +169,13 @@ const buildContainer = (config) => {
     receiptLineItemRepo: makeReceiptLineItemRepository({ rawQuery }),
     recipeRepo: makeRecipeRepository({ rawQuery }),
     recipeCookLogRepo: makeRecipeCookLogRepository({ rawQuery }),
+    recipeFavoriteRepo: makeRecipeFavoriteRepository({ rawQuery }),
+    shoppingListRepo: makeShoppingListRepository({ rawQuery }),
     deviceTokenRepo: makeDeviceTokenRepository({ rawQuery }),
     notificationRepo: makeNotificationRepository({ rawQuery }),
     notificationPreferenceRepo: makeNotificationPreferenceRepository({ rawQuery }),
+    insightsRepo: makeInsightsRepository({ rawQuery }),
+    chefChatRepo: makeChefChatRepository({ rawQuery }),
   };
 
   const notifyHousehold = makeNotifyHousehold({
@@ -218,6 +263,7 @@ const buildContainer = (config) => {
       receiptLineItemRepo: repos.receiptLineItemRepo,
       productAliasRepo: repos.productAliasRepo,
       productRepo: repos.productRepo,
+      productCategoryRepo: repos.productCategoryRepo,
     }),
     confirmReceiptScan: makeConfirmReceiptScan({
       datasource,
@@ -236,8 +282,10 @@ const buildContainer = (config) => {
     }),
 
     suggestRecipes: makeSuggestRecipes({ recipeRepo: repos.recipeRepo }),
-    createRecipe: makeCreateRecipe({ recipeRepo: repos.recipeRepo }),
-    getRecipeDetail: makeGetRecipeDetail({ recipeRepo: repos.recipeRepo }),
+    createRecipe: makeCreateRecipe({ datasource, makeRecipeRepo: makeRecipeRepository }),
+    getRecipeDetail: makeGetRecipeDetail({ recipeRepo: repos.recipeRepo, inventoryItemRepo: repos.inventoryItemRepo }),
+    updateRecipe: makeUpdateRecipe({ recipeRepo: repos.recipeRepo }),
+    deleteRecipe: makeDeleteRecipe({ recipeRepo: repos.recipeRepo }),
     cookRecipe: makeCookRecipe({
       datasource,
       recipeRepo: repos.recipeRepo,
@@ -245,6 +293,54 @@ const buildContainer = (config) => {
       makeStockMovementRepo: makeStockMovementRepository,
       makeRecipeCookLogRepo: makeRecipeCookLogRepository,
     }),
+    generateAiRecipes: recipeGeneratorPort
+      ? makeGenerateAiRecipes({
+        datasource,
+        inventoryItemRepo: repos.inventoryItemRepo,
+        householdMemberRepo: repos.householdMemberRepo,
+        makeProductRepo: makeProductRepository,
+        makeRecipeRepo: makeRecipeRepository,
+        recipeGeneratorPort,
+      })
+      : null,
+
+    getShoppingList: makeGetShoppingList({ shoppingListRepo: repos.shoppingListRepo }),
+    addShoppingItem: makeAddShoppingItem({ shoppingListRepo: repos.shoppingListRepo }),
+    suggestShoppingItems: makeSuggestShoppingItems({ shoppingListRepo: repos.shoppingListRepo }),
+    suggestAiShoppingItems: shoppingSuggesterPort
+      ? makeSuggestAiShoppingItems({ shoppingListRepo: repos.shoppingListRepo, shoppingSuggesterPort })
+      : null,
+    addShoppingItemsFromText: shoppingSuggesterPort
+      ? makeAddShoppingItemsFromText({ inventoryItemRepo: repos.inventoryItemRepo, shoppingSuggesterPort })
+      : null,
+    addRecipeMissingToList: makeAddRecipeMissingToList({
+      recipeRepo: repos.recipeRepo,
+      inventoryItemRepo: repos.inventoryItemRepo,
+      shoppingListRepo: repos.shoppingListRepo,
+    }),
+    transferCheckedToInventory: makeTransferCheckedToInventory({
+      datasource,
+      shoppingListRepo: repos.shoppingListRepo,
+      makeProductRepo: makeProductRepository,
+      makeInventoryItemRepo: makeInventoryItemRepository,
+      makeStockMovementRepo: makeStockMovementRepository,
+    }),
+
+    getHouseholdInsights: makeGetHouseholdInsights({ insightsRepo: repos.insightsRepo, clock }),
+
+    lookupBarcode: makeLookupBarcode({ productRepo: repos.productRepo, barcodeLookupPort }),
+
+    sendChefMessage: chefChatPort
+      ? makeSendChefMessage({
+        chefChatRepo: repos.chefChatRepo,
+        inventoryItemRepo: repos.inventoryItemRepo,
+        shoppingListRepo: repos.shoppingListRepo,
+        recipeCookLogRepo: repos.recipeCookLogRepo,
+        householdMemberRepo: repos.householdMemberRepo,
+        chefChatPort,
+        clock,
+      })
+      : null,
   };
 
   return { config, datasource, tokenService, storagePort, notificationPort, repos, useCases };

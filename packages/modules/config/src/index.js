@@ -14,7 +14,13 @@ const readEnv = (env = process.env) => {
     // runtime'da 400 ile patlıyordu. rule-based fallback key gerektirmiyor,
     // bu yüzden sadece gemini-text seçiliyken zorunlu kılınıyor.
     const parserProvider = env.PARSER_PROVIDER || 'gemini-text';
-    if (parserProvider === 'gemini-text' && !env.GEMINI_API_KEY) {
+    // recipeAiEnabled varsayılan true — bu koşulu unutmak tam olarak
+    // parserProvider'da daha önce yaşanan sorunu (key'siz sessiz boot,
+    // runtime'da 400) tarif üretiminde de tekrarlardı.
+    const recipeAiEnabled = env.RECIPE_AI_ENABLED !== 'false';
+    const shoppingAiEnabled = env.SHOPPING_AI_ENABLED !== 'false';
+    const chefAiEnabled = env.CHEF_AI_ENABLED !== 'false';
+    if ((parserProvider === 'gemini-text' || recipeAiEnabled || shoppingAiEnabled || chefAiEnabled) && !env.GEMINI_API_KEY) {
       missing.push('GEMINI_API_KEY');
     }
   }
@@ -32,6 +38,12 @@ const readEnv = (env = process.env) => {
     parserProvider: env.PARSER_PROVIDER || 'gemini-text',
     geminiApiKey: env.GEMINI_API_KEY,
     geminiModel: env.GEMINI_MODEL || 'gemini-2.5-flash',
+    recipeAiEnabled: env.RECIPE_AI_ENABLED !== 'false',
+    geminiRecipeModel: env.GEMINI_RECIPE_MODEL || 'gemini-2.5-flash',
+    shoppingAiEnabled: env.SHOPPING_AI_ENABLED !== 'false',
+    geminiShoppingModel: env.GEMINI_SHOPPING_MODEL || 'gemini-2.5-flash',
+    chefAiEnabled: env.CHEF_AI_ENABLED !== 'false',
+    geminiChefModel: env.GEMINI_CHEF_MODEL || 'gemini-2.5-flash',
     scanWorkerIntervalMs: Number(env.SCAN_WORKER_INTERVAL_MS || 5000),
     retentionCleanupIntervalMs: Number(env.RETENTION_CLEANUP_INTERVAL_MS || 24 * 60 * 60 * 1000),
     // FCM_ENABLED=true olsa bile kimlik bilgisi eksikse container no-op

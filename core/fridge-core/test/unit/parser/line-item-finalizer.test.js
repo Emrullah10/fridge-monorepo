@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { finalizeItem, resolveBrand, buildFinalName } from '../../../src/infrastructure/parser/line-item-finalizer.js';
+import { finalizeItem, resolveBrand, buildFinalName, parseMultipack } from '../../../src/infrastructure/parser/line-item-finalizer.js';
 
 describe('resolveBrand', () => {
   // parsedBrand artık AI şemasında yok (performans: token azaltma, bkz.
@@ -81,5 +81,126 @@ describe('finalizeItem (uçtan uca deterministik katman)', () => {
     });
     assert.equal(result.parsedBrand, 'Milkten');
     assert.equal(result.parsedName, 'Milkten Kaymak');
+  });
+
+  test('AI kategoriyi null bıraksa da içecek markası beverages\'a çeker — asıl regresyon kilidi (Kızılay Mangoana)', () => {
+    const result = finalizeItem({
+      rawText: 'MANGOANA6X200KIZTILAY %08',
+      parsedName: 'Mangoana',
+      parsedCategory: null,
+      parsedQuantity: 1,
+      parsedUnit: 'milliliter',
+    });
+    assert.equal(result.parsedBrand, 'Kızılay');
+    assert.equal(result.parsedCategory, 'beverages');
+    assert.equal(result.parsedName, 'Kızılay Mangoana');
+  });
+
+  test('AI YANLIŞ kategori verse bile marka sözlüğü ezer', () => {
+    const result = finalizeItem({
+      rawText: 'MANGOANA6X200KIZTILAY %08',
+      parsedName: 'Mangoana',
+      parsedCategory: 'produce',
+      parsedQuantity: 1,
+      parsedUnit: 'milliliter',
+    });
+    assert.equal(result.parsedCategory, 'beverages');
+  });
+
+  test('bilinmeyen marka için brandCategory devreye girmez, AI kategorisi aynen kalır', () => {
+    const result = finalizeItem({
+      rawText: 'SÜTAŞ SÜT 1LT',
+      parsedName: 'Süt',
+      parsedBrand: 'Sütaş',
+      parsedCategory: 'dairy.milk',
+      parsedQuantity: 1,
+      parsedUnit: 'liter',
+    });
+    assert.equal(result.parsedCategory, 'dairy.milk');
+  });
+});
+
+describe('parseMultipack', () => {
+  test('birim soneki VAR — 6X200ML', () => {
+    assert.deepEqual(parseMultipack('6X200ML MADEN SUYU'), { count: 6, size: 200, unit: 'milliliter' });
+  });
+
+  test('4X1LT', () => {
+    assert.deepEqual(parseMultipack('4X1LT SU'), { count: 4, size: 1, unit: 'liter' });
+  });
+
+  test('boşluklu 2 X 500G', () => {
+    assert.deepEqual(parseMultipack('2 X 500G PEYNIR'), { count: 2, size: 500, unit: 'gram' });
+  });
+
+  test('birim soneki YOK, bitişik OCR — MANGOANA6X200KIZTILAY', () => {
+    assert.deepEqual(parseMultipack('MANGOANA6X200KIZTILAY %08'), { count: 6, size: 200, unit: null });
+  });
+
+  test('tek paket (1X500ML) çoklu paket SAYILMAZ', () => {
+    assert.equal(parseMultipack('1X500ML SU TEK'), null);
+  });
+
+  test('multipack deseni yoksa null (mevcut davranış bozulmamalı)', () => {
+    assert.equal(parseMultipack('SUT 1LT'), null);
+  });
+
+  test('birim yok + boyut >=1000 -> yıl/kod sanılıp reddedilir', () => {
+    assert.equal(parseMultipack('12X2026'), null);
+  });
+
+  test('12X330ML', () => {
+    assert.deepEqual(parseMultipack('12X330ML KOLA'), { count: 12, size: 330, unit: 'milliliter' });
+  });
+});
+
+describe('finalizeItem — KRİTİK REGRESYON KİLİDİ: MANGOANA6X200KIZTILAY', () => {
+  test('6 adet + 200 ml paket boyutu üretir, 1200 ml TEK KALEM üretmez', () => {
+    const result = finalizeItem({
+      rawText: 'MANGOANA6X200KIZTILAY %08',
+      parsedName: 'Mangoana',
+      parsedCategory: null,
+      parsedQuantity: 1200, // AI'ın 8 taramanın birinde ürettiği YANLIŞ değer
+      parsedUnit: 'milliliter',
+    });
+    assert.equal(result.parsedQuantity, 6);
+    assert.equal(result.parsedUnit, 'piece');
+    assert.equal(result.parsedPackSize, 200);
+    assert.equal(result.parsedPackUnit, 'milliliter'); // brandCategory=beverages fallback devrede
+    assert.equal(result.parsedBrand, 'Kızılay');
+  });
+
+  test('AI parsedUnit=piece dönse bile (8 taramanın 4ünde gözlendi) beverages fallback ile ml çözülür', () => {
+    const result = finalizeItem({
+      rawText: 'MANGOANA6X200KIZTILAY %08',
+      parsedName: 'Mangoana',
+      parsedQuantity: 1, // AI'ın "1 piece" dediği tarama
+      parsedUnit: 'piece',
+    });
+    assert.equal(result.parsedQuantity, 6);
+    assert.equal(result.parsedPackUnit, 'milliliter');
+  });
+
+  test('SUT 1LT hâlâ eski davranışta — regresyon yok', () => {
+    const result = finalizeItem({ rawText: 'SUT 1LT', parsedName: 'Süt', parsedQuantity: 1, parsedUnit: 'piece' });
+    assert.equal(result.parsedQuantity, 1);
+    assert.equal(result.parsedUnit, 'liter');
+    assert.equal(result.parsedPackSize, null);
+  });
+
+  test('2 X 500G PEYNIR -> 2 adet + 500g paket (eski davranış 1000g YANLIŞTI, artık düzeldi)', () => {
+    const result = finalizeItem({ rawText: '2 X 500G PEYNIR', parsedName: 'Peynir', parsedQuantity: 2, parsedUnit: 'piece' });
+    assert.equal(result.parsedQuantity, 2);
+    assert.equal(result.parsedUnit, 'piece');
+    assert.equal(result.parsedPackSize, 500);
+    assert.equal(result.parsedPackUnit, 'gram');
+  });
+
+  test('birim soneği ve marka kategorisi ikisi de yoksa packSize null kalır, adet sayısı korunur', () => {
+    const result = finalizeItem({ rawText: '6X4 YUMURTA', parsedName: 'Yumurta', parsedQuantity: 1, parsedUnit: 'piece' });
+    assert.equal(result.parsedQuantity, 6);
+    assert.equal(result.parsedUnit, 'piece');
+    assert.equal(result.parsedPackSize, null);
+    assert.equal(result.parsedPackUnit, null);
   });
 });

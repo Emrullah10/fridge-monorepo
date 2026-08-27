@@ -11,7 +11,7 @@ const makeCookRecipe = ({
   return async ({ recipeId, householdId, cookedBy }) => {
     const ingredients = await recipeRepo.listIngredients(recipeId);
 
-    await datasource.withTransaction(async ({ query }) => {
+    const { consumed, insufficient } = await datasource.withTransaction(async ({ query }) => {
       const inventoryItemRepo = makeInventoryItemRepo({ rawQuery: query });
       const stockMovementRepo = makeStockMovementRepo({ rawQuery: query });
       const recipeCookLogRepo = makeRecipeCookLogRepo({ rawQuery: query });
@@ -26,6 +26,9 @@ const makeCookRecipe = ({
         list.push(item);
         itemsByProduct.set(item.productId, list);
       }
+
+      const consumed = [];
+      const insufficient = [];
 
       for (const ingredient of ingredients) {
         const candidates = (itemsByProduct.get(ingredient.productId) ?? [])
@@ -49,12 +52,20 @@ const makeCookRecipe = ({
             actorUserId: cookedBy,
           });
         }
+
+        const consumedQuantity = ingredient.quantity - Math.max(remaining, 0);
+        consumed.push({ productId: ingredient.productId, quantity: consumedQuantity, unit: ingredient.unit });
+        if (remaining > 0) {
+          insufficient.push({ productId: ingredient.productId, missingQuantity: remaining, unit: ingredient.unit });
+        }
       }
 
       await recipeCookLogRepo.create({ householdId, recipeId, cookedBy });
+
+      return { consumed, insufficient };
     });
 
-    return { recipeId, cookedBy };
+    return { recipeId, cookedBy, consumed, insufficient };
   };
 };
 

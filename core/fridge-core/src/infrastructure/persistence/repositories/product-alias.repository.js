@@ -1,3 +1,5 @@
+import { normalizeOcrArtifacts, stripHomoglyphs } from '../../parser/text-normalize.js';
+
 const mapRow = (row) => row && ({
   id: row.id,
   householdId: row.household_id,
@@ -15,10 +17,23 @@ const TRIGRAM_SIMILARITY_THRESHOLD = 0.4;
 // alias anahtarında kalırsa "COCA COLA 2.5LT 45,00" ile "... 52,00" ayrı
 // kayıtlar olur ve öğrenme boşa gider. Eşleştirme bu yüzden fiyattan
 // arındırılmış, sadeleştirilmiş metin üzerinden yapılır.
+//
+// OCR/homoglif normalizasyonu da EKLENDİ (2026-08-26): gerçek DB kanıtı,
+// aynı ürünün "mìlkten 200g kaymak" ve "milkten 200g kaymak" gibi iki farklı
+// alias anahtarına düştüğünü gösterdi — İ/Ì karışması ve Kiril homoglifleri
+// (line-item-finalizer.js'de zaten kullanılan text-normalize.js) tam eşleşme
+// yerine tekrar tekrar aynı ürünü ai_generated olarak yeniden yaratıyordu.
+// Fiyatın satır sonunda değil "9,90 TL" gibi TL sonekli olduğu durum ve
+// baştaki "*" fiyat öneki de eklendi.
+//
+// Ölçüyü (500G/1LT) BİLEREK SİLMİYORUZ — silinirse "500G" ve "800G" aynı
+// anahtara düşer, bu farklı gramajdaki ürünleri yanlışlıkla birleştirir
+// (mevcut testler bu davranışı zaten kilitliyor).
 const normalizeAliasText = (rawText) =>
-  (rawText ?? '')
-    .replace(/%\s*\d+/g, ' ')            // KDV oranı: "%8"
-    .replace(/\d+[.,]\d{2}\s*$/g, ' ')   // satır sonundaki fiyat: "45,00"
+  stripHomoglyphs(normalizeOcrArtifacts(rawText ?? ''))
+    .replace(/%\s*\d+/g, ' ')                  // KDV oranı: "%8"
+    .replace(/^\s*\*/, ' ')                    // baştaki fiyat yıldızı: "*9,90"
+    .replace(/\d+[.,]\d{2}\s*(TL)?\s*$/gi, ' ') // satır sonu fiyat, TL sonekli dahil
     .replace(/\s+/g, ' ')
     .trim()
     .toLocaleLowerCase('tr-TR');

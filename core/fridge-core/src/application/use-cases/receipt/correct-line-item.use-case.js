@@ -8,15 +8,18 @@
 // adını tek bir kullanıcının düzeltmesiyle değiştirmek istenmiyor; AI'ın
 // uydurduğu isim ise düzeltmeye açık ve bu olmadan bir sonraki fişte alias
 // eşleşip eski yanlış ismi geri getiriyordu.
-const makeCorrectLineItem = ({ receiptLineItemRepo, productAliasRepo, productRepo }) => {
+const makeCorrectLineItem = ({ receiptLineItemRepo, productAliasRepo, productRepo, productCategoryRepo }) => {
   return async ({
-    lineItemId, householdId, parsedName, parsedBrand, parsedQuantity, parsedUnit, matchedProductId,
+    lineItemId, householdId, parsedName, parsedBrand, parsedQuantity, parsedUnit,
+    parsedPackSize, parsedPackUnit, matchedProductId, categoryKey,
   }) => {
     const updated = await receiptLineItemRepo.update(lineItemId, {
       parsedName,
       parsedBrand,
       parsedQuantity,
       parsedUnit,
+      parsedPackSize,
+      parsedPackUnit,
       matchedProductId,
       matchMethod: 'manual',
       status: null,
@@ -38,6 +41,20 @@ const makeCorrectLineItem = ({ receiptLineItemRepo, productAliasRepo, productRep
         if (product?.source === 'ai_generated') {
           await productRepo.updateCanonicalName(matchedProductId, parsedName.trim());
         }
+      }
+
+      // Kullanıcının kategori seçimi tarif AI'ının doğru sınıflandırma
+      // yapması için tek geribesleme mekanizmasıdır (bkz. recipe-eligibility.js).
+      if (categoryKey !== undefined && productCategoryRepo) {
+        const category = await productCategoryRepo.findByKey(categoryKey);
+        await productRepo.updateCategoryId(matchedProductId, category?.id ?? null);
+      }
+
+      // Paket boyutu düzeltmesi kalıcılaşır — updateBrand ile aynı mantık,
+      // ama 'ai_generated' kısıtı YOK: paket boyutu objektif bir üretici
+      // gerçeği, hangi kaynaktan geldiği ayrımı gerekmiyor.
+      if (parsedPackSize !== undefined && parsedPackUnit !== undefined) {
+        await productRepo.updatePackSize(matchedProductId, { packSize: parsedPackSize, packUnit: parsedPackUnit });
       }
     }
 
