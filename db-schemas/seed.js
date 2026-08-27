@@ -1,5 +1,14 @@
+import { existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { normalizeAliasText } from '../core/fridge-core/src/infrastructure/persistence/repositories/product-alias.repository.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const envPath = join(__dirname, '..', '.env');
+if (existsSync(envPath) && typeof process.loadEnvFile === 'function') {
+  process.loadEnvFile(envPath);
+}
 
 const { Pool } = pg;
 
