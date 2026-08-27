@@ -127,7 +127,10 @@ const buildReceiptRouter = ({ container }) => {
       parsedBrand: req.body.parsedBrand,
       parsedQuantity: req.body.parsedQuantity,
       parsedUnit: req.body.parsedUnit,
+      parsedPackSize: req.body.parsedPackSize,
+      parsedPackUnit: req.body.parsedPackUnit,
       matchedProductId: req.body.matchedProductId,
+      categoryKey: req.body.categoryKey,
     });
     res.json({ item });
   }));

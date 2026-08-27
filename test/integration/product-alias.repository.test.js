@@ -66,4 +66,33 @@ describe('product-alias.repository — öğrenme mekanizması (fiyattan bağıms
     assert.ok(trigram, 'benzer metin trigram ile bulunmalı');
     assert.equal(trigram.productId, productId);
   });
+
+  test('OCR/homoglif bozuk varyant aynı alias anahtarına düşer — asıl regresyon kilidi (Kızılay kirlenmesi)', async () => {
+    // Gerçek DB kanıtı: "MİLKTEN 200G KAYMAK" (İ/homoglif temiz) ve
+    // "MÌLKTEN 200G KAYMAK" (OCR'dan İ->Ì kaymış) iki farklı alias
+    // anahtarına düşüyordu, aynı ürün iki kez ai_generated olarak
+    // yaratılıyordu. normalizeAliasText artık normalizeOcrArtifacts +
+    // stripHomoglyphs kullanıyor.
+    const userId = await createTestUser('alias-ocr');
+    const householdId = await createTestHousehold(userId);
+    const productId = await createTestProduct(householdId, 'Milkten Kaymak');
+
+    await repo.upsertUserCorrection({ householdId, rawText: 'MİLKTEN 200G KAYMAK', productId });
+
+    const match = await repo.findExactMatch({ householdId, rawText: 'MÌLKTEN 200G KAYMAK' });
+    assert.ok(match, 'OCR kod sayfası kayması (İ/Ì) aynı alias anahtarına düşmeli');
+    assert.equal(match.productId, productId);
+  });
+
+  test('baştaki fiyat yıldızı ve TL sonekli satır sonu fiyatı da alias anahtarından temizlenir', async () => {
+    const userId = await createTestUser('alias-price-variants');
+    const householdId = await createTestHousehold(userId);
+    const productId = await createTestProduct(householdId, 'Ayran');
+
+    await repo.upsertUserCorrection({ householdId, rawText: '*AYRAN 250ML', productId });
+
+    const match = await repo.findExactMatch({ householdId, rawText: 'AYRAN 250ML 9,90 TL' });
+    assert.ok(match, 'baştaki yıldız ve TL sonekli fiyat da normalize edilmeli');
+    assert.equal(match.productId, productId);
+  });
 });

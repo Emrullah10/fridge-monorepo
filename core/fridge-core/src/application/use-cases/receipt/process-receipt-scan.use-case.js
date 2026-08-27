@@ -1,4 +1,5 @@
 import { normalizeMeasurement } from '../../../infrastructure/parser/line-item-finalizer.js';
+import { extractMerchantFromRawText } from '../../../infrastructure/parser/turkish-merchants.js';
 import { NOTIFICATION_TYPES } from '../../../domain/notification-types.js';
 
 // Ön-eşleştirme sonrası fişin tamamı modele gitmeyebiliyor (hatta hiç
@@ -104,7 +105,7 @@ const makeProcessReceiptScan = ({
     return null;
   };
 
-  const matchProduct = async ({ householdId, rawText, parsedName, parsedBrand, parsedCategory, parsedUnit }) => {
+  const matchProduct = async ({ householdId, rawText, parsedName, parsedBrand, parsedCategory, parsedUnit, parsedPackSize, parsedPackUnit }) => {
     const known = await matchKnownProduct({ householdId, rawText });
     if (known) return known;
 
@@ -116,6 +117,8 @@ const makeProcessReceiptScan = ({
       categoryId: category?.id ?? null,
       defaultUnit: parsedUnit,
       source: 'ai_generated',
+      packSize: parsedPackSize ?? null,
+      packUnit: parsedPackUnit ?? null,
     });
     await productAliasRepo.upsertUserCorrection({ householdId, rawText, productId: created.id, source: 'model' });
     return { matchedProductId: created.id, confidence: null, matchMethod: 'model' };
@@ -124,6 +127,11 @@ const makeProcessReceiptScan = ({
   // Sözlükte eşleşen satır için AI'a gerek yok: ürün adı/kategorisi zaten
   // eşleşen üründe hazır, miktar/birim de ham metinden deterministik
   // çıkarılıyor (normalizeMeasurement, AI çıktısına da uygulanan aynı regex).
+  //
+  // Paket boyutu için ürün OTORİTER kaynak: product.packSize/packUnit varsa
+  // ham metinden yeniden tahmin edilmez, doğrudan kullanılır. Ürün henüz
+  // paket bilgisi taşımıyorsa (ör. eski/manuel kayıt) normalizeMeasurement'ın
+  // ham metinden çıkardığı değere düşülür.
   const buildLineFromMatchedProduct = async ({ rawText, match }) => {
     const product = await productRepo.findById(match.matchedProductId);
     const measured = normalizeMeasurement({
@@ -131,12 +139,17 @@ const makeProcessReceiptScan = ({
       parsedQuantity: 1,
       parsedUnit: product?.defaultUnit ?? 'piece',
     });
+    const packUnit = product?.packUnit ?? measured.parsedPackUnit ?? null;
     return {
       rawText,
       parsedName: product?.canonicalName ?? rawText,
       parsedBrand: product?.brand ?? null,
       parsedQuantity: measured.parsedQuantity,
       parsedUnit: measured.parsedUnit,
+      // CHECK kısıtı gereği (pack_size IS NULL) = (pack_unit IS NULL):
+      // birim yoksa boyut da yazılmaz.
+      parsedPackSize: packUnit ? (product?.packSize ?? measured.parsedPackSize ?? null) : null,
+      parsedPackUnit: packUnit,
       parsedPrice: null,
       ...match,
     };
@@ -168,10 +181,17 @@ const makeProcessReceiptScan = ({
         }
       }
 
+      // Ham metinden deterministik olarak çıkarılan market adı. AI'ın
+      // merchantName alanı alias-only yolda hiç çağrılmadığı için boş
+      // kalabiliyor (bkz. aşağıdaki markReviewPending) — bu hem o boşluğu
+      // dolduran bir yedek, hem de AI çağrıldığında parser'a context olarak
+      // gidiyor (zincire özgü kısaltmaları açmasına yardım eder).
+      const merchantHint = extractMerchantFromRawText(rawText);
+
       // 2) Sadece tanınmayan satırlar modele gider. Hepsi tanındıysa AI parser
       //    hiç çağrılmaz — asıl hız kazancı burada.
       const parsed = unmatchedLines.length > 0
-        ? await receiptParserPort.parse({ rawText: unmatchedLines.join('\n') })
+        ? await receiptParserPort.parse({ rawText: unmatchedLines.join('\n'), merchantHint })
         : { lineItems: [], merchantName: null, purchasedAt: null, totalAmount: null, provider: 'alias-only', model: null };
 
       // 3) Modelin döndürdüğü satırlar kademe 3'ten (AI ürün oluşturma) geçer.
@@ -191,6 +211,8 @@ const makeProcessReceiptScan = ({
           parsedBrand: line.parsedBrand ?? null,
           parsedCategory: line.parsedCategory ?? null,
           parsedUnit: line.parsedUnit,
+          parsedPackSize: line.parsedPackSize ?? null,
+          parsedPackUnit: line.parsedPackUnit ?? null,
         });
         aiLines.push({
           rawText: line.rawText,
@@ -198,6 +220,8 @@ const makeProcessReceiptScan = ({
           parsedBrand: line.parsedBrand ?? null,
           parsedQuantity: line.parsedQuantity,
           parsedUnit: line.parsedUnit,
+          parsedPackSize: line.parsedPackSize ?? null,
+          parsedPackUnit: line.parsedPackUnit ?? null,
           parsedPrice: line.parsedPrice ?? null,
           ...match,
         });
@@ -222,7 +246,7 @@ const makeProcessReceiptScan = ({
         ocrProvider,
         parserProvider: parsed.provider,
         parserModel: parsed.model,
-        merchantName: parsed.merchantName,
+        merchantName: parsed.merchantName ?? merchantHint,
         purchasedAt: parsed.purchasedAt,
         totalAmount: parsed.totalAmount ?? extractTotalFromRawText(rawText),
       });

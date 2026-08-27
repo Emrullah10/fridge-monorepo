@@ -1,5 +1,5 @@
 const makeAddInventoryItem = ({ inventoryItemRepo, stockMovementRepo }) => {
-  return async ({ householdId, storageLocationId, productId, unit, quantity, expiresAt = null, actorUserId }) => {
+  return async ({ householdId, storageLocationId, productId, unit, quantity, expiresAt = null, actorUserId, unitPrice = undefined }) => {
     const item = await inventoryItemRepo.upsertQuantity({
       householdId,
       storageLocationId,
@@ -7,6 +7,7 @@ const makeAddInventoryItem = ({ inventoryItemRepo, stockMovementRepo }) => {
       unit,
       expiresAt,
       deltaQuantity: quantity,
+      unitPrice,
     });
 
     await stockMovementRepo.create({
@@ -15,6 +16,7 @@ const makeAddInventoryItem = ({ inventoryItemRepo, stockMovementRepo }) => {
       delta: quantity,
       reason: 'manual_add',
       actorUserId,
+      unitPrice,
     });
 
     return item;

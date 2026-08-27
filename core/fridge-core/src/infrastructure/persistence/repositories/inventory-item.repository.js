@@ -8,8 +8,13 @@ const mapRow = (row) => row && ({
   expiresAt: row.expires_at,
   openedAt: row.opened_at,
   note: row.note,
-  // canonical_name sadece ürün adıyla birlikte listeleyen sorgularda dolu olur.
+  unitPrice: row.unit_price === null || row.unit_price === undefined ? null : Number(row.unit_price),
+  // canonical_name/brand/category_key/product_source sadece ürün bilgisiyle
+  // birlikte listeleyen sorgularda dolu olur.
   ...(row.canonical_name !== undefined ? { productName: row.canonical_name } : {}),
+  ...(row.brand !== undefined ? { productBrand: row.brand } : {}),
+  ...(row.category_key !== undefined ? { categoryId: row.category_key } : {}),
+  ...(row.product_source !== undefined ? { productSource: row.product_source } : {}),
 });
 
 const makeInventoryItemRepository = ({ rawQuery }) => {
@@ -27,9 +32,10 @@ const makeInventoryItemRepository = ({ rawQuery }) => {
         params.push(storageLocationId);
       }
       const { rows } = await rawQuery(
-        `SELECT inv.*, p.canonical_name
+        `SELECT inv.*, p.canonical_name, p.brand, pc.key AS category_key, p.source AS product_source
          FROM inventory_item inv
          JOIN product p ON p.id = inv.product_id
+         LEFT JOIN product_category pc ON pc.id = p.category_id
          WHERE ${conditions.join(' AND ')}
          ORDER BY inv.created_at DESC`,
         params,
@@ -39,9 +45,10 @@ const makeInventoryItemRepository = ({ rawQuery }) => {
 
     listExpiringBefore: async (householdId, beforeDate) => {
       const { rows } = await rawQuery(
-        `SELECT inv.*, p.canonical_name
+        `SELECT inv.*, p.canonical_name, p.brand, pc.key AS category_key, p.source AS product_source
          FROM inventory_item inv
          JOIN product p ON p.id = inv.product_id
+         LEFT JOIN product_category pc ON pc.id = p.category_id
          WHERE inv.household_id = $1 AND inv.expires_at IS NOT NULL AND inv.expires_at <= $2
          ORDER BY inv.expires_at ASC`,
         [householdId, beforeDate],
@@ -51,14 +58,30 @@ const makeInventoryItemRepository = ({ rawQuery }) => {
 
     // Aynı ürün + lokasyon + birim + son kullanma tarihi varsa miktarı artırır,
     // yoksa yeni satır açar. Planın 03-inventory-schema.sql UNIQUE kısıtına dayanır.
-    upsertQuantity: async ({ householdId, storageLocationId, productId, unit, expiresAt = null, deltaQuantity }) => {
+    //
+    // unitPrice verilirse: yeni satırda doğrudan yazılır; mevcut satıra ekleme
+    // yapılıyorsa AĞIRLIKLI ORTALAMA ile güncellenir
+    //   (eskiMiktar*eskiFiyat + yeniMiktar*yeniFiyat) / (eskiMiktar+yeniMiktar)
+    // Eski fiyat NULL ise (fiyatsız geçmiş kalem) yeni fiyat aynen alınır.
+    // unitPrice verilmezse mevcut fiyat korunur.
+    upsertQuantity: async ({ householdId, storageLocationId, productId, unit, expiresAt = null, deltaQuantity, unitPrice = undefined }) => {
       const { rows } = await rawQuery(
-        `INSERT INTO inventory_item (household_id, storage_location_id, product_id, unit, expires_at, quantity)
-         VALUES ($1, $2, $3, $4, $5, $6)
+        `INSERT INTO inventory_item (household_id, storage_location_id, product_id, unit, expires_at, quantity, unit_price)
+         VALUES ($1, $2, $3, $4, $5, $6, $7::numeric)
          ON CONFLICT (household_id, storage_location_id, product_id, unit, (COALESCE(expires_at, '0001-01-01')))
-         DO UPDATE SET quantity = inventory_item.quantity + EXCLUDED.quantity, updated_at = now()
+         DO UPDATE SET
+           quantity = inventory_item.quantity + EXCLUDED.quantity,
+           unit_price = CASE
+             WHEN $7::numeric IS NULL THEN inventory_item.unit_price
+             WHEN inventory_item.unit_price IS NULL THEN $7::numeric
+             WHEN (inventory_item.quantity + EXCLUDED.quantity) = 0 THEN $7::numeric
+             ELSE round(
+               (inventory_item.quantity * inventory_item.unit_price + EXCLUDED.quantity * $7::numeric)
+               / (inventory_item.quantity + EXCLUDED.quantity), 2)
+           END,
+           updated_at = now()
          RETURNING *`,
-        [householdId, storageLocationId, productId, unit, expiresAt, deltaQuantity],
+        [householdId, storageLocationId, productId, unit, expiresAt, deltaQuantity, unitPrice ?? null],
       );
       return mapRow(rows[0]);
     },
@@ -74,13 +97,14 @@ const makeInventoryItemRepository = ({ rawQuery }) => {
 
     // note/openedAt önceden şemada vardı ama hiçbir kod yazmıyordu — kullanıcı
     // envanter satırını manuel düzenleyebilsin diye şimdi bu metoddan yazılıyor.
-    update: async (id, { quantity, expiresAt, openedAt, note }) => {
+    update: async (id, { quantity, expiresAt, openedAt, note, unitPrice }) => {
       const { rows } = await rawQuery(
         `UPDATE inventory_item SET
            quantity = COALESCE($2, quantity),
            expires_at = CASE WHEN $3::boolean THEN $4::date ELSE expires_at END,
            opened_at = CASE WHEN $5::boolean THEN $6::date ELSE opened_at END,
            note = CASE WHEN $7::boolean THEN $8 ELSE note END,
+           unit_price = CASE WHEN $9::boolean THEN $10::numeric ELSE unit_price END,
            updated_at = now()
          WHERE id = $1 RETURNING *`,
         [
@@ -88,6 +112,7 @@ const makeInventoryItemRepository = ({ rawQuery }) => {
           expiresAt !== undefined, expiresAt ?? null,
           openedAt !== undefined, openedAt ?? null,
           note !== undefined, note ?? null,
+          unitPrice !== undefined, unitPrice ?? null,
         ],
       );
       return mapRow(rows[0]);

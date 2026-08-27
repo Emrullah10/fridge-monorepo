@@ -4,6 +4,8 @@ const mapRow = (row) => row && ({
   passwordHash: row.password_hash,
   displayName: row.display_name,
   locale: row.locale,
+  // {allergens: [], diet: 'none'|..., dailyKcalTarget: null} — null olabilir.
+  dietProfile: row.diet_profile ?? null,
 });
 
 const makeUserRepository = ({ rawQuery }) => {
@@ -32,11 +34,15 @@ const makeUserRepository = ({ rawQuery }) => {
       await rawQuery('DELETE FROM app_user WHERE id = $1', [id]);
     },
 
-    update: async (id, { displayName, locale }) => {
+    update: async (id, { displayName, locale, dietProfile }) => {
       const { rows } = await rawQuery(
-        `UPDATE app_user SET display_name = $2, locale = $3, updated_at = now()
+        `UPDATE app_user SET
+           display_name = $2,
+           locale = $3,
+           diet_profile = CASE WHEN $4::boolean THEN $5::jsonb ELSE diet_profile END,
+           updated_at = now()
          WHERE id = $1 RETURNING *`,
-        [id, displayName, locale],
+        [id, displayName, locale, dietProfile !== undefined, dietProfile === undefined ? null : JSON.stringify(dietProfile)],
       );
       return mapRow(rows[0]);
     },

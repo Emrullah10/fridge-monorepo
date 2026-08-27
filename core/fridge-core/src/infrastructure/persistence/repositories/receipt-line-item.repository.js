@@ -11,6 +11,8 @@ const mapRow = (row) => row && ({
   parsedQuantity: row.parsed_quantity === null ? null : Number(row.parsed_quantity),
   parsedUnit: row.parsed_unit,
   parsedPrice: row.parsed_price === null ? null : Number(row.parsed_price),
+  parsedPackSize: row.parsed_pack_size === null ? null : Number(row.parsed_pack_size),
+  parsedPackUnit: row.parsed_pack_unit,
   matchedProductId: row.matched_product_id,
   confidence: row.confidence === null ? null : Number(row.confidence),
   matchMethod: row.match_method,
@@ -39,12 +41,14 @@ const makeReceiptLineItemRepository = ({ rawQuery }) => {
         const { rows } = await rawQuery(
           `INSERT INTO receipt_line_item
              (receipt_scan_id, household_id, line_no, raw_text, parsed_name, parsed_brand,
-              parsed_quantity, parsed_unit, parsed_price, matched_product_id, confidence, match_method)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+              parsed_quantity, parsed_unit, parsed_pack_size, parsed_pack_unit, parsed_price,
+              matched_product_id, confidence, match_method)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
            RETURNING *`,
           [
             item.receiptScanId, item.householdId, item.lineNo, item.rawText, item.parsedName,
-            item.parsedBrand ?? null, item.parsedQuantity, item.parsedUnit, item.parsedPrice,
+            item.parsedBrand ?? null, item.parsedQuantity, item.parsedUnit,
+            item.parsedPackSize ?? null, item.parsedPackUnit ?? null, item.parsedPrice,
             item.matchedProductId, item.confidence, item.matchMethod,
           ],
         );
@@ -71,19 +75,21 @@ const makeReceiptLineItemRepository = ({ rawQuery }) => {
       return mapRow(rows[0]);
     },
 
-    update: async (id, { parsedName, parsedBrand, parsedQuantity, parsedUnit, matchedProductId, status, matchMethod }) => {
+    update: async (id, { parsedName, parsedBrand, parsedQuantity, parsedUnit, parsedPackSize, parsedPackUnit, matchedProductId, status, matchMethod }) => {
       const { rows } = await rawQuery(
         `UPDATE receipt_line_item SET
            parsed_name = COALESCE($2, parsed_name),
            parsed_brand = COALESCE($3, parsed_brand),
            parsed_quantity = COALESCE($4, parsed_quantity),
            parsed_unit = COALESCE($5, parsed_unit),
-           matched_product_id = COALESCE($6, matched_product_id),
-           status = COALESCE($7, status),
-           match_method = COALESCE($8, match_method),
+           parsed_pack_size = COALESCE($6, parsed_pack_size),
+           parsed_pack_unit = COALESCE($7, parsed_pack_unit),
+           matched_product_id = COALESCE($8, matched_product_id),
+           status = COALESCE($9, status),
+           match_method = COALESCE($10, match_method),
            updated_at = now()
          WHERE id = $1 RETURNING *`,
-        [id, parsedName, parsedBrand, parsedQuantity, parsedUnit, matchedProductId, status, matchMethod],
+        [id, parsedName, parsedBrand, parsedQuantity, parsedUnit, parsedPackSize, parsedPackUnit, matchedProductId, status, matchMethod],
       );
       return mapRow(rows[0]);
     },
