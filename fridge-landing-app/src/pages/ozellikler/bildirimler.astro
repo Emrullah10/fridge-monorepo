@@ -1,0 +1,47 @@
+---
+import Marketing from '@layouts/Marketing.astro';
+import SectionHeading from '@components/marketing/SectionHeading.astro';
+import Cta from '@components/marketing/Cta.astro';
+import NotificationsScreen from '@components/mock/screens/NotificationsScreen.astro';
+
+const locale = 'tr';
+---
+<Marketing title="Bildirimler — Fridge" description="SKT yaklaşınca, fiş hazır olunca, biri eve katılınca anında haber al." locale={locale}>
+  <section class="container feature-detail">
+    <SectionHeading
+      eyebrow="Özellik"
+      title="Doğru anda haberdar ol"
+      lead="Son kullanma tarihi yaklaşan ürünler, hazır olan fiş analizleri, eve yeni katılan üyeler — hiçbirini kaçırmazsın."
+      align="left"
+    />
+    <div class="feature-detail__screens feature-detail__screens--single">
+      <NotificationsScreen theme="light" locale={locale} seedMode="full" />
+    </div>
+    <div class="feature-detail__points">
+      <div>
+        <h3>SKT uyarıları</h3>
+        <p>Ürünün son kullanma tarihi yaklaşınca veya geçince anında bildirim alırsın.</p>
+      </div>
+      <div>
+        <h3>Fiş hazır bildirimi</h3>
+        <p>Yapay zekâ fişi analiz ettiğinde, sen onaylamaya hazır olduğunda haber alırsın.</p>
+      </div>
+      <div>
+        <h3>Aylık özet</h3>
+        <p>Her ay ne kadar biriktirdiğini, ne kadar israf ettiğini özetleyen bir bildirim.</p>
+      </div>
+    </div>
+  </section>
+  <div class="container">
+    <Cta title="Hiçbir şeyi kaçırma" primaryHref="/indir" primaryText="Ücretsiz indir" secondaryHref="/ozellikler/envanter" secondaryText="Envanteri gör" />
+  </div>
+</Marketing>
+
+<style>
+  .feature-detail { padding-block: var(--space-xl); }
+  .feature-detail__screens { display: grid; gap: var(--space-lg); max-width: 700px; margin: var(--space-xl) auto; }
+  .feature-detail__screens--single { max-width: 340px; }
+  .feature-detail__points { display: grid; gap: var(--space-md); max-width: 60ch; margin-inline: auto; }
+  .feature-detail__points h3 { font-size: var(--fs-card-title); margin: 0 0 4px; }
+  .feature-detail__points p { color: var(--on-surface-variant); margin: 0; }
+</style>

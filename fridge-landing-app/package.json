@@ -1,0 +1,38 @@
+{
+  "name": "fridge-landing-app",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Fridge — tanıtım / pazarlama sitesi (Astro + React adaları + three.js + GSAP). Ana monorepo workspace'inden bağımsızdır. Saf JavaScript — TypeScript kullanılmıyor.",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "sync:tokens": "node scripts/extract-tokens.mjs",
+    "sync:strings": "node scripts/import-arb.mjs",
+    "test:e2e": "playwright test",
+    "test:a11y": "playwright test e2e/a11y.spec.ts",
+    "lighthouse": "node scripts/lighthouse-budget.mjs"
+  },
+  "dependencies": {
+    "@astrojs/react": "^6.0.4",
+    "@astrojs/sitemap": "^3.7.3",
+    "@react-three/fiber": "^9.0.0",
+    "astro": "^7.2.9",
+    "gsap": "^3.12.5",
+    "lenis": "^1.1.18",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "three": "^0.171.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.1",
+    "@playwright/test": "^1.49.0",
+    "chrome-launcher": "^1.2.1",
+    "lighthouse": "^13.4.1",
+    "sass": "^1.83.0"
+  },
+  "engines": {
+    "node": ">=20.12"
+  }
+}

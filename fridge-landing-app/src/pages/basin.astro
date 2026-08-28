@@ -1,0 +1,66 @@
+---
+import Marketing from '@layouts/Marketing.astro';
+import SectionHeading from '@components/marketing/SectionHeading.astro';
+
+const locale = 'tr';
+---
+<Marketing title="Basın Kiti — Fridge" description="Fridge logosu, ekran görüntüleri ve künye bilgileri." locale={locale}>
+  <section class="container--narrow press-page">
+    <SectionHeading
+      eyebrow="Basın"
+      title="Basın kiti"
+      lead="Fridge hakkında yazı yazacaklar için logo, ekran görüntüsü ve künye bilgileri."
+    />
+
+    <div class="press-page__section">
+      <h3>Ürün özeti</h3>
+      <p>
+        Fridge, bir evin mutfak envanterini paylaşımlı olarak tutan bir mobil uygulamadır.
+        Kullanıcı market fişinin fotoğrafını çeker; telefon fişteki yazıyı okur (OCR),
+        sunucudaki yapay zekâ satırları ürünlere ayırır, kullanıcı onaylar ve ürünler
+        buzdolabı/dondurucu/kiler bölümlerine düşer. Uygulama ayrıca alışveriş listesi,
+        tarif önerileri, AI şef sohbeti ve para/israf takibi sunar.
+      </p>
+    </div>
+
+    <div class="press-page__section">
+      <h3>Künye</h3>
+      <ul>
+        <li>Platform: Android (Google Play, kapalı test), iOS geliştirme aşamasında</li>
+        <li>Dil: Türkçe arayüz</li>
+        <li>Fiyatlandırma: Ücretsiz</li>
+      </ul>
+    </div>
+
+    <div class="press-page__section">
+      <h3>Görseller</h3>
+      <p class="press-page__note">Logo ve ekran görüntüleri için lütfen bizimle iletişime geçin.</p>
+    </div>
+
+    <div class="press-page__section">
+      <h3>İletişim</h3>
+      <p>Basın soruları için: <a href="mailto:basin@fridge.app">basin@fridge.app</a></p>
+    </div>
+  </section>
+</Marketing>
+
+<style>
+  .press-page {
+    padding-block: var(--space-xl);
+  }
+  .press-page__section {
+    margin-top: var(--space-xl);
+  }
+  .press-page__section h3 {
+    font-size: var(--fs-h3);
+    margin: 0 0 var(--space-sm);
+  }
+  .press-page__section p,
+  .press-page__section li {
+    color: var(--on-surface-variant);
+    line-height: 1.6;
+  }
+  .press-page__note {
+    font-style: italic;
+  }
+</style>

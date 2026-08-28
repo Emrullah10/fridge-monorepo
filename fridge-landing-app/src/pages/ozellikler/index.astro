@@ -1,0 +1,49 @@
+---
+import Marketing from '@layouts/Marketing.astro';
+import SectionHeading from '@components/marketing/SectionHeading.astro';
+import FeatureRow from '@components/marketing/FeatureRow.astro';
+
+const locale = 'tr';
+
+const features = [
+  { icon: '🧾', title: 'Fiş Tarama', body: 'Market fişinin fotoğrafını çek — ürünler fiyatlarıyla envanterine kendiliğinden düşsün.', href: '/ozellikler/fis-tarama' },
+  { icon: '🗄️', title: 'Envanter', body: 'Buzdolabı, dondurucu, kiler — her ürün doğru bölümde, SKT rengiyle uyarır.', href: '/ozellikler/envanter' },
+  { icon: '🛒', title: 'Alışveriş', body: 'Eksikleri listeye ekle, markette işaretle, dönüşte envantere aktar.', href: '/ozellikler/alisveris' },
+  { icon: '📖', title: 'Tarifler', body: 'Elindekilerden tarif öner, eksik malzemeyi gösterir.', href: '/ozellikler/tarifler' },
+  { icon: '💬', title: 'AI Şef', body: 'Mutfağının bağlamını bilen bir sohbet — "bugün ne pişirsem?"', href: '/ozellikler/sef' },
+  { icon: '💰', title: 'Para & İsraf', body: 'Ne kadar biriktirdiğini, ne kadar israf ettiğini ay ay, üye üye gör.', href: '/ozellikler/para' },
+  { icon: '🏠', title: 'Paylaşım', body: 'Bir ev oluştur, davet koduyla üye ekle, misafir modunda dene.', href: '/ozellikler/paylasim' },
+  { icon: '🔔', title: 'Bildirimler', body: 'SKT yaklaşınca, fiş hazır olunca, biri eve katılınca anında haber al.', href: '/ozellikler/bildirimler' },
+];
+---
+<Marketing
+  title="Fridge — Özellikler"
+  description="Fiş tarama, envanter, alışveriş, tarifler, AI şef, para & israf takibi, paylaşım, bildirimler."
+  locale={locale}
+>
+  <section class="container features-page">
+    <SectionHeading
+      eyebrow="Özellikler"
+      title="Mutfağın için sekiz yetenek"
+      lead="Her biri kendi başına yeter, hepsi bir arada mutfağını tamamen değiştirir."
+    />
+    <div class="features-page__grid">
+      {features.map((f) => <FeatureRow {...f} />)}
+    </div>
+  </section>
+</Marketing>
+
+<style>
+  .features-page {
+    padding-block: var(--space-xl);
+  }
+  .features-page__grid {
+    display: grid;
+    gap: var(--space-md);
+  }
+  @media (min-width: 800px) {
+    .features-page__grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+</style>

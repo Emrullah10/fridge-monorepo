@@ -1,0 +1,46 @@
+---
+// DESIGN_SPEC §9.11: dialog, radius 16, arkada karartma.
+/**
+ * @typedef {Object} Props
+ * @property {string} title
+ */
+const { title } = Astro.props;
+---
+<div class="mock-dialog-overlay">
+  <div class="mock-dialog">
+    <p class="mock-dialog__title" role="heading" aria-level="3">{title}</p>
+    <div class="mock-dialog__body">
+      <slot />
+    </div>
+  </div>
+</div>
+
+<style>
+  .mock-dialog-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-lg);
+    z-index: 20;
+  }
+  .mock-dialog {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: var(--space-lg);
+    width: 100%;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  }
+  .mock-dialog__title {
+    margin: 0 0 var(--space-sm);
+    font-size: var(--fs-card-title);
+    font-weight: var(--fw-semibold);
+    color: var(--on-surface);
+  }
+  .mock-dialog__body {
+    font-size: var(--fs-body);
+    color: var(--on-surface-variant);
+  }
+</style>

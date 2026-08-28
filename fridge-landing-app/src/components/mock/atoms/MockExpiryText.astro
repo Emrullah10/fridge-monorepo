@@ -1,0 +1,27 @@
+---
+import { computeExpiryStatus, formatDate, expiryStatusColorVar } from '@lib/format';
+
+/**
+ * @typedef {Object} Props
+ * @property {string} [expiresAt]
+ * @property {boolean} [isFinished]
+ * @property {'tr'|'en'} [locale]
+ */
+const { expiresAt, isFinished = false, locale = 'tr' } = Astro.props;
+
+// DESIGN_SPEC §1.3 not: Bitti (miktar=0) ürünlerde SKT rengi uygulanmaz, her zaman nötr.
+const status = isFinished ? 'none' : computeExpiryStatus(expiresAt);
+const label = !expiresAt
+  ? (locale === 'tr' ? 'SKT yok' : 'No expiry')
+  : formatDate(expiresAt, locale);
+const weight = status === 'soon' || status === 'expired' ? 'var(--fw-semibold)' : 'var(--fw-regular)';
+---
+<span class="mock-expiry" style={`color: ${expiryStatusColorVar(status)}; font-weight: ${weight};`}>
+  {label}
+</span>
+
+<style>
+  .mock-expiry {
+    font-size: var(--fs-small);
+  }
+</style>

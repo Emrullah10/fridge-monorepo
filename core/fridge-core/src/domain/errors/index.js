@@ -49,12 +49,6 @@ class LocationNotEmptyError extends ConflictError {
   }
 }
 
-class LastLocationError extends ValidationError {
-  constructor() {
-    super('Bir alanda en az bir bölüm olmalı');
-  }
-}
-
 class OwnerCannotLeaveError extends ValidationError {
   constructor() {
     super('Alan sahibi ayrılamaz — önce sahipliği devret ya da alanı sil');
@@ -70,6 +64,5 @@ export {
   ReceiptNotReadyError,
   HouseholdNotFoundError,
   LocationNotEmptyError,
-  LastLocationError,
   OwnerCannotLeaveError,
 };

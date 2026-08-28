@@ -1,0 +1,24 @@
+---
+// DESIGN_SPEC §9.10: yüzen (floating) stil, hafif gölge, radius 12.
+/**
+ * @typedef {Object} Props
+ * @property {string} text
+ */
+const { text } = Astro.props;
+---
+<div class="mock-snackbar">{text}</div>
+
+<style>
+  .mock-snackbar {
+    position: absolute;
+    left: var(--space-md);
+    right: var(--space-md);
+    bottom: 80px;
+    background: var(--inverse-surface, #2C322E);
+    color: var(--on-inverse-surface, #EDF2EC);
+    border-radius: 12px;
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--fs-body);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  }
+</style>

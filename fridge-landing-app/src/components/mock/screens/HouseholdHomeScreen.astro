@@ -1,0 +1,59 @@
+---
+// Kaynak: fridge-mobil/lib/features/household/presentation/household_home_screen.dart
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import MockAppBar from '@components/mock/atoms/MockAppBar.astro';
+import MockStorageIcon from '@components/mock/atoms/MockStorageIcon.astro';
+import MockFab from '@components/mock/atoms/MockFab.astro';
+import { getSeed } from '@seed/index';
+
+/**
+ * @typedef {Object} Props
+ * @property {'light'|'dark'} [theme]
+ * @property {'tr'|'en'} [locale]
+ */
+const { theme = 'light', locale = 'tr' } = Astro.props;
+const seed = getSeed('full');
+---
+<PhoneFrame theme={theme} label="Ev Ana Ekranı">
+  <MockAppBar title={seed.household.name} />
+  <div class="hh-home__grid">
+    {seed.household.storageLocations.map((loc) => (
+      <div class="hh-home__cell">
+        <MockStorageIcon kind={loc.kind} size={48} />
+        <p class="hh-home__name">{loc.name}</p>
+        <p class="hh-home__count">{loc.itemCount} {locale === 'tr' ? 'ürün' : 'items'}</p>
+      </div>
+    ))}
+  </div>
+  <MockFab icon="🧾" ariaLabel={locale === 'tr' ? 'Fiş Tara' : 'Scan receipt'} />
+</PhoneFrame>
+
+<style>
+  .hh-home__grid {
+    padding: var(--space-md);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-sm);
+  }
+  .hh-home__cell {
+    background: var(--surface-container-low);
+    border-radius: var(--radius-card);
+    padding: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-xs);
+    text-align: center;
+  }
+  .hh-home__name {
+    margin: 0;
+    font-weight: var(--fw-semibold);
+    color: var(--on-surface);
+    font-size: var(--fs-card-title);
+  }
+  .hh-home__count {
+    margin: 0;
+    font-size: var(--fs-small);
+    color: var(--on-surface-variant);
+  }
+</style>

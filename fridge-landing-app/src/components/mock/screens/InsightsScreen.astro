@@ -1,0 +1,126 @@
+---
+// Kaynak: fridge-mobil/lib/features/insights/presentation/insights_screen.dart
+// DESIGN_SPEC: Para & İsraf paneli — 3 dönem, 3 kırılım.
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import MockAppBar from '@components/mock/atoms/MockAppBar.astro';
+import MockBottomNav from '@components/mock/atoms/MockBottomNav.astro';
+import { formatCurrency } from '@lib/format';
+import { getSeed } from '@seed/index';
+
+/**
+ * @typedef {Object} Props
+ * @property {'full'|'empty'} [seedMode]
+ * @property {'light'|'dark'} [theme]
+ * @property {'tr'|'en'} [locale]
+ * @property {'this-month'|'last-month'|'90-days'} [periodKey]
+ */
+const { seedMode = 'full', theme = 'light', locale = 'tr', periodKey = 'this-month' } = Astro.props;
+const seed = getSeed(seedMode);
+const period = seed.insights.find((i) => i.period.key === periodKey) ?? seed.insights[0];
+---
+<PhoneFrame theme={theme} label="Para & İsraf">
+  <MockAppBar title={locale === 'tr' ? 'Para & İsraf' : 'Money & waste'} />
+  <div class="insights-screen">
+    <p class="insights-screen__period">{period.period.label}</p>
+    <div class="insights-screen__stats">
+      <div class="insights-screen__stat">
+        <p class="insights-screen__stat-label">{locale === 'tr' ? 'Biriken' : 'Saved'}</p>
+        <p class="insights-screen__stat-value insights-screen__stat-value--good">{formatCurrency(period.saved)}</p>
+      </div>
+      <div class="insights-screen__stat">
+        <p class="insights-screen__stat-label">{locale === 'tr' ? 'İsraf' : 'Wasted'}</p>
+        <p class="insights-screen__stat-value insights-screen__stat-value--bad">{formatCurrency(period.wasted)}</p>
+      </div>
+      <div class="insights-screen__stat">
+        <p class="insights-screen__stat-label">{locale === 'tr' ? 'Alınan' : 'Bought'}</p>
+        <p class="insights-screen__stat-value">{formatCurrency(period.spent)}</p>
+      </div>
+    </div>
+    {period.topWasted.length > 0 && (
+      <>
+        <p class="insights-screen__section-title">{locale === 'tr' ? 'En Çok İsraf' : 'Most wasted'}</p>
+        <div class="insights-screen__list">
+          {period.topWasted.map((item) => (
+            <div class="insights-screen__row">
+              <span>{item.productName}{item.productBrand ? ` · ${item.productBrand}` : ''}</span>
+              <span class="insights-screen__row-value">{formatCurrency(item.wasted)}</span>
+            </div>
+          ))}
+        </div>
+      </>
+    )}
+    {period.missingPriceCount > 0 && (
+      <p class="insights-screen__note">
+        {locale === 'tr'
+          ? `${period.missingPriceCount} hareket fiyatsız olduğu için toplamlara dahil edilmedi.`
+          : `${period.missingPriceCount} movements were excluded from totals because they have no price.`}
+      </p>
+    )}
+  </div>
+  <MockBottomNav active="insights" />
+</PhoneFrame>
+
+<style>
+  .insights-screen {
+    padding: var(--space-md);
+  }
+  .insights-screen__period {
+    color: var(--on-surface-variant);
+    font-size: var(--fs-small);
+    margin: 0 0 var(--space-sm);
+  }
+  .insights-screen__stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-xs);
+    margin-bottom: var(--space-lg);
+  }
+  .insights-screen__stat {
+    background: var(--surface-container-low);
+    border-radius: var(--radius-card);
+    padding: var(--space-sm);
+    text-align: center;
+  }
+  .insights-screen__stat-label {
+    margin: 0;
+    font-size: 10px;
+    color: var(--on-surface-variant);
+  }
+  .insights-screen__stat-value {
+    margin: 4px 0 0;
+    font-weight: var(--fw-bold);
+    font-size: var(--fs-card-title);
+    color: var(--on-surface);
+  }
+  .insights-screen__stat-value--good {
+    color: var(--primary);
+  }
+  .insights-screen__stat-value--bad {
+    color: var(--error);
+  }
+  .insights-screen__section-title {
+    font-weight: var(--fw-semibold);
+    color: var(--on-surface);
+    margin: 0 0 var(--space-xs);
+  }
+  .insights-screen__list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .insights-screen__row {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--fs-small);
+    color: var(--on-surface);
+  }
+  .insights-screen__row-value {
+    color: var(--error);
+    font-weight: var(--fw-semibold);
+  }
+  .insights-screen__note {
+    font-size: 11px;
+    color: var(--on-surface-variant);
+    margin-top: var(--space-md);
+  }
+</style>

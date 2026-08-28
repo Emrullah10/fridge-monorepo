@@ -1,0 +1,45 @@
+---
+import Marketing from '@layouts/Marketing.astro';
+import SectionHeading from '@components/marketing/SectionHeading.astro';
+import Cta from '@components/marketing/Cta.astro';
+import HouseholdMembersScreen from '@components/mock/screens/HouseholdMembersScreen.astro';
+import UpgradeAccountScreen from '@components/mock/screens/UpgradeAccountScreen.astro';
+
+const locale = 'tr';
+---
+<Marketing title="Paylaşım — Fridge" description="Bir ev oluştur, davet koduyla üye ekle, misafir modunda dene." locale={locale}>
+  <section class="container feature-detail">
+    <SectionHeading
+      eyebrow="Özellik"
+      title="Evi birlikte yönet"
+      lead="Fridge tek kişilik değil — bir ev oluştur, davet koduyla eşin/ev arkadaşın katılsın. Herkes aynı envanteri görür, aynı listeye ekler."
+      align="left"
+    />
+    <div class="feature-detail__screens">
+      <HouseholdMembersScreen theme="light" locale={locale} showInviteDialog />
+      <UpgradeAccountScreen theme="light" locale={locale} />
+    </div>
+    <div class="feature-detail__points">
+      <div>
+        <h3>Davet koduyla katılım</h3>
+        <p>Tek bir kod paylaş, ev arkadaşın saniyeler içinde katılsın.</p>
+      </div>
+      <div>
+        <h3>Misafir modu</h3>
+        <p>Hesap oluşturmadan dene — verilerin cihazında kalır, istediğinde hesaba yükseltirsin.</p>
+      </div>
+    </div>
+  </section>
+  <div class="container">
+    <Cta title="Eviniz birlikte, dolabınız tek" primaryHref="/indir" primaryText="Ücretsiz indir" secondaryHref="/ekranlar" secondaryText="Tüm ekranları gör" />
+  </div>
+</Marketing>
+
+<style>
+  .feature-detail { padding-block: var(--space-xl); }
+  .feature-detail__screens { display: grid; gap: var(--space-lg); max-width: 700px; margin: var(--space-xl) auto; }
+  .feature-detail__points { display: grid; gap: var(--space-md); max-width: 60ch; margin-inline: auto; }
+  .feature-detail__points h3 { font-size: var(--fs-card-title); margin: 0 0 4px; }
+  .feature-detail__points p { color: var(--on-surface-variant); margin: 0; }
+  @media (min-width: 700px) { .feature-detail__screens { grid-template-columns: 1fr 1fr; } }
+</style>

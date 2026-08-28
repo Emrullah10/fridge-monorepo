@@ -1,0 +1,74 @@
+---
+import Marketing from '@layouts/Marketing.astro';
+import SectionHeading from '@components/marketing/SectionHeading.astro';
+
+const locale = 'tr';
+const updated = '29 Ağustos 2026';
+---
+<Marketing title="KVKK Aydınlatma Metni — Fridge" description="6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında Fridge kullanıcıları için aydınlatma metni." locale={locale}>
+  <section class="container--narrow legal-page">
+    <SectionHeading eyebrow="Yasal" title="KVKK Aydınlatma Metni" align="left" />
+    <p class="legal-page__updated">Son güncelleme: {updated}</p>
+
+    <div class="legal-page__body">
+      <p>
+        6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") uyarınca, veri sorumlusu sıfatıyla
+        Fridge, kişisel verilerinizi aşağıda açıklanan kapsamda işlemektedir.
+      </p>
+
+      <h2>1. İşlenen Kişisel Veriler</h2>
+      <ul>
+        <li>Kimlik bilgisi: e-posta adresi, ad (isteğe bağlı)</li>
+        <li>Uygulama içi veri: envanter, alışveriş, fiş metni, tüketim/israf hareketleri</li>
+        <li>İşlem güvenliği bilgisi: cihaz bildirim jetonu (FCM)</li>
+      </ul>
+
+      <h2>2. İşleme Amaçları</h2>
+      <p>
+        Kişisel verileriniz; uygulama hizmetinin sunulması, envanter ve alışveriş takibinin
+        yapılması, fiş metninin ürünlere ayrıştırılması, tarif/AI şef önerilerinin üretilmesi,
+        son kullanma tarihi bildirimlerinin gönderilmesi ve hizmet kalitesinin iyileştirilmesi
+        amaçlarıyla işlenir.
+      </p>
+
+      <h2>3. Hukuki Sebep</h2>
+      <p>
+        Kişisel verileriniz, KVKK m.5/2 kapsamında bir sözleşmenin kurulması ve ifasıyla doğrudan
+        ilgili olması ve/veya açık rızanızın alınması hukuki sebeplerine dayanılarak işlenir.
+      </p>
+
+      <h2>4. Aktarım</h2>
+      <p>
+        Fiş metni ve sohbet istekleri, ayrıştırma/öneri üretmek amacıyla yapay zekâ altyapı
+        sağlayıcısına, bildirim gönderimi için Firebase Cloud Messaging'e aktarılır. Verileriniz
+        pazarlama amacıyla üçüncü taraflara satılmaz.
+      </p>
+
+      <h2>5. Haklarınız (KVKK m.11)</h2>
+      <p>KVKK'nın 11. maddesi uyarınca aşağıdaki haklara sahipsiniz:</p>
+      <ul>
+        <li>Kişisel verinizin işlenip işlenmediğini öğrenme</li>
+        <li>İşlenmişse buna ilişkin bilgi talep etme</li>
+        <li>İşlenme amacını ve amacına uygun kullanılıp kullanılmadığını öğrenme</li>
+        <li>Yurt içinde/dışında aktarıldığı üçüncü kişileri bilme</li>
+        <li>Eksik/yanlış işlenmişse düzeltilmesini isteme</li>
+        <li>KVKK'nın öngördüğü şartlarda silinmesini/yok edilmesini isteme</li>
+        <li>İşlemenin münhasıran otomatik sistemlerle analiz edilmesi suretiyle aleyhinize bir sonucun ortaya çıkmasına itiraz etme</li>
+        <li>Kanuna aykırı işleme nedeniyle zarara uğramanız hâlinde zararın giderilmesini talep etme</li>
+      </ul>
+      <p>
+        Bu haklarınızı kullanmak için <a href="/veri-silme">Hesap Silme</a> sayfasını veya{' '}
+        <a href="mailto:kvkk@fridge.app">kvkk@fridge.app</a> adresini kullanabilirsiniz.
+      </p>
+    </div>
+  </section>
+</Marketing>
+
+<style>
+  .legal-page { padding-block: var(--space-xl); }
+  .legal-page__updated { color: var(--on-surface-variant); font-size: var(--fs-small); }
+  .legal-page__body { margin-top: var(--space-lg); line-height: 1.7; }
+  .legal-page__body h2 { font-size: var(--fs-h3); margin-top: var(--space-xl); }
+  .legal-page__body p, .legal-page__body li { color: var(--on-surface-variant); }
+  .legal-page__body a { color: var(--primary); }
+</style>

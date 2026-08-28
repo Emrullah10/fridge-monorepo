@@ -1,0 +1,47 @@
+---
+import Marketing from '@layouts/Marketing.astro';
+import SectionHeading from '@components/marketing/SectionHeading.astro';
+import Cta from '@components/marketing/Cta.astro';
+import InsightsScreen from '@components/mock/screens/InsightsScreen.astro';
+
+const locale = 'tr';
+---
+<Marketing title="Para & İsraf — Fridge" description="Ne kadar biriktirdiğini, ne kadar israf ettiğini ay ay, üye üye gör." locale={locale}>
+  <section class="container feature-detail">
+    <SectionHeading
+      eyebrow="Özellik"
+      title="Görmediğin parayı yönet"
+      lead="Tükettiğin her ürün bir sayıya dönüşür: ne biriktirdin, ne israf ettin. Kategori ve üye bazında kırılımlarla evindeki gerçek harcama alışkanlığını görürsün."
+      align="left"
+    />
+    <div class="feature-detail__screens feature-detail__screens--single">
+      <InsightsScreen theme="light" locale={locale} seedMode="full" />
+    </div>
+    <div class="feature-detail__points">
+      <div>
+        <h3>Üç dönem</h3>
+        <p>Bu ay, geçen ay, son 90 gün — trend görmek için hepsi tek dokunuşla.</p>
+      </div>
+      <div>
+        <h3>Dürüst toplam</h3>
+        <p>Fiyatı olmayan hareketler toplamlara dahil edilmez; site bunu açıkça belirtir.</p>
+      </div>
+      <div>
+        <h3>En çok israf</h3>
+        <p>Hangi ürünün en çok çöpe gittiğini gör, alışkanlığını değiştir.</p>
+      </div>
+    </div>
+  </section>
+  <div class="container">
+    <Cta title="Ne kadar israf ettiğini gör" primaryHref="/indir" primaryText="Ücretsiz indir" secondaryHref="/metrikler" secondaryText="Metrikleri incele" />
+  </div>
+</Marketing>
+
+<style>
+  .feature-detail { padding-block: var(--space-xl); }
+  .feature-detail__screens { display: grid; gap: var(--space-lg); max-width: 700px; margin: var(--space-xl) auto; }
+  .feature-detail__screens--single { max-width: 340px; }
+  .feature-detail__points { display: grid; gap: var(--space-md); max-width: 60ch; margin-inline: auto; }
+  .feature-detail__points h3 { font-size: var(--fs-card-title); margin: 0 0 4px; }
+  .feature-detail__points p { color: var(--on-surface-variant); margin: 0; }
+</style>

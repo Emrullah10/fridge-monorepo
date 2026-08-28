@@ -1,0 +1,69 @@
+---
+// Kaynak: fridge-mobil/lib/features/receipt/presentation/receipt_history_screen.dart
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import MockAppBar from '@components/mock/atoms/MockAppBar.astro';
+import MockEmptyState from '@components/mock/atoms/MockEmptyState.astro';
+import { formatCurrency, formatDate } from '@lib/format';
+import { getSeed } from '@seed/index';
+
+/**
+ * @typedef {Object} Props
+ * @property {'full'|'empty'} [seedMode]
+ * @property {'light'|'dark'} [theme]
+ * @property {'tr'|'en'} [locale]
+ */
+const { seedMode = 'full', theme = 'light', locale = 'tr' } = Astro.props;
+const seed = getSeed(seedMode);
+const receipts = seed.receipt.lines.length > 0 ? [seed.receipt] : [];
+---
+<PhoneFrame theme={theme} label="Fiş Geçmişi">
+  <MockAppBar title={locale === 'tr' ? 'Fiş Geçmişi' : 'Receipt history'} showBack />
+  <div class="history-screen">
+    {receipts.length === 0 ? (
+      <MockEmptyState
+        icon="🧾"
+        title={locale === 'tr' ? 'Henüz fiş yok' : 'No receipts yet'}
+        description={locale === 'tr' ? 'İlk fişini tarayarak başla.' : 'Scan your first receipt to get started.'}
+      />
+    ) : (
+      receipts.map((r) => (
+        <div class="history-screen__row">
+          <div>
+            <p class="history-screen__merchant">{r.merchantName}</p>
+            <p class="history-screen__meta">{formatDate(r.scannedAt, locale)} · {r.lines.length} {locale === 'tr' ? 'ürün' : 'items'}</p>
+          </div>
+          <p class="history-screen__total">{formatCurrency(r.total)}</p>
+        </div>
+      ))
+    )}
+  </div>
+</PhoneFrame>
+
+<style>
+  .history-screen {
+    padding: var(--space-md);
+  }
+  .history-screen__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--surface-container-low);
+    border-radius: var(--radius-card);
+    padding: var(--space-md);
+  }
+  .history-screen__merchant {
+    margin: 0;
+    font-weight: var(--fw-semibold);
+    color: var(--on-surface);
+  }
+  .history-screen__meta {
+    margin: 4px 0 0;
+    font-size: var(--fs-small);
+    color: var(--on-surface-variant);
+  }
+  .history-screen__total {
+    margin: 0;
+    font-weight: var(--fw-semibold);
+    color: var(--primary);
+  }
+</style>

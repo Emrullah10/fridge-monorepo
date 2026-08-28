@@ -1,0 +1,61 @@
+---
+// Kaynak: fridge-mobil/lib/features/settings/presentation/diet_profile_screen.dart
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import MockAppBar from '@components/mock/atoms/MockAppBar.astro';
+
+/**
+ * @typedef {Object} Props
+ * @property {'light'|'dark'} [theme]
+ * @property {'tr'|'en'} [locale]
+ */
+const { theme = 'light', locale = 'tr' } = Astro.props;
+
+const tagsTr = ['Vejetaryen', 'Vegan', 'Glutensiz', 'Laktozsuz', 'Fındık Alerjisi', 'Şeker Kısıtlı'];
+const tagsEn = ['Vegetarian', 'Vegan', 'Gluten-free', 'Lactose-free', 'Nut allergy', 'Low sugar'];
+const tags = locale === 'tr' ? tagsTr : tagsEn;
+const selected = new Set([0, 3]);
+---
+<PhoneFrame theme={theme} label="Diyet Profili">
+  <MockAppBar title={locale === 'tr' ? 'Diyet Profili' : 'Diet profile'} showBack />
+  <div class="diet-screen">
+    <p class="diet-screen__hint">
+      {locale === 'tr'
+        ? 'Tarif önerilerinde dikkate alınsın istediğin etiketleri seç.'
+        : 'Choose the tags you want considered in recipe suggestions.'}
+    </p>
+    <div class="diet-screen__tags">
+      {tags.map((tag, i) => (
+        <span class:list={['diet-screen__tag', { 'is-selected': selected.has(i) }]}>{tag}</span>
+      ))}
+    </div>
+  </div>
+</PhoneFrame>
+
+<style>
+  .diet-screen {
+    padding: var(--space-lg);
+  }
+  .diet-screen__hint {
+    color: var(--on-surface-variant);
+    font-size: var(--fs-small);
+    margin: 0 0 var(--space-md);
+  }
+  .diet-screen__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+  .diet-screen__tag {
+    border: 1px solid var(--outline-variant);
+    border-radius: var(--radius-pill);
+    padding: var(--space-xs) var(--space-md);
+    font-size: var(--fs-small);
+    color: var(--on-surface-variant);
+  }
+  .diet-screen__tag.is-selected {
+    background: var(--secondary-container);
+    color: var(--on-secondary-container);
+    border-color: transparent;
+    font-weight: var(--fw-semibold);
+  }
+</style>

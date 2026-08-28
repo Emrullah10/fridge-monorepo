@@ -1,0 +1,94 @@
+---
+import Marketing from '@layouts/Marketing.astro';
+import SectionHeading from '@components/marketing/SectionHeading.astro';
+
+const locale = 'tr';
+const updated = '29 Ağustos 2026';
+---
+<Marketing title="Gizlilik Politikası — Fridge" description="Fridge'in hangi verileri topladığı, nasıl kullandığı ve kullanıcı haklarını anlatan gizlilik politikası." locale={locale}>
+  <section class="container--narrow legal-page">
+    <SectionHeading eyebrow="Yasal" title="Gizlilik Politikası" align="left" />
+    <p class="legal-page__updated">Son güncelleme: {updated}</p>
+
+    <div class="legal-page__body">
+      <h2>1. Hangi verileri topluyoruz</h2>
+      <ul>
+        <li><strong>Hesap bilgileri:</strong> E-posta adresi ve (varsa) ad. Misafir modunda hesap bilgisi hiç toplanmaz.</li>
+        <li><strong>Ev/envanter verisi:</strong> Oluşturduğun evler, bölümler, ürünler, miktarlar, son kullanma tarihleri.</li>
+        <li><strong>Fiş metni:</strong> Fiş fotoğrafının kendisi <strong>hiçbir zaman sunucuya gönderilmez</strong> — metin okuma (OCR) tamamen telefonunda çalışır, sunucuya yalnızca okunan ham metin gider.</li>
+        <li><strong>Kullanım verisi:</strong> Uygulama içi hareketler (tüketim, israf, alışveriş) — para/israf metriklerini hesaplamak için.</li>
+        <li><strong>Bildirim jetonu (FCM):</strong> Bildirim gönderebilmek için cihaz jetonu Firebase Cloud Messaging üzerinden tutulur.</li>
+      </ul>
+
+      <h2>2. Verileri nasıl kullanıyoruz</h2>
+      <p>
+        Toplanan veriler yalnızca uygulamanın temel işlevlerini sağlamak için kullanılır: envanterini
+        göstermek, fiş satırlarını ürüne dönüştürmek (yapay zekâ ayrıştırma), tarif ve alışveriş önerisi
+        üretmek, para/israf metriklerini hesaplamak ve son kullanma tarihi bildirimleri göndermek.
+        Veriler reklam amacıyla satılmaz veya üçüncü taraflarla paylaşılmaz.
+      </p>
+
+      <h2>3. Yapay zekâ işleme</h2>
+      <p>
+        Fiş metni ve tarif/şef sohbeti istekleri, ayrıştırma/öneri üretmek için bir yapay zekâ modeline
+        gönderilir. Bu istekler yalnızca ilgili işlemi tamamlamak için kullanılır, model eğitimi için
+        saklanmaz.
+      </p>
+
+      <h2>4. Kimler görebilir</h2>
+      <p>
+        Bir ev (household) içindeki envanter, alışveriş listesi ve para/israf verileri yalnızca o eve
+        davet kodu ile katılmış üyeler tarafından görülebilir. Başka bir kullanıcı senin evini davet
+        kodun olmadan göremez.
+      </p>
+
+      <h2>5. Veri güvenliği</h2>
+      <p>
+        Sunucu ile uygulama arasındaki tüm iletişim HTTPS üzerinden şifrelenir. Sunucu altyapısı
+        şifreli bir tünel (Cloudflare) üzerinden dışarıya açılır; veritabanına doğrudan dışarıdan
+        erişim yoktur.
+      </p>
+
+      <h2>6. Veri saklama ve silme</h2>
+      <p>
+        Hesabını sildiğinde, hesabınla ilişkili tüm veriler kalıcı olarak silinir. Silme talebi
+        oluşturmak için <a href="/veri-silme">Hesap Silme</a> sayfasını kullanabilirsin.
+      </p>
+
+      <h2>7. Haklarınız</h2>
+      <p>
+        Verilerine erişme, düzeltme veya silme talebinde bulunma hakkına sahipsin. Türkiye'de
+        ikamet eden kullanıcılar için detaylı haklar <a href="/kvkk">KVKK Aydınlatma Metni</a>'nde
+        listelenmiştir.
+      </p>
+
+      <h2>8. İletişim</h2>
+      <p>Gizlilikle ilgili sorularınız için: <a href="mailto:gizlilik@fridge.app">gizlilik@fridge.app</a></p>
+    </div>
+  </section>
+</Marketing>
+
+<style>
+  .legal-page {
+    padding-block: var(--space-xl);
+  }
+  .legal-page__updated {
+    color: var(--on-surface-variant);
+    font-size: var(--fs-small);
+  }
+  .legal-page__body {
+    margin-top: var(--space-lg);
+    line-height: 1.7;
+  }
+  .legal-page__body h2 {
+    font-size: var(--fs-h3);
+    margin-top: var(--space-xl);
+  }
+  .legal-page__body p,
+  .legal-page__body li {
+    color: var(--on-surface-variant);
+  }
+  .legal-page__body a {
+    color: var(--primary);
+  }
+</style>

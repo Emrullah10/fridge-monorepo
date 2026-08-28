@@ -1,0 +1,49 @@
+---
+import Marketing from '@layouts/Marketing.astro';
+import SectionHeading from '@components/marketing/SectionHeading.astro';
+import Cta from '@components/marketing/Cta.astro';
+import InventoryScreen from '@components/mock/screens/InventoryScreen.astro';
+import HouseholdHomeScreen from '@components/mock/screens/HouseholdHomeScreen.astro';
+
+const locale = 'tr';
+---
+<Marketing title="Envanter — Fridge" description="Buzdolabı, dondurucu, kiler — her ürün doğru bölümde, SKT rengiyle uyarır." locale={locale}>
+  <section class="container feature-detail">
+    <SectionHeading
+      eyebrow="Özellik"
+      title="Her ürün doğru yerde"
+      lead="Her ev açıldığında otomatik olarak üç bölüm oluşur: Buzdolabı, Dondurucu, Kiler. İstersen atölyene özel raflar da ekleyebilirsin. Son kullanma tarihi yaklaşan ürünler turuncu, geçmiş olanlar kırmızı renkte uyarır."
+      align="left"
+    />
+    <div class="feature-detail__screens">
+      <HouseholdHomeScreen theme="light" locale={locale} />
+      <InventoryScreen theme="light" locale={locale} seedMode="full" />
+    </div>
+    <div class="feature-detail__points">
+      <div>
+        <h3>Renk kodlu SKT</h3>
+        <p>4+ gün normal, 0-3 gün turuncu uyarı, geçmiş tarih kırmızı — tek bakışta anlaşılır.</p>
+      </div>
+      <div>
+        <h3>"Bitti" durumu</h3>
+        <p>Miktar sıfırlanınca ürün silinmez, soluklaşır ve listede kalır — geçmişini kaybetmezsin.</p>
+      </div>
+      <div>
+        <h3>Sabit bölüm renkleri</h3>
+        <p>Mavi buzdolabı, turkuaz dondurucu, kehribar kiler — uygulamanın her yerinde aynı.</p>
+      </div>
+    </div>
+  </section>
+  <div class="container">
+    <Cta title="Dolabını dijitalleştir" primaryHref="/indir" primaryText="Ücretsiz indir" secondaryHref="/ekranlar" secondaryText="Tüm ekranları gör" />
+  </div>
+</Marketing>
+
+<style>
+  .feature-detail { padding-block: var(--space-xl); }
+  .feature-detail__screens { display: grid; gap: var(--space-lg); max-width: 700px; margin: var(--space-xl) auto; }
+  .feature-detail__points { display: grid; gap: var(--space-md); max-width: 60ch; margin-inline: auto; }
+  .feature-detail__points h3 { font-size: var(--fs-card-title); margin: 0 0 4px; }
+  .feature-detail__points p { color: var(--on-surface-variant); margin: 0; }
+  @media (min-width: 700px) { .feature-detail__screens { grid-template-columns: 1fr 1fr; } }
+</style>

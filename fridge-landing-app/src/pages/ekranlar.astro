@@ -1,0 +1,213 @@
+---
+// DESIGN_SPEC + WEB_SITE_SPEC §4: 23 ekranın tam galerisi. Dolu/boş ve açık/koyu
+// anahtarı saf vanilla JS ile yapılır (React adası gerektirmez, 0 KB ek JS).
+import Marketing from '@layouts/Marketing.astro';
+import { screens, groupLabels } from '@lib/screens';
+
+import WelcomeScreen from '@components/mock/screens/WelcomeScreen.astro';
+import IntroScreen from '@components/mock/screens/IntroScreen.astro';
+import LoginScreen from '@components/mock/screens/LoginScreen.astro';
+import RegisterScreen from '@components/mock/screens/RegisterScreen.astro';
+import UpgradeAccountScreen from '@components/mock/screens/UpgradeAccountScreen.astro';
+import HouseholdListScreen from '@components/mock/screens/HouseholdListScreen.astro';
+import HouseholdHomeScreen from '@components/mock/screens/HouseholdHomeScreen.astro';
+import HouseholdMembersScreen from '@components/mock/screens/HouseholdMembersScreen.astro';
+import InventoryScreen from '@components/mock/screens/InventoryScreen.astro';
+import AddInventoryItemScreen from '@components/mock/screens/AddInventoryItemScreen.astro';
+import BarcodeScanScreen from '@components/mock/screens/BarcodeScanScreen.astro';
+import ReceiptScanScreen from '@components/mock/screens/ReceiptScanScreen.astro';
+import ReceiptReviewScreen from '@components/mock/screens/ReceiptReviewScreen.astro';
+import ReceiptHistoryScreen from '@components/mock/screens/ReceiptHistoryScreen.astro';
+import ShoppingListScreen from '@components/mock/screens/ShoppingListScreen.astro';
+import RecipesScreen from '@components/mock/screens/RecipesScreen.astro';
+import RecipeDetailScreen from '@components/mock/screens/RecipeDetailScreen.astro';
+import RecipeStepScreen from '@components/mock/screens/RecipeStepScreen.astro';
+import ChefChatScreen from '@components/mock/screens/ChefChatScreen.astro';
+import InsightsScreen from '@components/mock/screens/InsightsScreen.astro';
+import NotificationsScreen from '@components/mock/screens/NotificationsScreen.astro';
+import SettingsScreen from '@components/mock/screens/SettingsScreen.astro';
+import DietProfileScreen from '@components/mock/screens/DietProfileScreen.astro';
+
+const locale = 'tr';
+
+// key -> component eşlemesi
+const componentMap = {
+  welcome: WelcomeScreen,
+  intro: IntroScreen,
+  login: LoginScreen,
+  register: RegisterScreen,
+  'upgrade-account': UpgradeAccountScreen,
+  'household-list': HouseholdListScreen,
+  'household-home': HouseholdHomeScreen,
+  'household-members': HouseholdMembersScreen,
+  inventory: InventoryScreen,
+  'add-inventory-item': AddInventoryItemScreen,
+  'barcode-scan': BarcodeScanScreen,
+  'receipt-scan': ReceiptScanScreen,
+  'receipt-review': ReceiptReviewScreen,
+  'receipt-history': ReceiptHistoryScreen,
+  'shopping-list': ShoppingListScreen,
+  recipes: RecipesScreen,
+  'recipe-detail': RecipeDetailScreen,
+  'recipe-step': RecipeStepScreen,
+  'chef-chat': ChefChatScreen,
+  insights: InsightsScreen,
+  notifications: NotificationsScreen,
+  settings: SettingsScreen,
+  'diet-profile': DietProfileScreen,
+};
+
+// Her ekran için full+light, full+dark, empty+light (destekliyorsa) önceden render edilir;
+// istemci tarafında sadece görünürlük CSS class'ı ile değiştirilir.
+const groups = ['identity', 'household', 'receipt', 'shopping', 'money'];
+---
+<Marketing
+  title="Fridge — 23 Ekran, Tüm Detaylarıyla"
+  description="Fridge'in tüm ekranlarını dolu/boş durumlarda, açık ve koyu temada inceleyin."
+  locale={locale}
+>
+  <section class="container screens-page">
+    <h1>Ekranlar</h1>
+    <p class="screens-page__lead">
+      Fridge'in 23 ekranının tamamı — gerçek DESIGN_SPEC token'larıyla yeniden çizildi.
+    </p>
+
+    <div class="screens-page__controls">
+      <div class="screens-page__toggle" role="group" aria-label="Veri durumu">
+        <button type="button" class="is-active" data-mode="full">Dolu</button>
+        <button type="button" data-mode="empty">Boş</button>
+      </div>
+      <div class="screens-page__toggle" role="group" aria-label="Tema">
+        <button type="button" class="is-active" data-theme-choice="light">Açık</button>
+        <button type="button" data-theme-choice="dark">Koyu</button>
+      </div>
+    </div>
+
+    {groups.map((group) => (
+      <div class="screens-page__group">
+        <h2>{groupLabels[group].tr}</h2>
+        <div class="screens-grid">
+          {screens.filter((s) => s.group === group).map((s) => {
+            const Component = componentMap[s.key];
+            return (
+              <div class="screen-slot" data-screen-key={s.key} data-supports-empty={s.supportsEmptyMode ? '1' : '0'}>
+                <p class="screen-slot__title">{s.titleTr}</p>
+                <div class="screen-slot__variants">
+                  <div class="screen-slot__variant" data-mode="full" data-theme-choice="light">
+                    <Component theme="light" locale={locale} seedMode="full" />
+                  </div>
+                  <div class="screen-slot__variant" data-mode="full" data-theme-choice="dark" hidden>
+                    <Component theme="dark" locale={locale} seedMode="full" />
+                  </div>
+                  {s.supportsEmptyMode && (
+                    <div class="screen-slot__variant" data-mode="empty" data-theme-choice="light" hidden>
+                      <Component theme="light" locale={locale} seedMode="empty" />
+                    </div>
+                  )}
+                  {s.supportsEmptyMode && (
+                    <div class="screen-slot__variant" data-mode="empty" data-theme-choice="dark" hidden>
+                      <Component theme="dark" locale={locale} seedMode="empty" />
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    ))}
+  </section>
+</Marketing>
+
+<script is:inline>
+  (function () {
+    var mode = 'full';
+    var themeChoice = 'light';
+
+    function apply() {
+      document.querySelectorAll('.screen-slot').forEach(function (slot) {
+        var supportsEmpty = slot.getAttribute('data-supports-empty') === '1';
+        var effectiveMode = supportsEmpty ? mode : 'full';
+        slot.querySelectorAll('.screen-slot__variant').forEach(function (variant) {
+          var match = variant.getAttribute('data-mode') === effectiveMode &&
+            variant.getAttribute('data-theme-choice') === themeChoice;
+          variant.hidden = !match;
+        });
+      });
+    }
+
+    document.querySelectorAll('[data-mode]').forEach(function (btn) {
+      if (!btn.closest('.screens-page__toggle')) return;
+      btn.addEventListener('click', function () {
+        mode = btn.getAttribute('data-mode');
+        btn.parentElement.querySelectorAll('button').forEach(function (b) { b.classList.remove('is-active'); });
+        btn.classList.add('is-active');
+        apply();
+      });
+    });
+    document.querySelectorAll('[data-theme-choice]').forEach(function (btn) {
+      if (!btn.closest('.screens-page__toggle')) return;
+      btn.addEventListener('click', function () {
+        themeChoice = btn.getAttribute('data-theme-choice');
+        btn.parentElement.querySelectorAll('button').forEach(function (b) { b.classList.remove('is-active'); });
+        btn.classList.add('is-active');
+        apply();
+      });
+    });
+
+    apply();
+  })();
+</script>
+
+<style>
+  .screens-page {
+    padding-block: var(--space-xl);
+  }
+  .screens-page__lead {
+    color: var(--on-surface-variant);
+    max-width: 60ch;
+  }
+  .screens-page__controls {
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+    margin-block: var(--space-lg);
+  }
+  .screens-page__toggle {
+    display: inline-flex;
+    border: 1px solid var(--outline-variant);
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+  }
+  .screens-page__toggle button {
+    border: none;
+    background: transparent;
+    padding: var(--space-xs) var(--space-md);
+    font-size: var(--fs-small);
+    font-weight: var(--fw-semibold);
+    color: var(--on-surface-variant);
+    cursor: pointer;
+  }
+  .screens-page__toggle button.is-active {
+    background: var(--primary);
+    color: var(--on-primary);
+  }
+  .screens-page__group {
+    margin-top: var(--space-xl);
+  }
+  .screens-page__group h2 {
+    font-size: var(--fs-h3);
+  }
+  .screens-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: var(--space-lg);
+    margin-top: var(--space-md);
+  }
+  .screen-slot__title {
+    text-align: center;
+    font-weight: var(--fw-semibold);
+    color: var(--on-surface);
+    margin: 0 0 var(--space-sm);
+  }
+</style>

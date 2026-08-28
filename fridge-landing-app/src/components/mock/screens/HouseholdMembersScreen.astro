@@ -1,0 +1,73 @@
+---
+// Kaynak: fridge-mobil/lib/features/household/presentation/household_members_screen.dart
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import MockAppBar from '@components/mock/atoms/MockAppBar.astro';
+import MockDialog from '@components/mock/atoms/MockDialog.astro';
+import { getSeed } from '@seed/index';
+
+/**
+ * @typedef {Object} Props
+ * @property {'light'|'dark'} [theme]
+ * @property {'tr'|'en'} [locale]
+ * @property {boolean} [showInviteDialog]
+ */
+const { theme = 'light', locale = 'tr', showInviteDialog = false } = Astro.props;
+const seed = getSeed('full');
+---
+<PhoneFrame theme={theme} label="Üyeler">
+  <MockAppBar title={locale === 'tr' ? 'Üyeler' : 'Members'} showBack />
+  <div class="members-list">
+    {seed.household.members.map((m) => (
+      <div class="members-list__row">
+        <div class="members-list__avatar">{m.avatarInitial}</div>
+        <p class="members-list__name">{m.displayName}{m.isGuest ? ` (${locale === 'tr' ? 'misafir' : 'guest'})` : ''}</p>
+      </div>
+    ))}
+  </div>
+  {showInviteDialog && (
+    <MockDialog title={locale === 'tr' ? 'Davet Kodu' : 'Invite code'}>
+      <p class="invite-code">{seed.household.inviteCode}</p>
+      <p>{locale === 'tr' ? 'Bu kodu paylaşarak evine üye davet edebilirsin.' : 'Share this code to invite someone to your household.'}</p>
+    </MockDialog>
+  )}
+</PhoneFrame>
+
+<style>
+  .members-list {
+    padding: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  .members-list__row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    background: var(--surface-container-low);
+    border-radius: var(--radius-card);
+    padding: var(--space-sm) var(--space-md);
+  }
+  .members-list__avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--primary-container);
+    color: var(--on-primary-container);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: var(--fw-semibold);
+  }
+  .members-list__name {
+    margin: 0;
+    color: var(--on-surface);
+    font-weight: var(--fw-semibold);
+  }
+  .invite-code {
+    font-size: var(--fs-headline);
+    font-weight: var(--fw-bold);
+    letter-spacing: 0.1em;
+    color: var(--primary);
+    text-align: center;
+  }
+</style>

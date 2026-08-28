@@ -1,0 +1,82 @@
+---
+import Marketing from '@layouts/Marketing.astro';
+import SectionHeading from '@components/marketing/SectionHeading.astro';
+import Cta from '@components/marketing/Cta.astro';
+import ReceiptScanScreen from '@components/mock/screens/ReceiptScanScreen.astro';
+import ReceiptReviewScreen from '@components/mock/screens/ReceiptReviewScreen.astro';
+
+const locale = 'tr';
+---
+<Marketing
+  title="Fiş Tarama — Fridge"
+  description="Market fişinin fotoğrafını çek, yapay zekâ satırları ürünlere ayırsın, sen onayla."
+  locale={locale}
+>
+  <section class="container feature-detail">
+    <SectionHeading
+      eyebrow="Özellik"
+      title="Fiş tara, gerisini bırak"
+      lead="OCR telefonda çalışır — fiş görüntüsü hiçbir zaman sunucuya gitmez, yalnızca okunan metin gönderilir. Yapay zekâ o metni ürün adı, marka ve fiyata ayrıştırır, sen tek dokunuşla onaylarsın."
+      align="left"
+    />
+    <div class="feature-detail__screens">
+      <ReceiptScanScreen theme="light" locale={locale} state="processing" />
+      <ReceiptReviewScreen theme="light" locale={locale} />
+    </div>
+    <div class="feature-detail__points">
+      <div>
+        <h3>Gizlilik önce</h3>
+        <p>Fiş fotoğrafı telefonda işlenir, sunucuya yalnızca ham metin gider.</p>
+      </div>
+      <div>
+        <h3>Çoklu paket ayrıştırma</h3>
+        <p>"6X200ML" gibi ifadeler otomatik olarak 6 adet × 200 ml'ye ayrıştırılır.</p>
+      </div>
+      <div>
+        <h3>Düşük güven uyarısı</h3>
+        <p>Emin olunamayan satırlar "Kontrol et" rozetiyle işaretlenir, sen karar verirsin.</p>
+      </div>
+    </div>
+  </section>
+  <div class="container">
+    <Cta
+      title="İlk fişini tara"
+      body="Uygulamayı indir, market fişini tara, ne kadar hızlı olduğunu gör."
+      primaryHref="/indir"
+      primaryText="Ücretsiz indir"
+      secondaryHref="/ekranlar"
+      secondaryText="Tüm ekranları gör"
+    />
+  </div>
+</Marketing>
+
+<style>
+  .feature-detail {
+    padding-block: var(--space-xl);
+  }
+  .feature-detail__screens {
+    display: grid;
+    gap: var(--space-lg);
+    max-width: 700px;
+    margin: var(--space-xl) auto;
+  }
+  .feature-detail__points {
+    display: grid;
+    gap: var(--space-md);
+    max-width: 60ch;
+    margin-inline: auto;
+  }
+  .feature-detail__points h3 {
+    font-size: var(--fs-card-title);
+    margin: 0 0 4px;
+  }
+  .feature-detail__points p {
+    color: var(--on-surface-variant);
+    margin: 0;
+  }
+  @media (min-width: 700px) {
+    .feature-detail__screens {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+</style>

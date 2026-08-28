@@ -1,0 +1,55 @@
+---
+// Kaynak: fridge-mobil/lib/features/inventory/presentation/inventory_screen.dart
+// DESIGN_SPEC §15 — Envanter (Bölüm İçeriği).
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import MockAppBar from '@components/mock/atoms/MockAppBar.astro';
+import MockProductCard from '@components/mock/atoms/MockProductCard.astro';
+import MockEmptyState from '@components/mock/atoms/MockEmptyState.astro';
+import MockFab from '@components/mock/atoms/MockFab.astro';
+import { getSeed } from '@seed/index';
+
+/**
+ * @typedef {Object} Props
+ * @property {'full'|'empty'} [seedMode]
+ * @property {'light'|'dark'} [theme]
+ * @property {'tr'|'en'} [locale]
+ * @property {string} [storageLocationId]
+ */
+const { seedMode = 'full', theme = 'light', locale = 'tr', storageLocationId = 'sl-fridge' } = Astro.props;
+
+const seed = getSeed(seedMode);
+const location = seed.household.storageLocations.find((s) => s.id === storageLocationId);
+const items = seed.inventory.filter((i) => i.storageLocationId === storageLocationId);
+const title = location?.name ?? (locale === 'tr' ? 'Buzdolabı' : 'Fridge');
+---
+<PhoneFrame theme={theme} label={`Envanter — ${title}`}>
+  <MockAppBar title={title} showBack />
+  <div class="inventory-screen__body">
+    {items.length === 0 ? (
+      <MockEmptyState
+        icon="🗄️"
+        title={locale === 'tr' ? 'Bu bölüm boş' : 'This section is empty'}
+        description={locale === 'tr' ? 'Fiş tarayarak veya manuel ekleyerek başla.' : 'Start by scanning a receipt or adding manually.'}
+      />
+    ) : (
+      <div class="inventory-screen__list">
+        {items.map((item) => <MockProductCard item={item} locale={locale} />)}
+      </div>
+    )}
+  </div>
+  <MockFab icon="+" ariaLabel={locale === 'tr' ? 'Dolaba Ekle' : 'Add to inventory'} />
+</PhoneFrame>
+
+<style>
+  .inventory-screen__body {
+    position: relative;
+    min-height: calc(100% - 56px);
+  }
+  .inventory-screen__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-md);
+    padding-bottom: var(--list-bottom-pad-fab);
+  }
+</style>

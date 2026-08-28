@@ -1,0 +1,56 @@
+---
+// Telefon çerçevesi — tüm 23 ekran maketi bunun içinde render edilir.
+// DESIGN_SPEC.md: tasarım hedef genişliği 390x844 pt (iPhone 14/15 mantığı).
+
+/**
+ * @typedef {Object} Props
+ * @property {'light'|'dark'} [theme]
+ * @property {string} [label]
+ */
+const { theme = 'light', label } = Astro.props;
+---
+<div class="phone-frame" data-theme={theme} aria-label={label}>
+  <div class="phone-frame__notch"></div>
+  <div class="phone-frame__screen" tabindex="0" role="group" aria-label={label ?? 'Ekran önizlemesi'}>
+    <slot />
+  </div>
+</div>
+
+<style>
+  .phone-frame {
+    width: 100%;
+    max-width: 390px;
+    aspect-ratio: 390 / 844;
+    border-radius: 44px;
+    border: 10px solid #1a1a1a;
+    background: var(--surface);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+    margin-inline: auto;
+  }
+  .phone-frame[data-theme='dark'] {
+    background: #0f1512;
+  }
+  .phone-frame__notch {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 24px;
+    background: #1a1a1a;
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+    z-index: 10;
+  }
+  .phone-frame__screen {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .phone-frame__screen::-webkit-scrollbar {
+    display: none;
+  }
+</style>

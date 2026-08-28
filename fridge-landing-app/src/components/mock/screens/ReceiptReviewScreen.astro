@@ -1,0 +1,109 @@
+---
+// Kaynak: fridge-mobil/lib/features/receipt/presentation/receipt_review_screen.dart
+// DESIGN_SPEC §18 — en karmaşık ekran: bölüm bazlı gruplama, iki katlı satır kartları.
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import MockAppBar from '@components/mock/atoms/MockAppBar.astro';
+import MockBadge from '@components/mock/atoms/MockBadge.astro';
+import { formatCurrency } from '@lib/format';
+import { getSeed } from '@seed/index';
+
+/**
+ * @typedef {Object} Props
+ * @property {'light'|'dark'} [theme]
+ * @property {'tr'|'en'} [locale]
+ */
+const { theme = 'light', locale = 'tr' } = Astro.props;
+const seed = getSeed('full');
+const { receipt } = seed;
+
+const kindLabels = { fridge: 'Buzdolabı', freezer: 'Dondurucu', pantry: 'Kiler', other: 'Diğer' };
+const groups = new Map();
+for (const line of receipt.lines) {
+  const key = line.suggestedStorageKind ?? 'unassigned';
+  if (!groups.has(key)) groups.set(key, []);
+  groups.get(key).push(line);
+}
+---
+<PhoneFrame theme={theme} label="Fiş Onayla">
+  <MockAppBar title={locale === 'tr' ? 'Fişi Onayla' : 'Review receipt'} showBack />
+  <div class="review-screen">
+    <div class="review-screen__summary">
+      <span>{receipt.lines.length} {locale === 'tr' ? 'ürün' : 'items'}</span>
+      <span>{formatCurrency(receipt.total)}</span>
+    </div>
+    {Array.from(groups.entries()).map(([kind, lines]) => (
+      <div class="review-screen__group">
+        <p class="review-screen__group-title">
+          {kind === 'unassigned' ? (locale === 'tr' ? 'Bölüm seçilmedi' : 'No section chosen') : kindLabels[kind]}
+        </p>
+        {lines.map((line) => (
+          <div class="review-screen__line">
+            <div class="review-screen__line-top">
+              <p class="review-screen__line-name">{line.parsedName}</p>
+              {line.parsedBrand && <MockBadge variant="brand" text={line.parsedBrand} />}
+              {line.confidence === 'low' && <MockBadge variant="warning" text={locale === 'tr' ? 'Kontrol et' : 'Check'} />}
+            </div>
+            <p class="review-screen__line-raw">{line.rawText.trim()}</p>
+          </div>
+        ))}
+      </div>
+    ))}
+  </div>
+  <div class="review-screen__bar">
+    <button class="btn btn--primary" type="button" style="width:100%">{locale === 'tr' ? 'Onayla ve Ekle' : 'Confirm & add'}</button>
+  </div>
+</PhoneFrame>
+
+<style>
+  .review-screen {
+    padding: var(--space-md);
+    padding-bottom: 80px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+  .review-screen__summary {
+    display: flex;
+    justify-content: space-between;
+    font-weight: var(--fw-semibold);
+    color: var(--on-surface);
+    font-size: var(--fs-card-title);
+  }
+  .review-screen__group-title {
+    font-size: var(--fs-small);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--on-surface-variant);
+    margin: 0 0 var(--space-xs);
+  }
+  .review-screen__line {
+    background: var(--surface-container-low);
+    border-radius: var(--radius-card);
+    padding: var(--space-sm) var(--space-md);
+    margin-bottom: var(--space-xs);
+  }
+  .review-screen__line-top {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    flex-wrap: wrap;
+  }
+  .review-screen__line-name {
+    margin: 0;
+    font-weight: var(--fw-semibold);
+    color: var(--on-surface);
+  }
+  .review-screen__line-raw {
+    margin: 4px 0 0;
+    font-size: var(--fs-small);
+    color: var(--on-surface-variant);
+    font-family: ui-monospace, monospace;
+  }
+  .review-screen__bar {
+    position: sticky;
+    bottom: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--outline-variant);
+    padding: var(--space-sm) var(--space-md);
+  }
+</style>

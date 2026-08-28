@@ -1,0 +1,73 @@
+---
+// Kaynak: fridge-mobil/lib/features/inventory/presentation/add_inventory_item_screen.dart
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import MockAppBar from '@components/mock/atoms/MockAppBar.astro';
+import MockInput from '@components/mock/atoms/MockInput.astro';
+import MockStorageIcon from '@components/mock/atoms/MockStorageIcon.astro';
+import { getSeed } from '@seed/index';
+
+/**
+ * @typedef {Object} Props
+ * @property {'light'|'dark'} [theme]
+ * @property {'tr'|'en'} [locale]
+ */
+const { theme = 'light', locale = 'tr' } = Astro.props;
+const seed = getSeed('full');
+---
+<PhoneFrame theme={theme} label="Dolaba Ekle">
+  <MockAppBar title={locale === 'tr' ? 'Dolaba Ekle' : 'Add to inventory'} showBack />
+  <div class="add-item-screen">
+    <MockInput label={locale === 'tr' ? 'Ürün' : 'Product'} value="Tam Yağlı Süt" />
+    <MockInput label={locale === 'tr' ? 'Miktar' : 'Quantity'} value="1 lt" />
+    <MockInput label={locale === 'tr' ? 'Son Kullanma Tarihi' : 'Expiry date'} placeholder="GG.AA.YYYY" />
+    <p class="add-item-screen__label">{locale === 'tr' ? 'Bölüm Seç' : 'Choose section'}</p>
+    <div class="add-item-screen__locations">
+      {seed.household.storageLocations.map((loc, i) => (
+        <div class:list={['add-item-screen__loc', { 'is-selected': i === 0 }]}>
+          <MockStorageIcon kind={loc.kind} size={32} />
+          <span>{loc.name}</span>
+        </div>
+      ))}
+    </div>
+    <button class="btn btn--primary add-item-screen__submit" type="button">{locale === 'tr' ? 'Ekle' : 'Add'}</button>
+  </div>
+</PhoneFrame>
+
+<style>
+  .add-item-screen {
+    padding: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+  .add-item-screen__label {
+    font-size: var(--fs-small);
+    color: var(--on-surface-variant);
+    font-weight: var(--fw-semibold);
+    margin: 0;
+  }
+  .add-item-screen__locations {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+  }
+  .add-item-screen__loc {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    border: 1px solid var(--outline-variant);
+    border-radius: var(--radius-pill);
+    padding: 6px var(--space-sm);
+    font-size: var(--fs-small);
+    color: var(--on-surface-variant);
+  }
+  .add-item-screen__loc.is-selected {
+    border-color: var(--primary);
+    color: var(--primary);
+    font-weight: var(--fw-semibold);
+  }
+  .add-item-screen__submit {
+    width: 100%;
+    margin-top: var(--space-sm);
+  }
+</style>

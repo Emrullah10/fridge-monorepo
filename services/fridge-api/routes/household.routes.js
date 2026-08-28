@@ -163,6 +163,21 @@ const buildHouseholdRouter = ({ container }) => {
     }),
   );
 
+  // Alan adı + serbest simge (features.icon) güncellemesi. Tür (household.kind)
+  // arayüzden kalktığı için burada değiştirilmez.
+  router.patch(
+    '/:householdId',
+    requireHouseholdRole({ householdMemberRepo: repos.householdMemberRepo, minRole: 'admin' }),
+    asyncHandler(async (req, res) => {
+      const household = await useCases.updateHouseholdProfile({
+        householdId: req.params.householdId,
+        name: req.body.name,
+        icon: req.body.icon,
+      });
+      res.json({ household });
+    }),
+  );
+
   router.patch(
     '/:householdId/settings',
     requireHouseholdRole({ householdMemberRepo: repos.householdMemberRepo, minRole: 'admin' }),

@@ -17,11 +17,14 @@ const defaultFeaturesForKind = (kind) => ({ food: FOOD_KINDS.has(kind) });
 
 // household.features (JSONB, DB'den gelen ham obje) + kind'i alır, kesin
 // özellik durumunu döner. `features.food` açıkça true/false ise o kullanılır
-// (kullanıcı kararı), tanımsızsa türden türetilir.
+// (kullanıcı kararı), tanımsızsa türden türetilir. `icon` kullanıcının seçtiği
+// serbest simge anahtarı (mobil `householdIconChoices`); yoksa null — istemci
+// eski kayıtlarda `kind`'ın varsayılan ikonuna düşer.
 const resolveFeatures = (household) => {
   const stored = household?.features ?? {};
   const food = typeof stored.food === 'boolean' ? stored.food : FOOD_KINDS.has(household?.kind);
-  return { food };
+  const icon = typeof stored.icon === 'string' ? stored.icon : null;
+  return { food, icon };
 };
 
 // Her alan türü için varsayılan bölüm listesi (create-household.use-case.js

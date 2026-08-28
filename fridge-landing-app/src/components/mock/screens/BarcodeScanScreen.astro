@@ -1,0 +1,78 @@
+---
+// Kaynak: fridge-mobil/lib/features/inventory/presentation/barcode_scan_screen.dart
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import MockAppBar from '@components/mock/atoms/MockAppBar.astro';
+
+/**
+ * @typedef {Object} Props
+ * @property {'light'|'dark'} [theme]
+ * @property {'tr'|'en'} [locale]
+ * @property {boolean} [found]
+ */
+const { theme = 'light', locale = 'tr', found = true } = Astro.props;
+---
+<PhoneFrame theme={theme} label="Barkod Tara">
+  <MockAppBar title={locale === 'tr' ? 'Barkod Tara' : 'Scan barcode'} showBack />
+  <div class="barcode-screen">
+    <div class="barcode-screen__viewport">
+      <div class="barcode-screen__line"></div>
+    </div>
+    {found ? (
+      <div class="barcode-screen__result">
+        <p class="barcode-screen__result-title">{locale === 'tr' ? 'Ürün bulundu' : 'Product found'}</p>
+        <p class="barcode-screen__result-name">Tam Yağlı Süt · Sütaş</p>
+      </div>
+    ) : (
+      <div class="barcode-screen__result barcode-screen__result--empty">
+        <p class="barcode-screen__result-title">{locale === 'tr' ? 'Ürün bulunamadı' : 'Product not found'}</p>
+        <p class="barcode-screen__result-name">{locale === 'tr' ? 'Manuel olarak ekleyebilirsin.' : 'You can add it manually.'}</p>
+      </div>
+    )}
+  </div>
+</PhoneFrame>
+
+<style>
+  .barcode-screen {
+    padding: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    align-items: center;
+  }
+  .barcode-screen__viewport {
+    width: 100%;
+    aspect-ratio: 1;
+    background: #111;
+    border-radius: var(--radius-card);
+    position: relative;
+    overflow: hidden;
+  }
+  .barcode-screen__line {
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    top: 50%;
+    height: 2px;
+    background: var(--primary);
+  }
+  .barcode-screen__result {
+    background: var(--secondary-container);
+    color: var(--on-secondary-container);
+    border-radius: var(--radius-card);
+    padding: var(--space-md);
+    width: 100%;
+    text-align: center;
+  }
+  .barcode-screen__result--empty {
+    background: var(--surface-container-highest);
+    color: var(--on-surface-variant);
+  }
+  .barcode-screen__result-title {
+    margin: 0 0 4px;
+    font-weight: var(--fw-semibold);
+  }
+  .barcode-screen__result-name {
+    margin: 0;
+    font-size: var(--fs-small);
+  }
+</style>

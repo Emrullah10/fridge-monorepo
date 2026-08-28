@@ -1,0 +1,39 @@
+---
+/**
+ * @typedef {Object} Props
+ * @property {string} value
+ * @property {string} label
+ * @property {'neutral'|'good'|'bad'} [tone]
+ */
+const { value, label, tone = 'neutral' } = Astro.props;
+---
+<div class:list={['stat-tile', `stat-tile--${tone}`]}>
+  <p class="stat-tile__value">{value}</p>
+  <p class="stat-tile__label">{label}</p>
+</div>
+
+<style>
+  .stat-tile {
+    background: var(--surface-container-low);
+    border-radius: var(--radius-card);
+    padding: var(--space-lg);
+    text-align: center;
+  }
+  .stat-tile__value {
+    font-size: var(--fs-h2);
+    font-weight: var(--fw-bold);
+    margin: 0 0 4px;
+    color: var(--on-surface);
+  }
+  .stat-tile--good .stat-tile__value {
+    color: var(--primary);
+  }
+  .stat-tile--bad .stat-tile__value {
+    color: var(--error);
+  }
+  .stat-tile__label {
+    margin: 0;
+    color: var(--on-surface-variant);
+    font-size: var(--fs-small);
+  }
+</style>

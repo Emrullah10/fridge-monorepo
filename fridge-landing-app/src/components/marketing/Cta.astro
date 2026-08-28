@@ -1,0 +1,58 @@
+---
+/**
+ * @typedef {Object} Props
+ * @property {string} title
+ * @property {string} [body]
+ * @property {string} primaryHref
+ * @property {string} primaryText
+ * @property {string} [secondaryHref]
+ * @property {string} [secondaryText]
+ */
+const { title, body, primaryHref, primaryText, secondaryHref, secondaryText } = Astro.props;
+---
+<section class="cta container--narrow">
+  <h2 class="cta__title">{title}</h2>
+  {body && <p class="cta__body">{body}</p>}
+  <div class="cta__actions">
+    <a href={primaryHref} class="btn btn--primary">{primaryText}</a>
+    {secondaryHref && <a href={secondaryHref} class="btn btn--outlined">{secondaryText}</a>}
+  </div>
+</section>
+
+<style>
+  .cta {
+    text-align: center;
+    background: var(--primary-container);
+    border-radius: var(--radius-card);
+    padding: var(--space-xl) var(--space-lg);
+    margin-inline: auto;
+  }
+  .cta__title {
+    /* --on-primary-container bu zeminde (--primary-container) yalnızca
+       2.92:1 veriyordu — WCAG'nin büyük metin için istediği 3:1'in bile
+       altında. Beyaza geçirildi (5.0:1). */
+    color: #ffffff;
+    font-size: var(--fs-h2);
+    margin: 0 0 var(--space-sm);
+  }
+  .cta__body {
+    color: #ffffff;
+    margin: 0 0 var(--space-lg);
+  }
+  .cta__actions {
+    display: flex;
+    gap: var(--space-sm);
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  /* Genel .btn--outlined, --primary metin + --outline-variant kenarlığı ile
+     düz `surface` zemin için tasarlı — bu bileşenin koyu yeşil
+     (--primary-container) zemininde --primary metin 1.43:1'e düşüyordu
+     (axe WCAG AA ihlali). --on-primary-container da (2.92:1) yetersiz kaldı
+     — M3'ün container/on-container eşleşmesi her font ağırlığında AA
+     garantilemiyor. Beyaz metin/kenarlık burada 5.0:1 ile güvenli. */
+  .cta__actions .btn--outlined {
+    color: #ffffff;
+    border-color: #ffffff;
+  }
+</style>

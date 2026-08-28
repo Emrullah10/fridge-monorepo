@@ -1,0 +1,58 @@
+---
+// fridge-mobil/lib/core/widgets/app_bottom_nav.dart deseni: 5 sekme, sadece
+// "Dolabım" gerçek, diğerleri pasif ("yakında" hissi).
+/**
+ * @typedef {Object} Props
+ * @property {'areas'|'shopping'|'recipes'|'insights'|'settings'} [active]
+ */
+const { active = 'areas' } = Astro.props;
+
+const tabs = [
+  { key: 'areas', icon: '▦', label: 'Alanlarım' },
+  { key: 'shopping', icon: '🛒', label: 'Alışveriş' },
+  { key: 'recipes', icon: '📖', label: 'Tarifler' },
+  { key: 'insights', icon: '💰', label: 'Para' },
+  { key: 'settings', icon: '⚙︎', label: 'Ayarlar' },
+];
+---
+<nav class="mock-bottomnav">
+  {tabs.map((tab) => (
+    <div class:list={['mock-bottomnav__tab', { 'is-active': tab.key === active }]}>
+      <span class="mock-bottomnav__icon" aria-hidden="true">{tab.icon}</span>
+      <span class="mock-bottomnav__label">{tab.label}</span>
+    </div>
+  ))}
+</nav>
+
+<style>
+  .mock-bottomnav {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: var(--space-sm) var(--space-xs);
+    background: var(--surface);
+    border-top: 1px solid var(--outline-variant);
+    position: sticky;
+    bottom: 0;
+  }
+  .mock-bottomnav__tab {
+    /* Pasif sekmeler token rengiyle (opacity ile soldurulmadan) ayrışır —
+       10px etiket metninde opacity dimming AA kontrastını düşürüyordu
+       (bkz. cerebrum.md Do-Not-Repeat). */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    color: var(--on-surface-variant);
+  }
+  .mock-bottomnav__tab.is-active {
+    color: var(--primary);
+  }
+  .mock-bottomnav__icon {
+    font-size: 18px;
+  }
+  .mock-bottomnav__label {
+    font-size: 10px;
+    font-weight: var(--fw-semibold);
+  }
+</style>

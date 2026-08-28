@@ -1,0 +1,43 @@
+---
+import Marketing from '@layouts/Marketing.astro';
+import SectionHeading from '@components/marketing/SectionHeading.astro';
+import Cta from '@components/marketing/Cta.astro';
+import ChefChatScreen from '@components/mock/screens/ChefChatScreen.astro';
+
+const locale = 'tr';
+---
+<Marketing title="AI Şef — Fridge" description="Mutfağının bağlamını bilen bir sohbet — bugün ne pişirsem?" locale={locale}>
+  <section class="container feature-detail">
+    <SectionHeading
+      eyebrow="Özellik"
+      title="Mutfağını tanıyan bir sohbet"
+      lead="AI Şef, dolabında ne olduğunu bilir. 'Bugün ne pişirsem?' diye sor, elindekilere göre öneri alsın; eksik malzemeyi tek dokunuşla listene ekle."
+      align="left"
+    />
+    <div class="feature-detail__screens feature-detail__screens--single">
+      <ChefChatScreen theme="light" locale={locale} />
+    </div>
+    <div class="feature-detail__points">
+      <div>
+        <h3>Halüsinasyon savunmalı</h3>
+        <p>Şef, dolabında olmayan bir ürünü "var" diye söylemez — envanterin tek gerçek kaynak.</p>
+      </div>
+      <div>
+        <h3>Listeye tek dokunuşla ekleme</h3>
+        <p>Önerilen eksik malzemeler doğrudan alışveriş listene eklenebilir.</p>
+      </div>
+    </div>
+  </section>
+  <div class="container">
+    <Cta title="Mutfağınla sohbet et" primaryHref="/indir" primaryText="Ücretsiz indir" secondaryHref="/ozellikler/tarifler" secondaryText="Tarifleri gör" />
+  </div>
+</Marketing>
+
+<style>
+  .feature-detail { padding-block: var(--space-xl); }
+  .feature-detail__screens { display: grid; gap: var(--space-lg); max-width: 700px; margin: var(--space-xl) auto; }
+  .feature-detail__screens--single { max-width: 340px; }
+  .feature-detail__points { display: grid; gap: var(--space-md); max-width: 60ch; margin-inline: auto; }
+  .feature-detail__points h3 { font-size: var(--fs-card-title); margin: 0 0 4px; }
+  .feature-detail__points p { color: var(--on-surface-variant); margin: 0; }
+</style>

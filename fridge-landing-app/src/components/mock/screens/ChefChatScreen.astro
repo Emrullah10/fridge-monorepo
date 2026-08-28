@@ -1,0 +1,82 @@
+---
+// Kaynak: fridge-mobil/lib/features/chef/presentation/chef_chat_screen.dart
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import MockAppBar from '@components/mock/atoms/MockAppBar.astro';
+import { getSeed } from '@seed/index';
+
+/**
+ * @typedef {Object} Props
+ * @property {'light'|'dark'} [theme]
+ * @property {'tr'|'en'} [locale]
+ */
+const { theme = 'light', locale = 'tr' } = Astro.props;
+const seed = getSeed('full');
+---
+<PhoneFrame theme={theme} label="AI Şef">
+  <MockAppBar title={locale === 'tr' ? 'AI Şef' : 'AI Chef'} showBack />
+  <div class="chef-screen">
+    {seed.chef.map((msg) => (
+      <div class:list={['chef-screen__msg', `chef-screen__msg--${msg.role}`]}>
+        <p>{msg.text}</p>
+        {msg.suggestedAddToList && (
+          <div class="chef-screen__chips">
+            {msg.suggestedAddToList.map((item) => <span class="chef-screen__chip">+ {item}</span>)}
+          </div>
+        )}
+      </div>
+    ))}
+  </div>
+  <div class="chef-screen__input">
+    <span class="chef-screen__input-placeholder">{locale === 'tr' ? 'Mutfağınla ilgili bir şey sor…' : 'Ask something about your kitchen…'}</span>
+  </div>
+</PhoneFrame>
+
+<style>
+  .chef-screen {
+    padding: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    min-height: calc(100% - 56px - 56px);
+  }
+  .chef-screen__msg {
+    max-width: 80%;
+    border-radius: var(--radius-card);
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--fs-body);
+  }
+  .chef-screen__msg--user {
+    align-self: flex-end;
+    background: var(--primary);
+    color: var(--on-primary);
+  }
+  .chef-screen__msg--assistant {
+    align-self: flex-start;
+    background: var(--surface-container-low);
+    color: var(--on-surface);
+  }
+  .chef-screen__msg p {
+    margin: 0;
+  }
+  .chef-screen__chips {
+    display: flex;
+    gap: 4px;
+    margin-top: var(--space-xs);
+    flex-wrap: wrap;
+  }
+  .chef-screen__chip {
+    background: var(--secondary-container);
+    color: var(--on-secondary-container);
+    border-radius: var(--radius-pill);
+    padding: 2px var(--space-sm);
+    font-size: var(--fs-small);
+  }
+  .chef-screen__input {
+    border-top: 1px solid var(--outline-variant);
+    padding: var(--space-sm) var(--space-md);
+  }
+  .chef-screen__input-placeholder {
+    color: var(--on-surface-variant);
+    font-size: var(--fs-small);
+  }
+</style>

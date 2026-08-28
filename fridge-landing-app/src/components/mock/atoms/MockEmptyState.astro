@@ -1,0 +1,42 @@
+---
+// DESIGN_SPEC §9.9: boş durum — büyük ikon (48) + başlık + açıklama.
+/**
+ * @typedef {Object} Props
+ * @property {string} icon
+ * @property {string} title
+ * @property {string} [description]
+ */
+const { icon, title, description } = Astro.props;
+---
+<div class="mock-empty">
+  <span class="mock-empty__icon" aria-hidden="true">{icon}</span>
+  <p class="mock-empty__title">{title}</p>
+  {description && <p class="mock-empty__desc">{description}</p>}
+</div>
+
+<style>
+  .mock-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--space-xs);
+    padding: var(--space-xl) var(--space-lg);
+    color: var(--on-surface-variant);
+  }
+  .mock-empty__icon {
+    font-size: 48px;
+    opacity: 0.6;
+  }
+  .mock-empty__title {
+    font-size: var(--fs-card-title);
+    font-weight: var(--fw-semibold);
+    color: var(--on-surface);
+    margin: 0;
+  }
+  .mock-empty__desc {
+    font-size: var(--fs-small);
+    margin: 0;
+    max-width: 28ch;
+  }
+</style>

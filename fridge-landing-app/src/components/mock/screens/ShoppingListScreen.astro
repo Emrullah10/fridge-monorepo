@@ -1,0 +1,70 @@
+---
+// Kaynak: fridge-mobil/lib/features/shopping/presentation/shopping_list_screen.dart
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import MockAppBar from '@components/mock/atoms/MockAppBar.astro';
+import MockBottomNav from '@components/mock/atoms/MockBottomNav.astro';
+import MockEmptyState from '@components/mock/atoms/MockEmptyState.astro';
+import MockFab from '@components/mock/atoms/MockFab.astro';
+import { getSeed } from '@seed/index';
+
+/**
+ * @typedef {Object} Props
+ * @property {'full'|'empty'} [seedMode]
+ * @property {'light'|'dark'} [theme]
+ * @property {'tr'|'en'} [locale]
+ */
+const { seedMode = 'full', theme = 'light', locale = 'tr' } = Astro.props;
+const seed = getSeed(seedMode);
+---
+<PhoneFrame theme={theme} label="Alışveriş Listesi">
+  <MockAppBar title={locale === 'tr' ? 'Alışveriş' : 'Shopping'} />
+  <div class="shopping-screen">
+    {seed.shopping.length === 0 ? (
+      <MockEmptyState
+        icon="🛒"
+        title={locale === 'tr' ? 'Liste boş' : 'List is empty'}
+        description={locale === 'tr' ? 'Eksikleri ekleyerek başla.' : 'Add what you need to get started.'}
+      />
+    ) : (
+      <div class="shopping-screen__list">
+        {seed.shopping.map((item) => (
+          <div class:list={['shopping-screen__row', { 'is-checked': item.isChecked }]}>
+            <span class="shopping-screen__check">{item.isChecked ? '☑' : '☐'}</span>
+            <span class="shopping-screen__name">{item.name}{item.quantity ? ` · ${item.quantity}` : ''}</span>
+            {item.isAiSuggested && <span class="shopping-screen__ai" title={locale === 'tr' ? 'AI önerisi' : 'AI suggestion'}>✨</span>}
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+  <MockFab icon="+" ariaLabel={locale === 'tr' ? 'Ürün Ekle' : 'Add item'} />
+  <MockBottomNav active="shopping" />
+</PhoneFrame>
+
+<style>
+  .shopping-screen__list {
+    padding: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .shopping-screen__row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-xs);
+    color: var(--on-surface);
+  }
+  .shopping-screen__row.is-checked {
+    /* Rengi token'dan al, opacity ile solma AA kontrastını kırıyordu
+       (bkz. cerebrum.md Do-Not-Repeat) — strikethrough + renk tonu yeterli ayrım. */
+    color: var(--on-surface-variant);
+    text-decoration: line-through;
+  }
+  .shopping-screen__check {
+    font-size: 18px;
+  }
+  .shopping-screen__ai {
+    margin-left: auto;
+  }
+</style>

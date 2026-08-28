@@ -1,0 +1,92 @@
+---
+// Kaynak: fridge-mobil/lib/features/settings/presentation/settings_screen.dart
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import MockAppBar from '@components/mock/atoms/MockAppBar.astro';
+import MockBottomNav from '@components/mock/atoms/MockBottomNav.astro';
+import { getSeed } from '@seed/index';
+
+/**
+ * @typedef {Object} Props
+ * @property {'light'|'dark'} [theme]
+ * @property {'tr'|'en'} [locale]
+ */
+const { theme = 'light', locale = 'tr' } = Astro.props;
+const seed = getSeed('full');
+const me = seed.household.members[0];
+
+const itemsTr = ['Profil', 'Diyet Profili', 'Bildirimler', 'Dil', 'Tema', 'Hakkında', 'Çıkış Yap'];
+const itemsEn = ['Profile', 'Diet Profile', 'Notifications', 'Language', 'Theme', 'About', 'Log out'];
+const items = locale === 'tr' ? itemsTr : itemsEn;
+---
+<PhoneFrame theme={theme} label="Ayarlar">
+  <MockAppBar title={locale === 'tr' ? 'Ayarlar' : 'Settings'} />
+  <div class="settings-screen">
+    <div class="settings-screen__profile">
+      <div class="settings-screen__avatar">{me.avatarInitial}</div>
+      <div>
+        <p class="settings-screen__name">{me.displayName}</p>
+        <p class="settings-screen__household">{seed.household.name}</p>
+      </div>
+    </div>
+    <div class="settings-screen__list">
+      {items.map((item) => (
+        <div class="settings-screen__row">
+          <span>{item}</span>
+          <span class="settings-screen__chevron">›</span>
+        </div>
+      ))}
+    </div>
+  </div>
+  <MockBottomNav active="settings" />
+</PhoneFrame>
+
+<style>
+  .settings-screen {
+    padding: var(--space-md);
+  }
+  .settings-screen__profile {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-md) 0;
+    margin-bottom: var(--space-sm);
+  }
+  .settings-screen__avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--primary-container);
+    color: var(--on-primary-container);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: var(--fw-bold);
+    font-size: var(--fs-card-title);
+  }
+  .settings-screen__name {
+    margin: 0;
+    font-weight: var(--fw-semibold);
+    color: var(--on-surface);
+  }
+  .settings-screen__household {
+    margin: 2px 0 0;
+    font-size: var(--fs-small);
+    color: var(--on-surface-variant);
+  }
+  .settings-screen__list {
+    display: flex;
+    flex-direction: column;
+  }
+  .settings-screen__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-sm) var(--space-xs);
+    border-bottom: 1px solid var(--outline-variant);
+    color: var(--on-surface);
+    font-size: var(--fs-body);
+  }
+  .settings-screen__chevron {
+    color: var(--on-surface-variant);
+  }
+</style>

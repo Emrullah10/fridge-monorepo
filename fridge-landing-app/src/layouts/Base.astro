@@ -1,0 +1,41 @@
+---
+import '@styles/global.scss';
+
+/**
+ * @typedef {Object} Props
+ * @property {string} title
+ * @property {string} description
+ * @property {'tr'|'en'} [lang]
+ * @property {string} [ogImage]
+ */
+
+const { title, description, lang = 'tr', ogImage = '/og/default.png' } = Astro.props;
+---
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script is:inline>
+      // Tema flash'ını önlemek için ilk boyamadan önce çalışır.
+      (function () {
+        try {
+          var stored = localStorage.getItem('fridge-theme');
+          if (stored === 'light' || stored === 'dark') {
+            document.documentElement.setAttribute('data-theme', stored);
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "checkJs": false,
+    "paths": {
+      "@seed/*": ["src/seed/*"],
+      "@i18n/*": ["src/i18n/*"],
+      "@components/*": ["src/components/*"],
+      "@islands/*": ["src/islands/*"],
+      "@styles/*": ["src/styles/*"],
+      "@lib/*": ["src/lib/*"],
+      "@layouts/*": ["src/layouts/*"]
+    }
+  },
+  "include": ["src/**/*", "scripts/**/*"]
+}
