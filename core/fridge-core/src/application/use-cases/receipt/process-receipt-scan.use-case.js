@@ -1,6 +1,8 @@
 import { normalizeMeasurement } from '../../../infrastructure/parser/line-item-finalizer.js';
 import { extractMerchantFromRawText } from '../../../infrastructure/parser/turkish-merchants.js';
 import { NOTIFICATION_TYPES } from '../../../domain/notification-types.js';
+import { isNonProductLine } from '../../../domain/receipt-line-filter.js';
+import { attachPrices } from '../../../domain/receipt-price.js';
 
 // Ön-eşleştirme sonrası fişin tamamı modele gitmeyebiliyor (hatta hiç
 // gitmeyebiliyor), dolayısıyla toplam tutarı modelden beklemek güvenilmez —
@@ -14,51 +16,10 @@ const extractTotalFromRawText = (rawText) => {
   return Number.isFinite(amount) ? amount : null;
 };
 
-// Fişte HER satır bir ürün değil (tarih, saat, TOPLAM, KDV, kasiyer no,
-// salt fiyat/tutar satırları...). Prompt kural 6'daki aynı liste. Bu
-// satırlar alias aramasına hiç girmiyor (zaten hiçbir ürüne eşleşmezler)
-// — ön-eşleştirmenin "kaçtı" sayması hatalıydı: tüm ürünler alias'tan
-// geldiği bir taramada bile bu satırlar tek başına AI'ı tetikleyip asıl
-// hız kazancını sıfırlıyordu.
-//
-// Gerçek gözlem (2026-08-18): eski desen "*9,90", "82,55" gibi salt fiyat
-// satırlarını ve "ARATOP"/"TOPKDY"/"TOPLAN" gibi OCR/kısaltma varyantlarını
-// kaçırıyordu — bu satırlar AI'a gidip "Unknown"/"Aratop" gibi çöp ürünler
-// olarak üretiliyor, sonra alias'a yazılıp kalıcı hale geliyordu (bkz.
-// product-alias.repository.js'deki ikinci savunma hattı). Tek regex yerine
-// üç ayrı, test edilebilir kurala bölündü.
-const DATE_LINE_PATTERN = /^\d{1,2}[./]\d{1,2}[./]\d{2,4}/;
-
-// Satırın tamamı fiyat/tutar/oran gibi görünüyorsa (yıldızlı veya değil,
-// TL sonekli veya değil) — bir ürün asla sadece rakam+ayraçtan ibaret
-// olamaz. "*9,90", "82,55", "6,11", "*82,55 TL", "%08" hepsi bu kural.
-const AMOUNT_ONLY_LINE_PATTERN = /^\*?\s*%?\s*\d+([.,]\d+)?\s*(TL)?\s*$/i;
-
-// Bilinen fiş anahtar kelimeleri — OCR toleransı için sondaki \b yerine
-// önek eşleşmesi kullanılır ("TOPLAM" -> "TOPLAN"/"TOPLAM." gibi son harf
-// bozulmalarını da yakalar). Gerçek fişte görülen kısaltmalar dahil.
-const KEYWORD_LINE_PATTERN =
-  /^(SAAT|TOPLA[MN]|TOPKD[VY]|ARA\s*TOPLA[MN]|ARATOP|GENEL\s*TOPLA[MN]|KDV|TARI[Hİ]|FI[SŞ]\s*NO|KASIYER|TESEKKURLER|TEŞEKKÜRLER|NAKIT|KREDI\s*KART|K\.?\s*KARTI|POS|EFT|BANKA|SATIS|SATIŞ|BELGE|MERSIS|V\.?D\.?)/i;
-
-// "X08" gibi tek harf + rakamdan oluşan kısa kodlar (KDV oranı simgesinin
-// OCR'da % yerine X okunmuş hali gibi) — gerçek ürün adları en az bir
-// gerçek kelime içerir, tek harf + rakam ürün adı olamaz.
-const SINGLE_LETTER_CODE_PATTERN = /^[a-zçğıöşü]\s*\d+$/i;
-
-const isNonProductLine = (line) => {
-  const trimmed = (line ?? '').trim();
-  if (!trimmed) return true;
-  // Harf (Türkçe dahil) içermeyen satır bir ürün olamaz — salt sayı,
-  // yüzde, sembol satırlarının hepsini kapsar.
-  if (!/[a-zçğıöşüA-ZÇĞİÖŞÜ]/.test(trimmed)) return true;
-  if (trimmed.length < 3) return true;
-  return (
-    DATE_LINE_PATTERN.test(trimmed) ||
-    AMOUNT_ONLY_LINE_PATTERN.test(trimmed) ||
-    KEYWORD_LINE_PATTERN.test(trimmed) ||
-    SINGLE_LETTER_CODE_PATTERN.test(trimmed)
-  );
-};
+// isNonProductLine artık domain/receipt-line-filter.js'de — hem burada hem
+// domain/receipt-price.js'de (fiyat çıkarımı, filtre uygulanmadan ÖNCE ham
+// satırlara bakar) hem prompt kural 6'da (line-item-finalizer.js) aynı
+// kaynaktan besleniyor.
 
 // Bir fişi kademe 1 (OCR) + kademe 2 (parser) + ürün eşleştirmeden geçirir.
 // scan-processor worker'ı tarafından çağrılır. Hata durumunda fiş kaybolmaz,
@@ -132,7 +93,7 @@ const makeProcessReceiptScan = ({
   // ham metinden yeniden tahmin edilmez, doğrudan kullanılır. Ürün henüz
   // paket bilgisi taşımıyorsa (ör. eski/manuel kayıt) normalizeMeasurement'ın
   // ham metinden çıkardığı değere düşülür.
-  const buildLineFromMatchedProduct = async ({ rawText, match }) => {
+  const buildLineFromMatchedProduct = async ({ rawText, match, parsedPrice }) => {
     const product = await productRepo.findById(match.matchedProductId);
     const measured = normalizeMeasurement({
       rawText,
@@ -150,7 +111,11 @@ const makeProcessReceiptScan = ({
       // birim yoksa boyut da yazılmaz.
       parsedPackSize: packUnit ? (product?.packSize ?? measured.parsedPackSize ?? null) : null,
       parsedPackUnit: packUnit,
-      parsedPrice: null,
+      // attachPrices ile ham metinden deterministik çıkarılan satır toplamı.
+      // Bu yol (alias/trigram) baskın yol olduğu için (tekrar alınan ürünler,
+      // yani aylık harcamanın çoğu) burada null bırakmak para panelini
+      // sürekli boş tutuyordu.
+      parsedPrice: parsedPrice ?? null,
       ...match,
     };
   };
@@ -169,13 +134,23 @@ const makeProcessReceiptScan = ({
       //    ürüne eşleşmezler, "unmatched" sayılıp gereksiz yere AI'ı
       //    tetiklerlerdi (tüm ürünler alias'tan gelse bile).
       const rawLines = rawText.split('\n').map((l) => l.trim()).filter(Boolean);
+
+      // Fiyat çıkarımı filtre uygulanmadan ÖNCE, ham satırlar üzerinde
+      // çalışır — çünkü fiyat satırları (örn. "*9,90") tam olarak
+      // isNonProductLine'ın elediği satırlardır. AMOUNT_ONLY_LINE_PATTERN'a
+      // takılıp modele hiç gitmeyen bu satırlar burada komşu ürün adayına
+      // bağlanıyor (bkz. domain/receipt-price.js).
+      const { takePrice } = attachPrices(rawLines, isNonProductLine);
+
       const candidateLines = rawLines.filter((line) => !isNonProductLine(line));
       const resolvedLines = [];
       const unmatchedLines = [];
       for (const line of candidateLines) {
         const match = await matchKnownProduct({ householdId: scan.householdId, rawText: line });
         if (match) {
-          resolvedLines.push(await buildLineFromMatchedProduct({ rawText: line, match }));
+          resolvedLines.push(
+            await buildLineFromMatchedProduct({ rawText: line, match, parsedPrice: takePrice(line) }),
+          );
         } else {
           unmatchedLines.push(line);
         }
@@ -214,6 +189,11 @@ const makeProcessReceiptScan = ({
           parsedPackSize: line.parsedPackSize ?? null,
           parsedPackUnit: line.parsedPackUnit ?? null,
         });
+        // Ham metinden deterministik çıkarılan fiyat modelinkini ezer — model
+        // fiyat konusunda halüsinasyon yapabiliyor (bkz. multipack miktar
+        // hatası dersi, cerebrum 2026-08-26: aynı satır 4 farklı sonuç
+        // vermişti). Deterministik yol bulamazsa modelin kendi parsedPrice'ına
+        // düşülür (nadiren fiyat aynı satırda kalmış olabilir).
         aiLines.push({
           rawText: line.rawText,
           parsedName: line.parsedName,
@@ -222,7 +202,7 @@ const makeProcessReceiptScan = ({
           parsedUnit: line.parsedUnit,
           parsedPackSize: line.parsedPackSize ?? null,
           parsedPackUnit: line.parsedPackUnit ?? null,
-          parsedPrice: line.parsedPrice ?? null,
+          parsedPrice: takePrice(line.rawText) ?? line.parsedPrice ?? null,
           ...match,
         });
       }

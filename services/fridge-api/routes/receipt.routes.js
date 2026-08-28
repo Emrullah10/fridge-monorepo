@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { asyncHandler } from '@fridge/helper';
-import { requireAuth, requireHouseholdRole, rateLimiter } from '@fridge/middlewares';
+import { requireAuth, requireHouseholdRole, requireGuestQuota, rateLimiter } from '@fridge/middlewares';
 import { NotFoundError, ValidationError } from '@fridge/errors';
 import { assertOwnedByHousehold } from './helpers/assert-owned-by-household.js';
 
@@ -18,6 +18,10 @@ const scanTextRateLimiter = rateLimiter({
   keyFn: (req) => req.user?.id ?? req.ip,
 });
 
+// Misafir hesap bedava açıldığı için fiş tarama (OCR + Gemini) ayrıca
+// günlük kotalanır — kayıtlı kullanıcılar bu ek sınıra takılmaz.
+const guestScanQuota = requireGuestQuota({ windowMs: 24 * 60 * 60 * 1000, maxRequests: 10 });
+
 const buildReceiptRouter = ({ container }) => {
   const router = Router({ mergeParams: true });
   const { useCases, repos } = container;
@@ -25,7 +29,7 @@ const buildReceiptRouter = ({ container }) => {
   router.use(requireAuth());
   router.use(requireHouseholdRole({ householdMemberRepo: repos.householdMemberRepo, minRole: 'member' }));
 
-  router.post('/scan', upload.single('image'), asyncHandler(async (req, res) => {
+  router.post('/scan', guestScanQuota, upload.single('image'), asyncHandler(async (req, res) => {
     if (!req.file) {
       return res.status(422).json({ error: { code: 'VALIDATION_ERROR', message: 'image file is required' } });
     }
@@ -39,7 +43,7 @@ const buildReceiptRouter = ({ container }) => {
     res.status(202).json({ scanId: scan.id, status: scan.status });
   }));
 
-  router.post('/scan-text', scanTextRateLimiter, asyncHandler(async (req, res) => {
+  router.post('/scan-text', guestScanQuota, scanTextRateLimiter, asyncHandler(async (req, res) => {
     const { rawText } = req.body ?? {};
     if (typeof rawText !== 'string' || rawText.trim().length === 0) {
       throw new ValidationError('rawText gerekli');
@@ -129,6 +133,7 @@ const buildReceiptRouter = ({ container }) => {
       parsedUnit: req.body.parsedUnit,
       parsedPackSize: req.body.parsedPackSize,
       parsedPackUnit: req.body.parsedPackUnit,
+      parsedPrice: req.body.parsedPrice,
       matchedProductId: req.body.matchedProductId,
       categoryKey: req.body.categoryKey,
     });

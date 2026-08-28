@@ -6,6 +6,10 @@ import { rateLimiter, requireAuth } from '@fridge/middlewares';
 // Brute-force koruması: aynı IP'den 15 dakikada en fazla 10 giriş denemesi.
 const loginRateLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 10 });
 
+// Misafir hesap açmak bedava (şifre/email doğrulaması yok) — sınırsız
+// çağrılabilirse DB'de sınırsız kullanıcı/household yaratılabilir.
+const guestRateLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 5 });
+
 const REFRESH_COOKIE_OPTS = {
   httpOnly: true,
   sameSite: 'lax',
@@ -68,6 +72,39 @@ const buildAuthRouter = ({ container }) => {
     res.json({ user, accessToken });
   }));
 
+  // Misafir hesap — kayıt duvarı olmadan uygulamanın tamamını kullanabilme.
+  // Gemini harcayan uçlar (fiş tarama, tarif/chef) misafirde de çalışır ama
+  // ayrıca kotalanır (bkz. ilgili route'lardaki rateLimiter) — misafir hesap
+  // açmak bedava olduğu için bu olmadan API anahtarı açık bir kapı olurdu.
+  router.post('/guest', guestRateLimiter, asyncHandler(async (req, res) => {
+    const { deviceId } = req.body ?? {};
+    if (typeof deviceId !== 'string' || deviceId.length < 8) {
+      throw new ValidationError('Geçerli bir cihaz kimliği gerekli');
+    }
+    const { user, accessToken, refreshToken } = await useCases.createGuestUser({ deviceId });
+
+    if (isMobileClient(req)) {
+      return res.status(201).json({ user, accessToken, refreshToken });
+    }
+    res.cookie('refresh_token', refreshToken, REFRESH_COOKIE_OPTS);
+    res.status(201).json({ user, accessToken });
+  }));
+
+  // Misafir hesabını kalıcı hesaba yükseltir — aynı satır UPDATE edilir,
+  // alan/envanter/fiş hiç taşınmaz (zaten aynı user_id). Oturum korunur.
+  router.post('/upgrade', requireAuth(), asyncHandler(async (req, res) => {
+    const { email, password, displayName } = req.body ?? {};
+    assertValidRegisterInput({ email, password, displayName });
+    const user = await useCases.upgradeGuestUser({
+      userId: req.user.id,
+      isGuest: req.user.isGuest,
+      email,
+      password,
+      displayName,
+    });
+    res.json({ user: publicUser(user) });
+  }));
+
   router.post('/refresh', asyncHandler(async (req, res) => {
     const refreshToken = isMobileClient(req) ? req.body?.refreshToken : req.cookies?.refresh_token;
     const { accessToken, refreshToken: newRefreshToken } = await useCases.refreshSession({ refreshToken });
@@ -108,6 +145,7 @@ const buildAuthRouter = ({ container }) => {
     displayName: user.displayName,
     locale: user.locale,
     dietProfile: user.dietProfile ?? null,
+    isGuest: user.isGuest ?? false,
   });
 
   router.get('/me', requireAuth(), asyncHandler(async (req, res) => {

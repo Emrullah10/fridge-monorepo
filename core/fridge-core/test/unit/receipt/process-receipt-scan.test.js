@@ -365,3 +365,66 @@ describe('processReceiptScan — kademe 3: AI otomatik ürün oluşturma', () =>
     assert.equal(fakes.aliasesUpserted[0].rawText, 'GERCEK URUN');
   });
 });
+
+describe('processReceiptScan — fiyat çıkarımı', () => {
+  test('alias yolunda fiyat ayrı satırdan gelir — önceden hep null yazılıyordu', async () => {
+    const fakes = makeFakes({
+      productAliasRepo: {
+        findExactMatch: async ({ rawText }) => (rawText === 'EKMEK' ? { productId: 'existing-product' } : null),
+      },
+      productRepo: {
+        create: async () => { throw new Error('yeni ürün oluşturulmamalı'); },
+        findById: async (id) => (id === 'existing-product' ? { id, canonicalName: 'Ekmek', defaultUnit: 'piece' } : null),
+      },
+    });
+    const processReceiptScan = makeProcessReceiptScan(fakes);
+
+    await processReceiptScan({ scanId: 'scan-1', rawText: 'EKMEK\n*9,90' });
+
+    assert.equal(fakes.lineItemsCreated.length, 1);
+    assert.equal(fakes.lineItemsCreated[0].matchMethod, 'alias');
+    assert.equal(fakes.lineItemsCreated[0].parsedPrice, 9.9);
+  });
+
+  test('AI yolunda ham metinden çıkarılan deterministik fiyat modelin kendi parsedPrice alanını ezer', async () => {
+    const fakes = makeFakes({
+      receiptParserPort: {
+        parse: async () => ({
+          lineItems: [
+            // Model fiyatı yanlış/halüsinasyon üretmiş olabilir (bkz. multipack
+            // dersi) — deterministik satır-toplamı (32,50) bunu ezmeli.
+            { rawText: 'SUT 1L', parsedName: 'Süt', parsedQuantity: 1, parsedUnit: 'liter', parsedPrice: 999 },
+          ],
+          merchantName: null,
+          purchasedAt: null,
+          totalAmount: null,
+          provider: 'gemini-text',
+          model: 'gemini-2.5-flash',
+        }),
+      },
+    });
+    const processReceiptScan = makeProcessReceiptScan(fakes);
+
+    await processReceiptScan({ scanId: 'scan-1', rawText: 'SUT 1L\n*32,50' });
+
+    assert.equal(fakes.lineItemsCreated.length, 1);
+    assert.equal(fakes.lineItemsCreated[0].parsedPrice, 32.5);
+  });
+
+  test('fiyat gerçekten bulunamazsa null kalır — sessizce 0 ya da uydurma değer yazılmaz', async () => {
+    const fakes = makeFakes({
+      productAliasRepo: {
+        findExactMatch: async ({ rawText }) => (rawText === 'EKMEK' ? { productId: 'existing-product' } : null),
+      },
+      productRepo: {
+        findById: async (id) => (id === 'existing-product' ? { id, canonicalName: 'Ekmek', defaultUnit: 'piece' } : null),
+      },
+    });
+    const processReceiptScan = makeProcessReceiptScan(fakes);
+
+    await processReceiptScan({ scanId: 'scan-1', rawText: 'EKMEK' });
+
+    assert.equal(fakes.lineItemsCreated.length, 1);
+    assert.equal(fakes.lineItemsCreated[0].parsedPrice, null);
+  });
+});

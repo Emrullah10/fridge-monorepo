@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { asyncHandler } from '@fridge/helper';
-import { requireAuth, requireHouseholdRole, rateLimiter } from '@fridge/middlewares';
+import { requireAuth, requireHouseholdRole, requireHouseholdFeature, requireGuestQuota, rateLimiter } from '@fridge/middlewares';
+import { resolveFeatures } from '@fridge/core/src/domain/household-profile.js';
 
 const buildChefRouter = ({ container }) => {
   const router = Router({ mergeParams: true });
@@ -8,6 +9,8 @@ const buildChefRouter = ({ container }) => {
 
   router.use(requireAuth());
   router.use(requireHouseholdRole({ householdMemberRepo: repos.householdMemberRepo, minRole: 'viewer' }));
+  // Yemek özelliği kapalı alanlarda AI Chef anlamsız — bkz. recipe.routes.js.
+  router.use(requireHouseholdFeature('food', { householdRepo: repos.householdRepo, resolveFeatures }));
 
   // Sohbet geçmişi (kronolojik).
   router.get('/messages', asyncHandler(async (req, res) => {
@@ -19,8 +22,10 @@ const buildChefRouter = ({ container }) => {
   }));
 
   // Her mesaj Gemini'ye para harcıyor — dakikada 10 istekle sınırla.
+  // Misafir hesap bedava açıldığı için ayrıca günlük kota.
   router.post(
     '/messages',
+    requireGuestQuota({ windowMs: 24 * 60 * 60 * 1000, maxRequests: 10 }),
     rateLimiter({ windowMs: 60_000, maxRequests: 10, keyFn: (req) => req.user.id }),
     asyncHandler(async (req, res) => {
       if (!useCases.sendChefMessage) {
