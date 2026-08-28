@@ -1,0 +1,33 @@
+---
+// DESIGN_SPEC §1.2: bölüm renkleri sabit, elle sabitlenmiş, %15 zemin + %100 ikon.
+/**
+ * @typedef {Object} Props
+ * @property {'fridge'|'freezer'|'pantry'|'other'} kind
+ * @property {number} [size]
+ */
+const { kind, size = 48 } = Astro.props;
+
+const meta = {
+  fridge: { color: 'var(--storage-fridge)', icon: '🧊' },
+  freezer: { color: 'var(--storage-freezer)', icon: '❄️' },
+  pantry: { color: 'var(--storage-pantry)', icon: '🥫' },
+  other: { color: 'var(--storage-other)', icon: '📦' },
+}[kind];
+---
+<div
+  class="mock-storage-icon"
+  style={`--icon-color: ${meta.color}; width: ${size}px; height: ${size}px;`}
+>
+  <span aria-hidden="true">{meta.icon}</span>
+</div>
+
+<style>
+  .mock-storage-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-storage-icon);
+    background: color-mix(in srgb, var(--icon-color) 15%, transparent);
+    font-size: 1.3em;
+  }
+</style>

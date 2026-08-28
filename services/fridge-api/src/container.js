@@ -47,6 +47,7 @@ import { makeChangePassword } from '@fridge/core/src/application/use-cases/auth/
 
 import { makeCreateHousehold } from '@fridge/core/src/application/use-cases/household/create-household.use-case.js';
 import { makeUpdateHouseholdFeatures } from '@fridge/core/src/application/use-cases/household/update-household-features.use-case.js';
+import { makeUpdateHouseholdProfile } from '@fridge/core/src/application/use-cases/household/update-household-profile.use-case.js';
 import { makeCreateInvite } from '@fridge/core/src/application/use-cases/household/create-invite.use-case.js';
 import { makeRevokeInvite } from '@fridge/core/src/application/use-cases/household/revoke-invite.use-case.js';
 import { makeLeaveHousehold } from '@fridge/core/src/application/use-cases/household/leave-household.use-case.js';
@@ -224,6 +225,7 @@ const buildContainer = (config) => {
 
     createHousehold,
     updateHouseholdFeatures: makeUpdateHouseholdFeatures({ householdRepo: repos.householdRepo }),
+    updateHouseholdProfile: makeUpdateHouseholdProfile({ householdRepo: repos.householdRepo }),
     createInvite: makeCreateInvite({ inviteRepo: repos.inviteRepo, clock }),
     revokeInvite: makeRevokeInvite({ inviteRepo: repos.inviteRepo }),
     leaveHousehold: makeLeaveHousehold({ householdRepo: repos.householdRepo, householdMemberRepo: repos.householdMemberRepo }),

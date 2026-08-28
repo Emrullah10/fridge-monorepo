@@ -1,0 +1,59 @@
+---
+// Kaynak: fridge-mobil/lib/features/recipe/presentation/recipe_step_screen.dart
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import MockAppBar from '@components/mock/atoms/MockAppBar.astro';
+import { getSeed } from '@seed/index';
+
+/**
+ * @typedef {Object} Props
+ * @property {'light'|'dark'} [theme]
+ * @property {'tr'|'en'} [locale]
+ * @property {number} [stepIndex]
+ */
+const { theme = 'light', locale = 'tr', stepIndex = 0 } = Astro.props;
+const seed = getSeed('full');
+const recipe = seed.recipes[0];
+const step = recipe.steps[stepIndex];
+---
+<PhoneFrame theme={theme} label="Tarif Adımı">
+  <MockAppBar title={recipe.title} showBack />
+  <div class="recipe-step">
+    <p class="recipe-step__counter">{locale === 'tr' ? 'Adım' : 'Step'} {stepIndex + 1} / {recipe.steps.length}</p>
+    <p class="recipe-step__text">{step}</p>
+    <div class="recipe-step__nav">
+      <button class="btn btn--outlined" type="button" disabled={stepIndex === 0}>{locale === 'tr' ? 'Önceki' : 'Previous'}</button>
+      <button class="btn btn--primary" type="button">{locale === 'tr' ? 'Sonraki' : 'Next'}</button>
+    </div>
+  </div>
+</PhoneFrame>
+
+<style>
+  .recipe-step {
+    height: calc(100% - 56px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: var(--space-lg);
+    gap: var(--space-md);
+  }
+  .recipe-step__counter {
+    color: var(--on-surface-variant);
+    font-size: var(--fs-small);
+    font-weight: var(--fw-semibold);
+    margin: 0;
+  }
+  .recipe-step__text {
+    font-size: var(--fs-section-title);
+    color: var(--on-surface);
+    line-height: 1.4;
+    margin: 0;
+  }
+  .recipe-step__nav {
+    display: flex;
+    gap: var(--space-sm);
+    margin-top: var(--space-lg);
+  }
+  .recipe-step__nav .btn {
+    flex: 1;
+  }
+</style>

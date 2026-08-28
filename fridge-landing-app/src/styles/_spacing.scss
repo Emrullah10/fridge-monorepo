@@ -1,0 +1,28 @@
+// Boşluk yardımcıları — DESIGN_SPEC.md §3, ara değer yasak (yalnız _tokens.scss'teki
+// --space-xs/sm/md/lg/xl kullanılır).
+
+:root {
+  --screen-padding-x: var(--space-md);   // standart 16pt
+  --screen-padding-x-form: var(--space-lg); // form ekranları 24pt
+  --list-bottom-pad-fab: 64px;   // FAB olan ekranlarda liste altı boşluk
+  --list-bottom-pad: var(--space-xl);
+
+  --container-max: 1200px;
+  --container-narrow: 760px;
+  --section-gap: clamp(64px, 10vw, 140px); // site kabuğu bölüm arası
+}
+
+.container {
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--space-md);
+}
+
+// Kendi kendine yeterli — sadece `.container--narrow` ile de kullanılabilir,
+// `.container`'ın margin/padding'ine bağımlı değil (7 sayfada bu şekilde
+// kullanılıyordu ve ortalanmıyordu — bkz. cerebrum.md Do-Not-Repeat).
+.container--narrow {
+  max-width: var(--container-narrow);
+  margin-inline: auto;
+  padding-inline: var(--space-md);
+}

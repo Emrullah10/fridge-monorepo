@@ -1,0 +1,72 @@
+---
+// Kaynak: fridge-mobil/lib/features/notification/presentation/notifications_screen.dart
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import MockAppBar from '@components/mock/atoms/MockAppBar.astro';
+import MockEmptyState from '@components/mock/atoms/MockEmptyState.astro';
+import { getSeed } from '@seed/index';
+
+/**
+ * @typedef {Object} Props
+ * @property {'full'|'empty'} [seedMode]
+ * @property {'light'|'dark'} [theme]
+ * @property {'tr'|'en'} [locale]
+ */
+const { seedMode = 'full', theme = 'light', locale = 'tr' } = Astro.props;
+const seed = getSeed(seedMode);
+---
+<PhoneFrame theme={theme} label="Bildirimler">
+  <MockAppBar title={locale === 'tr' ? 'Bildirimler' : 'Notifications'} showBack />
+  <div class="notif-screen">
+    {seed.notifications.length === 0 ? (
+      <MockEmptyState icon="🔔" title={locale === 'tr' ? 'Bildirim yok' : 'No notifications'} />
+    ) : (
+      seed.notifications.map((n) => (
+        <div class:list={['notif-screen__row', { 'is-unread': !n.isRead }]}>
+          {!n.isRead && <span class="notif-screen__dot" />}
+          <div>
+            <p class="notif-screen__title">{n.title}</p>
+            <p class="notif-screen__body">{n.body}</p>
+          </div>
+        </div>
+      ))
+    )}
+  </div>
+</PhoneFrame>
+
+<style>
+  .notif-screen {
+    padding: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+  .notif-screen__row {
+    display: flex;
+    gap: var(--space-sm);
+    background: var(--surface-container-low);
+    border-radius: var(--radius-card);
+    padding: var(--space-sm) var(--space-md);
+  }
+  .notif-screen__row.is-unread {
+    background: color-mix(in srgb, var(--primary-container) 25%, var(--surface-container-low));
+  }
+  .notif-screen__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+    margin-top: 6px;
+    flex-shrink: 0;
+  }
+  .notif-screen__title {
+    margin: 0;
+    font-weight: var(--fw-semibold);
+    color: var(--on-surface);
+    font-size: var(--fs-body);
+  }
+  .notif-screen__body {
+    margin: 2px 0 0;
+    font-size: var(--fs-small);
+    color: var(--on-surface-variant);
+  }
+</style>

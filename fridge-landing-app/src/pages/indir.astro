@@ -1,0 +1,82 @@
+---
+import Marketing from '@layouts/Marketing.astro';
+import SectionHeading from '@components/marketing/SectionHeading.astro';
+
+const locale = 'tr';
+---
+<Marketing title="İndir — Fridge" description="Fridge'i Google Play'den ücretsiz indir. Sürüm notları ve sistem gereksinimleri." locale={locale}>
+  <section class="container--narrow download-page">
+    <SectionHeading
+      eyebrow="İndir"
+      title="Fridge'i telefonuna al"
+      lead="Şu an Android için Google Play kapalı test aşamasında. iOS için çalışmalar sürüyor."
+    />
+
+    <div class="download-page__badges">
+      <a href="#" class="download-page__badge" aria-label="Google Play'den indir">
+        <span aria-hidden="true">▶</span> Google Play
+      </a>
+      <span class="download-page__badge download-page__badge--soon" aria-disabled="true">
+        <span aria-hidden="true"></span> App Store — Yakında
+      </span>
+    </div>
+
+    <div class="download-page__meta">
+      <div>
+        <h3>Sistem gereksinimleri</h3>
+        <p>Android 8.0 (Oreo) ve üzeri. Kamera izni fiş/barkod tarama için gereklidir.</p>
+      </div>
+      <div>
+        <h3>Sürüm notları</h3>
+        <p>En güncel sürüm: hesaba yükseltme akışı, çoklu paket ayrıştırma, koyu tema desteği.</p>
+      </div>
+      <div>
+        <h3>Kapalı test</h3>
+        <p>Google Play'in yeni uygulamalar için gerektirdiği zorunlu kapalı test sürecindeyiz. Katılmak isterseniz bizimle iletişime geçin.</p>
+      </div>
+    </div>
+  </section>
+</Marketing>
+
+<style>
+  .download-page {
+    padding-block: var(--space-xl);
+    text-align: center;
+  }
+  .download-page__badges {
+    display: flex;
+    gap: var(--space-md);
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: var(--space-xl) 0;
+  }
+  .download-page__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    background: var(--on-surface);
+    color: var(--surface);
+    border-radius: var(--radius-button);
+    padding: var(--space-sm) var(--space-lg);
+    text-decoration: none;
+    font-weight: var(--fw-semibold);
+  }
+  .download-page__badge--soon {
+    background: var(--surface-container-highest);
+    color: var(--on-surface-variant);
+  }
+  .download-page__meta {
+    display: grid;
+    gap: var(--space-lg);
+    text-align: left;
+    margin-top: var(--space-xl);
+  }
+  .download-page__meta h3 {
+    font-size: var(--fs-card-title);
+    margin: 0 0 4px;
+  }
+  .download-page__meta p {
+    color: var(--on-surface-variant);
+    margin: 0;
+  }
+</style>

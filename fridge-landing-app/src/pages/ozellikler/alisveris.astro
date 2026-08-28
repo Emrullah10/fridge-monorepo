@@ -1,0 +1,47 @@
+---
+import Marketing from '@layouts/Marketing.astro';
+import SectionHeading from '@components/marketing/SectionHeading.astro';
+import Cta from '@components/marketing/Cta.astro';
+import ShoppingListScreen from '@components/mock/screens/ShoppingListScreen.astro';
+
+const locale = 'tr';
+---
+<Marketing title="Alışveriş — Fridge" description="Eksikleri listeye ekle, markette tek dokunuşla işaretle, dönüşte envantere aktar." locale={locale}>
+  <section class="container feature-detail">
+    <SectionHeading
+      eyebrow="Özellik"
+      title="Markette şaşırmadan gez"
+      lead="Eksik ürünleri listeye ekle, yapay zekâ tüketim ritmine göre öneriler sunar. Markette işaretle, eve dönünce envantere aktar — hiçbir şey iki kez elle yazılmaz."
+      align="left"
+    />
+    <div class="feature-detail__screens feature-detail__screens--single">
+      <ShoppingListScreen theme="light" locale={locale} seedMode="full" />
+    </div>
+    <div class="feature-detail__points">
+      <div>
+        <h3>AI önerisi</h3>
+        <p>Tüketim ritmine göre bitmek üzere olan ürünler otomatik önerilir, sen onaylarsın.</p>
+      </div>
+      <div>
+        <h3>Serbest metinle ekleme</h3>
+        <p>"yarın misafir geliyor, salata malzemesi lazım" gibi bir cümle bile listeye dönüşür.</p>
+      </div>
+      <div>
+        <h3>Tek dokunuşla envantere aktar</h3>
+        <p>İşaretlenen ürünler eve dönünce doğru bölüme otomatik önerilir.</p>
+      </div>
+    </div>
+  </section>
+  <div class="container">
+    <Cta title="Alışveriş listeni akıllandır" primaryHref="/indir" primaryText="Ücretsiz indir" secondaryHref="/ozellikler/tarifler" secondaryText="Tarifleri gör" />
+  </div>
+</Marketing>
+
+<style>
+  .feature-detail { padding-block: var(--space-xl); }
+  .feature-detail__screens { display: grid; gap: var(--space-lg); max-width: 700px; margin: var(--space-xl) auto; }
+  .feature-detail__screens--single { max-width: 340px; }
+  .feature-detail__points { display: grid; gap: var(--space-md); max-width: 60ch; margin-inline: auto; }
+  .feature-detail__points h3 { font-size: var(--fs-card-title); margin: 0 0 4px; }
+  .feature-detail__points p { color: var(--on-surface-variant); margin: 0; }
+</style>

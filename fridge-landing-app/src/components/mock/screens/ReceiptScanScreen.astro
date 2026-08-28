@@ -1,0 +1,121 @@
+---
+// Kaynak: fridge-mobil/lib/features/receipt/presentation/receipt_scan_screen.dart
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import MockAppBar from '@components/mock/atoms/MockAppBar.astro';
+
+/**
+ * @typedef {Object} Props
+ * @property {'light'|'dark'} [theme]
+ * @property {'tr'|'en'} [locale]
+ * @property {'idle'|'processing'|'error'|'success'} [state]
+ */
+const { theme = 'light', locale = 'tr', state = 'processing' } = Astro.props;
+
+const stagesTr = ['Görüntü hazırlanıyor', 'Metin okunuyor (OCR)', 'Yapay zekâ ayrıştırıyor', 'Son kontrol'];
+const stagesEn = ['Preparing image', 'Reading text (OCR)', 'AI is parsing', 'Final check'];
+const stages = locale === 'tr' ? stagesTr : stagesEn;
+---
+<PhoneFrame theme={theme} label="Fiş Tara">
+  <MockAppBar title={locale === 'tr' ? 'Fişi Tara' : 'Scan receipt'} showBack />
+  <div class="receipt-scan-screen">
+    {state === 'idle' && (
+      <div class="receipt-scan-screen__circle">🧾</div>
+    )}
+    {state === 'processing' && (
+      <>
+        <div class="receipt-scan-screen__circle receipt-scan-screen__circle--active">🧾</div>
+        <div class="receipt-scan-screen__stages">
+          {stages.map((s, i) => (
+            <div class:list={['receipt-scan-screen__stage', { 'is-done': i < 2, 'is-active': i === 2 }]}>
+              <span class="receipt-scan-screen__stage-dot" />
+              <span>{s}</span>
+            </div>
+          ))}
+        </div>
+      </>
+    )}
+    {state === 'error' && (
+      <div class="receipt-scan-screen__error">
+        <p class="receipt-scan-screen__error-title">{locale === 'tr' ? 'Bir şeyler ters gitti' : 'Something went wrong'}</p>
+        <p>{locale === 'tr' ? 'Fiş net görünmüyor, tekrar dener misin?' : 'The receipt is not clear, try again?'}</p>
+      </div>
+    )}
+    {state === 'success' && (
+      <div class="receipt-scan-screen__success">
+        <span class="receipt-scan-screen__success-icon">✅</span>
+        <p>{locale === 'tr' ? '6 ürün bulundu, onay bekliyor' : '6 items found, awaiting review'}</p>
+      </div>
+    )}
+  </div>
+</PhoneFrame>
+
+<style>
+  .receipt-scan-screen {
+    padding: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-lg);
+  }
+  .receipt-scan-screen__circle {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: var(--primary-container);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 56px;
+    margin-top: var(--space-xl);
+  }
+  .receipt-scan-screen__circle--active {
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--primary) 15%, transparent);
+  }
+  .receipt-scan-screen__stages {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  .receipt-scan-screen__stage {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    color: var(--on-surface-variant);
+    font-size: var(--fs-small);
+  }
+  .receipt-scan-screen__stage.is-done {
+    color: var(--primary);
+  }
+  .receipt-scan-screen__stage.is-active {
+    color: var(--on-surface);
+    font-weight: var(--fw-semibold);
+  }
+  .receipt-scan-screen__stage-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .receipt-scan-screen__error {
+    background: var(--error-container);
+    color: var(--on-error-container);
+    border-radius: var(--radius-card);
+    padding: var(--space-md);
+    text-align: center;
+  }
+  .receipt-scan-screen__error-title {
+    font-weight: var(--fw-semibold);
+    margin: 0 0 4px;
+  }
+  .receipt-scan-screen__success {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+    color: var(--on-surface);
+  }
+  .receipt-scan-screen__success-icon {
+    font-size: 48px;
+  }
+</style>

@@ -1,0 +1,60 @@
+---
+import Marketing from '@layouts/Marketing.astro';
+import SectionHeading from '@components/marketing/SectionHeading.astro';
+import FaqItem from '@components/marketing/FaqItem.astro';
+
+const locale = 'tr';
+
+const faqs = [
+  { q: 'Fiş fotoğrafı sunucuya gidiyor mu?', a: 'Hayır. OCR (metin okuma) tamamen telefonda çalışır. Sunucuya yalnızca okunan ham metin gönderilir, görüntünün kendisi hiçbir zaman cihazından çıkmaz.' },
+  { q: 'Fridge ücretsiz mi?', a: 'Evet, uygulama şu an tamamen ücretsiz. Hesap oluşturmadan misafir modunda da deneyebilirsin.' },
+  { q: 'Verilerimi kimler görebilir?', a: 'Yalnızca davet ettiğin ev üyeleri paylaşılan envanteri görür. Detaylar için gizlilik sayfamıza bakabilirsin.' },
+  { q: 'Birden fazla ev oluşturabilir miyim?', a: 'Evet, istediğin kadar ev (alan) oluşturabilir veya davet koduyla var olan bir eve katılabilirsin.' },
+  { q: 'Fiş ayrıştırma ne kadar doğru?', a: 'Yapay zekâ ayrıştırma çoğu fişte yüksek doğrulukla çalışır; emin olunamayan satırlar "Kontrol et" rozetiyle işaretlenir ve onaylamadan eklenmez.' },
+  { q: 'Çoklu paketleri (6x200ml gibi) anlıyor mu?', a: 'Evet, "6X200ML" gibi ifadeler otomatik olarak 6 adet × 200 ml şeklinde ayrıştırılır.' },
+  { q: 'Barkod okuyucu var mı?', a: 'Evet, ürünleri barkodla da ekleyebilirsin — ürün veritabanında bulunursa bilgiler otomatik doldurulur.' },
+  { q: 'Tarif önerileri nereden geliyor?', a: 'Envanterindeki ürünlere göre; eksik malzeme varsa açıkça gösterilir, halüsinasyon yapmaması için savunma katmanları var.' },
+  { q: 'AI Şef gerçekte olmayan bir ürünü "var" der mi?', a: 'Hayır, Şef her zaman gerçek envanterine bakar; dolabında olmayan bir şeyi "var" diye söylemez.' },
+  { q: 'Bildirimler nasıl çalışır?', a: 'Son kullanma tarihi yaklaşan/geçen ürünler, hazır olan fiş analizleri ve yeni üye katılımları için anlık bildirim alırsın.' },
+  { q: 'Koyu tema var mı?', a: 'Evet, uygulama cihazının tema ayarına göre otomatik açık/koyu temaya geçer.' },
+  { q: 'Hangi platformlarda mevcut?', a: 'Şu an Android üzerinde, Google Play kapalı test aşamasında. iOS için de çalışmalar sürüyor.' },
+  { q: 'Uygulamayı Türkçe dışında kullanabilir miyim?', a: 'Uygulama arayüzü şu an tamamen Türkçe. Site İngilizce de sunuluyor.' },
+  { q: 'Verilerimi silebilir miyim?', a: 'Evet, hesap silme talebini /veri-silme sayfasından başlatabilirsin.' },
+  { q: 'Alışveriş listesi AI önerisi nasıl çalışır?', a: 'Tüketim ritmine göre bitmek üzere olan ürünler otomatik önerilir; sen isteyip istemediğine karar verirsin.' },
+  { q: 'Misafir modunda veri kaybeder miyim?', a: 'Misafir modunda veriler cihazında tutulur. Hesap oluşturarak (upgrade) verilerini kaybetmeden diğer cihazlara taşıyabilirsin.' },
+  { q: 'Bölüm renkleri neden sabit?', a: 'Buzdolabı mavi, dondurucu turkuaz, kiler kehribar — bu renkler uygulamanın her yerinde aynıdır, bölüm kimliğini tek bakışta tanımanı sağlar.' },
+  { q: 'Bir sorun/hata bulursam ne yapmalıyım?', a: 'Play Store üzerinden geri bildirim bırakabilir veya basın sayfasındaki iletişim bilgilerinden bize ulaşabilirsin.' },
+];
+
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map((f) => ({
+    '@type': 'Question',
+    name: f.q,
+    acceptedAnswer: { '@type': 'Answer', text: f.a },
+  })),
+};
+---
+<Marketing title="Sıkça Sorulan Sorular — Fridge" description="Fridge hakkında en çok sorulan 18 soru — gizlilik, ücretlendirme, fiş ayrıştırma doğruluğu ve daha fazlası." locale={locale}>
+  <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
+  <section class="container--narrow faq-page">
+    <SectionHeading eyebrow="SSS" title="Sıkça sorulan sorular" />
+    <div class="faq-page__list">
+      {faqs.map((f) => (
+        <FaqItem question={f.q}>
+          <p>{f.a}</p>
+        </FaqItem>
+      ))}
+    </div>
+  </section>
+</Marketing>
+
+<style>
+  .faq-page {
+    padding-block: var(--space-xl);
+  }
+  .faq-page__list {
+    margin-top: var(--space-lg);
+  }
+</style>

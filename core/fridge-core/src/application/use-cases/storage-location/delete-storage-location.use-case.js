@@ -1,5 +1,5 @@
 import { NotFoundError, ValidationError } from '@fridge/errors';
-import { LocationNotEmptyError, LastLocationError } from '../../../domain/errors/index.js';
+import { LocationNotEmptyError } from '../../../domain/errors/index.js';
 
 // inventory_item.storage_location_id ON DELETE CASCADE ile tanımlı — düz
 // silme kullanıcının envanterini sessizce yok eder. Bu yüzden strateji
@@ -11,11 +11,9 @@ const makeDeleteStorageLocation = ({ storageLocationRepo, makeStorageLocationRep
       throw new NotFoundError('Storage location not found');
     }
 
-    const totalCount = await storageLocationRepo.countByHousehold(householdId);
-    if (totalCount <= 1) {
-      throw new LastLocationError();
-    }
-
+    // "En az bir bölüm" kısıtı kaldırıldı — alan tamamen boşaltılabilir
+    // (istemci boş-durum ekranıyla yönlendirir). Dolu son bölüm için istemci
+    // strategy:'force' onayı ister.
     const itemCount = await storageLocationRepo.countInventoryItems(locationId);
 
     if (itemCount > 0 && strategy !== 'move' && strategy !== 'force') {

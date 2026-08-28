@@ -1,0 +1,160 @@
+---
+import Marketing from '@layouts/Marketing.astro';
+import SectionHeading from '@components/marketing/SectionHeading.astro';
+import Cta from '@components/marketing/Cta.astro';
+import MetricsPlayground from '@islands/MetricsPlayground.jsx';
+
+const locale = 'tr';
+---
+<Marketing title="Metrikler — Fridge" description="Biriken, israf, alınan — her metriğin tanımı ve formülü, canlı örnek verilerle." locale={locale}>
+  <section class="container metrics-page">
+    <SectionHeading
+      eyebrow="Metrikler"
+      title="Her sayının bir tanımı var"
+      lead="Fridge'in gösterdiği hiçbir rakam gizemli değil. Aşağıda her metriğin nasıl hesaplandığını görebilir, örnek verilerle canlı deneyebilirsin."
+    />
+
+    <MetricsPlayground client:visible locale={locale} />
+
+    <div class="metrics-page__definitions">
+      <h2>Tanımlar</h2>
+      <dl>
+        <dt>Biriken</dt>
+        <dd><code>reason='consumed'</code> olan stok hareketlerinin <code>abs(delta) × unit_price</code> toplamı — yani gerçekten kullanılan, çöpe gitmeyen ürünlerin değeri.</dd>
+        <dt>İsraf</dt>
+        <dd><code>reason IN ('expired','discarded')</code> olan hareketlerin toplamı — süresi geçen veya atılan ürünlerin değeri.</dd>
+        <dt>Alınan</dt>
+        <dd>Seçili döneme giren ürünlerin toplam maliyeti.</dd>
+        <dt>Fiyatsız hareket</dt>
+        <dd>Fiyatı kayıtlı olmayan hareketler toplamlara <strong>dahil edilmez</strong> — sayı yanıltıcı olmasın diye bu hareketlerin adedi ayrıca gösterilir.</dd>
+        <dt>Dönem</dt>
+        <dd>Varsayılan olarak içinde bulunulan takvim ayı; ayrıca geçen ay ve son 90 gün seçilebilir.</dd>
+      </dl>
+    </div>
+  </section>
+  <div class="container">
+    <Cta title="Kendi verinle gör" primaryHref="/indir" primaryText="Ücretsiz indir" secondaryHref="/ozellikler/para" secondaryText="Para & İsraf özelliği" />
+  </div>
+</Marketing>
+
+<style>
+  .metrics-page { padding-block: var(--space-xl); }
+  .metrics-page__definitions {
+    margin-top: var(--section-gap);
+    max-width: 70ch;
+    margin-inline: auto;
+  }
+  .metrics-page__definitions h2 {
+    font-size: var(--fs-h2);
+  }
+  .metrics-page__definitions dt {
+    font-weight: var(--fw-bold);
+    color: var(--on-surface);
+    margin-top: var(--space-md);
+  }
+  .metrics-page__definitions dd {
+    margin: 4px 0 0;
+    color: var(--on-surface-variant);
+    line-height: 1.6;
+  }
+  .metrics-page__definitions code {
+    background: var(--surface-container-highest);
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 0.9em;
+  }
+</style>
+
+<style is:global>
+  .metrics-playground {
+    max-width: 800px;
+    margin-inline: auto;
+    margin-bottom: var(--space-xl);
+  }
+  .metrics-playground__tabs {
+    display: flex;
+    gap: var(--space-xs);
+    justify-content: center;
+    margin-bottom: var(--space-lg);
+  }
+  .metrics-playground__tabs button {
+    border: 1px solid var(--outline-variant);
+    background: transparent;
+    border-radius: var(--radius-pill);
+    padding: var(--space-xs) var(--space-md);
+    font-size: var(--fs-small);
+    font-weight: var(--fw-semibold);
+    color: var(--on-surface-variant);
+    cursor: pointer;
+  }
+  .metrics-playground__tabs button.is-active {
+    background: var(--primary);
+    color: var(--on-primary);
+    border-color: transparent;
+  }
+  .metrics-playground__stats {
+    /* 320px'te sabit 3 sütun + --fs-h2 boyutlu ₺ tutarları taşıyordu
+       (bkz. WEB_SITE_SPEC doğrulama listesi, 320px yatay scroll testi).
+       auto-fit + minmax ile dar ekranda tek sütuna düşer. */
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: var(--space-sm);
+    margin-bottom: var(--space-xl);
+  }
+  .metrics-playground__stat {
+    background: var(--surface-container-low);
+    border-radius: var(--radius-card);
+    padding: var(--space-lg);
+    text-align: center;
+    min-width: 0;
+  }
+  .metrics-playground__value {
+    /* Ortada kelime kırma yerine (₺2.140,7 / 5 gibi çirkin bir kesim) tek
+       satır tutup font boyutunu daralt — clamp zaten container genişliğine
+       göre küçülüyor, nowrap sayının bölünmesini engeller. */
+    font-size: clamp(1.1rem, 5.5vw, var(--fs-h2));
+    font-weight: var(--fw-bold);
+    margin: 0 0 4px;
+    white-space: nowrap;
+  }
+  .metrics-playground__stat--good .metrics-playground__value { color: var(--primary); }
+  .metrics-playground__stat--bad .metrics-playground__value { color: var(--error); }
+  .metrics-playground__label {
+    margin: 0;
+    color: var(--on-surface-variant);
+    font-size: var(--fs-small);
+  }
+  .metrics-playground__breakdown {
+    display: grid;
+    gap: var(--space-lg);
+  }
+  .metrics-playground__breakdown h3 {
+    font-size: var(--fs-card-title);
+  }
+  .metrics-playground__breakdown ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .metrics-playground__breakdown li {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    padding: var(--space-xs) 0;
+    border-bottom: 1px solid var(--outline-variant);
+    font-size: var(--fs-small);
+  }
+  .metrics-playground__breakdown .good { color: var(--primary); font-weight: var(--fw-semibold); }
+  .metrics-playground__breakdown .bad { color: var(--error); font-weight: var(--fw-semibold); }
+  .metrics-playground__note {
+    text-align: center;
+    color: var(--on-surface-variant);
+    font-size: var(--fs-small);
+    margin-top: var(--space-lg);
+  }
+  @media (min-width: 700px) {
+    .metrics-playground__breakdown {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+</style>

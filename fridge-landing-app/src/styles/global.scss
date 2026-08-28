@@ -1,0 +1,73 @@
+@use './tokens';
+@use './typography';
+@use './spacing';
+@use './motion';
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light dark;
+}
+
+html[data-theme='light'] {
+  color-scheme: light;
+}
+
+html[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--surface);
+  min-height: 100vh;
+  overflow-x: hidden; // yatay scroll asla — bkz. WEB_SITE_SPEC doğrulama listesi
+}
+
+img, svg, video {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+// Paylaşılan buton stilleri (DESIGN_SPEC §9.2-9.4: dolu/çerçeveli/metin)
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  border-radius: var(--radius-button);
+  font-size: var(--fs-button);
+  font-weight: var(--fw-semibold);
+  padding: var(--space-sm) var(--space-lg);
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-standard), opacity var(--dur-fast);
+}
+.btn:hover {
+  transform: translateY(-1px);
+}
+.btn--primary {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+.btn--outlined {
+  background: transparent;
+  color: var(--primary);
+  border: 1px solid var(--outline-variant);
+}

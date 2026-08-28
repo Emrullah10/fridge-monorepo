@@ -1,0 +1,47 @@
+---
+// Kaynak: fridge-mobil/lib/features/auth/presentation/upgrade_account_screen.dart
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import MockAppBar from '@components/mock/atoms/MockAppBar.astro';
+import MockInput from '@components/mock/atoms/MockInput.astro';
+
+/**
+ * @typedef {Object} Props
+ * @property {'light'|'dark'} [theme]
+ * @property {'tr'|'en'} [locale]
+ */
+const { theme = 'light', locale = 'tr' } = Astro.props;
+---
+<PhoneFrame theme={theme} label="Hesaba Yükselt">
+  <MockAppBar title={locale === 'tr' ? 'Hesaba Yükselt' : 'Upgrade account'} showBack />
+  <div class="upgrade-screen">
+    <p class="upgrade-screen__notice">
+      {locale === 'tr'
+        ? 'Misafir modundasın — verilerin bu cihazda tutuluyor. Hesap oluşturarak verilerini kaybetmeden diğer cihazlardan da erişebilirsin.'
+        : "You're in guest mode — your data lives on this device. Create an account to access it from other devices without losing anything."}
+    </p>
+    <MockInput label={locale === 'tr' ? 'E-posta' : 'Email'} />
+    <MockInput label={locale === 'tr' ? 'Şifre' : 'Password'} type="password" />
+    <button class="btn btn--primary upgrade-screen__submit" type="button">{locale === 'tr' ? 'Hesap Oluştur' : 'Create account'}</button>
+  </div>
+</PhoneFrame>
+
+<style>
+  .upgrade-screen {
+    padding: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+  .upgrade-screen__notice {
+    background: var(--secondary-container);
+    color: var(--on-secondary-container);
+    border-radius: var(--radius-card);
+    padding: var(--space-md);
+    font-size: var(--fs-small);
+    margin: 0;
+  }
+  .upgrade-screen__submit {
+    width: 100%;
+    margin-top: var(--space-sm);
+  }
+</style>

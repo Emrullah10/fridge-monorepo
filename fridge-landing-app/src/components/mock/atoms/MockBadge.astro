@@ -1,0 +1,42 @@
+---
+// DESIGN_SPEC §9: "Bitti" rozeti (radius 8), miktar rozeti (radius 10), marka hapı (radius 999).
+/**
+ * @typedef {Object} Props
+ * @property {'finished'|'quantity'|'brand'|'warning'} variant
+ * @property {string} text
+ */
+const { variant, text } = Astro.props;
+---
+<span class:list={['mock-badge', `mock-badge--${variant}`]}>{text}</span>
+
+<style>
+  .mock-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: var(--fs-badge);
+    font-weight: var(--fw-bold);
+    padding: 2px var(--space-xs);
+  }
+  .mock-badge--finished {
+    border-radius: 8px;
+    background: var(--surface-container-highest);
+    color: var(--on-surface-variant);
+  }
+  .mock-badge--quantity {
+    border-radius: 10px;
+    background: var(--secondary-container);
+    color: var(--on-secondary-container);
+  }
+  .mock-badge--brand {
+    border-radius: var(--radius-pill);
+    background: var(--secondary-container);
+    color: var(--on-secondary-container);
+    padding-inline: var(--space-sm);
+  }
+  .mock-badge--warning {
+    border-radius: var(--radius-pill);
+    background: var(--error-container);
+    color: var(--on-error-container);
+    padding-inline: var(--space-sm);
+  }
+</style>

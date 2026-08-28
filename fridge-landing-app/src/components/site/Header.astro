@@ -1,0 +1,87 @@
+---
+import { marketingDict, localePath } from '@lib/i18n';
+
+/**
+ * @typedef {Object} Props
+ * @property {'tr'|'en'} locale
+ */
+
+const { locale } = Astro.props;
+const t = marketingDict[locale].nav;
+---
+<header class="site-header">
+  <div class="container site-header__inner">
+    <a href={localePath(locale, '/')} class="site-header__brand">Fridge</a>
+    <nav class="site-header__nav">
+      <a href={localePath(locale, '/ozellikler')}>{t.features}</a>
+      <a href={localePath(locale, '/ekranlar')}>{t.screens}</a>
+      <a href={localePath(locale, '/nasil-calisir')}>{t.howItWorks}</a>
+      <a href={localePath(locale, '/metrikler')}>{t.metrics}</a>
+      <a href={localePath(locale, '/sss')}>{t.faq}</a>
+    </nav>
+    <div class="site-header__actions">
+      <a href={locale === 'tr' ? '/en' : '/'} class="site-header__lang" aria-label="Dil değiştir / Switch language">
+        {locale === 'tr' ? 'EN' : 'TR'}
+      </a>
+      <a href={localePath(locale, '/indir')} class="btn btn--primary">{t.download}</a>
+    </div>
+  </div>
+</header>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    background: color-mix(in srgb, var(--surface) 85%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--outline-variant);
+  }
+  .site-header__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding-block: var(--space-sm);
+  }
+  .site-header__brand {
+    font-family: var(--font-display);
+    font-weight: var(--fw-bold);
+    font-size: 1.25rem;
+    color: var(--primary);
+    text-decoration: none;
+  }
+  .site-header__nav {
+    display: none;
+    gap: var(--space-lg);
+    font-size: var(--fs-body);
+    font-weight: var(--fw-semibold);
+  }
+  .site-header__nav a {
+    text-decoration: none;
+    color: var(--on-surface-variant);
+  }
+  .site-header__nav a:hover {
+    color: var(--primary);
+  }
+  .site-header__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+  .site-header__lang {
+    font-size: var(--fs-small);
+    font-weight: var(--fw-semibold);
+    color: var(--on-surface-variant);
+    text-decoration: none;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--outline-variant);
+  }
+
+  @media (min-width: 900px) {
+    .site-header__nav {
+      display: flex;
+    }
+  }
+</style>

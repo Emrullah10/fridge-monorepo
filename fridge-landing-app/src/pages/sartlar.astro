@@ -1,0 +1,78 @@
+---
+import Marketing from '@layouts/Marketing.astro';
+import SectionHeading from '@components/marketing/SectionHeading.astro';
+
+const locale = 'tr';
+const updated = '29 Ağustos 2026';
+---
+<Marketing title="Kullanım Şartları — Fridge" description="Fridge uygulamasını kullanırken geçerli olan kurallar ve sorumluluklar." locale={locale}>
+  <section class="container--narrow legal-page">
+    <SectionHeading eyebrow="Yasal" title="Kullanım Şartları" align="left" />
+    <p class="legal-page__updated">Son güncelleme: {updated}</p>
+
+    <div class="legal-page__body">
+      <h2>1. Kabul</h2>
+      <p>
+        Fridge uygulamasını indirerek veya kullanarak bu şartları kabul etmiş olursunuz. Şartları
+        kabul etmiyorsanız uygulamayı kullanmayınız.
+      </p>
+
+      <h2>2. Hizmetin Kapsamı</h2>
+      <p>
+        Fridge, ev mutfak envanterinin fiş taramasıyla otomatik takibini, alışveriş listesi
+        yönetimini, tarif önerilerini ve harcama/israf metriklerini sunan bir uygulamadır. Hizmet
+        şu an ücretsizdir ve önceden bildirim yapılmaksızın değiştirilebilir.
+      </p>
+
+      <h2>3. Hesap Sorumluluğu</h2>
+      <p>
+        Hesap bilgilerinizin gizliliğinden siz sorumlusunuz. Hesabınız üzerinden gerçekleşen
+        işlemlerden (ör. bir eve davet edilme, üye ekleme) siz sorumlu tutulursunuz.
+      </p>
+
+      <h2>4. Fiş Ayrıştırmanın Doğruluğu</h2>
+      <p>
+        Fiş metninin ürünlere ayrıştırılması yapay zekâ ile yapılır ve %100 doğruluk garanti
+        edilmez. Emin olunamayan satırlar "Kontrol et" rozetiyle işaretlenir; onaylamadan önce
+        satırları gözden geçirmeniz önerilir.
+      </p>
+
+      <h2>5. Paylaşılan Ev Verisi</h2>
+      <p>
+        Bir eve davet ettiğiniz üyeler, o evin envanterini, alışveriş listesini ve para/israf
+        verilerini görüntüleyebilir ve düzenleyebilir. Davet kodunu yalnızca güvendiğiniz kişilerle
+        paylaşmanız önerilir.
+      </p>
+
+      <h2>6. Yasak Kullanımlar</h2>
+      <p>
+        Uygulamayı yasa dışı amaçlarla, başkalarının hesaplarına izinsiz erişmek için veya
+        sunucularımıza zarar verecek şekilde kullanamazsınız.
+      </p>
+
+      <h2>7. Sorumluluk Sınırı</h2>
+      <p>
+        Fridge, uygulamanın kesintisiz veya hatasız çalışacağını garanti etmez. Fiş ayrıştırma
+        hatalarından veya veri kaybından doğabilecek zararlardan sorumlu tutulamaz.
+      </p>
+
+      <h2>8. Değişiklikler</h2>
+      <p>
+        Bu şartlar zaman zaman güncellenebilir. Önemli değişiklikler uygulama içinden veya
+        bildirim yoluyla duyurulur.
+      </p>
+
+      <h2>9. İletişim</h2>
+      <p>Sorularınız için: <a href="mailto:destek@fridge.app">destek@fridge.app</a></p>
+    </div>
+  </section>
+</Marketing>
+
+<style>
+  .legal-page { padding-block: var(--space-xl); }
+  .legal-page__updated { color: var(--on-surface-variant); font-size: var(--fs-small); }
+  .legal-page__body { margin-top: var(--space-lg); line-height: 1.7; }
+  .legal-page__body h2 { font-size: var(--fs-h3); margin-top: var(--space-xl); }
+  .legal-page__body p, .legal-page__body li { color: var(--on-surface-variant); }
+  .legal-page__body a { color: var(--primary); }
+</style>

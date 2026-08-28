@@ -1,0 +1,54 @@
+---
+// Kaynak: fridge-mobil/lib/features/auth/presentation/login_screen.dart
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import MockInput from '@components/mock/atoms/MockInput.astro';
+
+/**
+ * @typedef {Object} Props
+ * @property {'light'|'dark'} [theme]
+ * @property {'tr'|'en'} [locale]
+ * @property {boolean} [showError]
+ */
+const { theme = 'light', locale = 'tr', showError = false } = Astro.props;
+---
+<PhoneFrame theme={theme} label="Giriş">
+  <div class="login-screen">
+    <p class="login-screen__title">Fridge</p>
+    <div class="login-screen__form">
+      <MockInput label={locale === 'tr' ? 'E-posta' : 'Email'} placeholder="ornek@eposta.com" error={showError} />
+      <MockInput label={locale === 'tr' ? 'Şifre' : 'Password'} type="password" error={showError}
+        errorText={showError ? (locale === 'tr' ? 'E-posta veya şifre hatalı.' : 'Incorrect email or password.') : undefined} />
+      <button class="btn btn--primary login-screen__submit" type="button">{locale === 'tr' ? 'Giriş Yap' : 'Log in'}</button>
+      <p class="login-screen__link">{locale === 'tr' ? 'Hesabın yok mu? Kayıt ol' : "Don't have an account? Sign up"}</p>
+    </div>
+  </div>
+</PhoneFrame>
+
+<style>
+  .login-screen {
+    padding: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+  }
+  .login-screen__title {
+    font-size: var(--fs-headline);
+    font-weight: var(--fw-bold);
+    color: var(--on-surface);
+    margin: var(--space-xl) 0 0;
+  }
+  .login-screen__form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+  .login-screen__submit {
+    width: 100%;
+    margin-top: var(--space-sm);
+  }
+  .login-screen__link {
+    text-align: center;
+    font-size: var(--fs-small);
+    color: var(--on-surface-variant);
+  }
+</style>

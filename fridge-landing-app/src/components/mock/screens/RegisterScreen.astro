@@ -1,0 +1,37 @@
+---
+// Kaynak: fridge-mobil/lib/features/auth/presentation/register_screen.dart
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import MockAppBar from '@components/mock/atoms/MockAppBar.astro';
+import MockInput from '@components/mock/atoms/MockInput.astro';
+
+/**
+ * @typedef {Object} Props
+ * @property {'light'|'dark'} [theme]
+ * @property {'tr'|'en'} [locale]
+ * @property {boolean} [showError]
+ */
+const { theme = 'light', locale = 'tr', showError = false } = Astro.props;
+---
+<PhoneFrame theme={theme} label="Kayıt">
+  <MockAppBar title={locale === 'tr' ? 'Kayıt Ol' : 'Sign up'} showBack />
+  <div class="register-screen">
+    <MockInput label={locale === 'tr' ? 'Ad Soyad' : 'Full name'} />
+    <MockInput label={locale === 'tr' ? 'E-posta' : 'Email'} error={showError}
+      errorText={showError ? (locale === 'tr' ? 'Bu e-posta zaten kayıtlı.' : 'This email is already registered.') : undefined} />
+    <MockInput label={locale === 'tr' ? 'Şifre' : 'Password'} type="password" />
+    <button class="btn btn--primary register-screen__submit" type="button">{locale === 'tr' ? 'Kayıt Ol' : 'Sign up'}</button>
+  </div>
+</PhoneFrame>
+
+<style>
+  .register-screen {
+    padding: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+  .register-screen__submit {
+    width: 100%;
+    margin-top: var(--space-sm);
+  }
+</style>

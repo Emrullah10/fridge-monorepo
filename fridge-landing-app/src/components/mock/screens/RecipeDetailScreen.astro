@@ -1,0 +1,71 @@
+---
+// Kaynak: fridge-mobil/lib/features/recipe/presentation/recipe_detail_screen.dart
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import MockAppBar from '@components/mock/atoms/MockAppBar.astro';
+import { getSeed } from '@seed/index';
+
+/**
+ * @typedef {Object} Props
+ * @property {'light'|'dark'} [theme]
+ * @property {'tr'|'en'} [locale]
+ */
+const { theme = 'light', locale = 'tr' } = Astro.props;
+const seed = getSeed('full');
+const recipe = seed.recipes.find((r) => r.missingCount > 0) ?? seed.recipes[0];
+---
+<PhoneFrame theme={theme} label="Tarif Detayı">
+  <MockAppBar title={recipe.title} showBack />
+  <div class="recipe-detail">
+    <div class="recipe-detail__hero">{recipe.imageEmoji}</div>
+    <p class="recipe-detail__meta">{recipe.minutes} {locale === 'tr' ? 'dk' : 'min'} · {recipe.servings} {locale === 'tr' ? 'kişilik' : 'servings'}</p>
+    <p class="recipe-detail__section-title">{locale === 'tr' ? 'Malzemeler' : 'Ingredients'}</p>
+    <div class="recipe-detail__ingredients">
+      {recipe.ingredients.map((ing) => (
+        <div class:list={['recipe-detail__ing', { 'is-missing': !ing.have }]}>
+          <span>{ing.have ? '✓' : '✗'}</span>
+          <span>{ing.name}{ing.quantity ? ` · ${ing.quantity}` : ''}</span>
+        </div>
+      ))}
+    </div>
+    <button class="btn btn--primary" type="button" style="width:100%">{locale === 'tr' ? 'Adım Adım Başla' : 'Start step by step'}</button>
+  </div>
+</PhoneFrame>
+
+<style>
+  .recipe-detail {
+    padding: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  .recipe-detail__hero {
+    font-size: 64px;
+    text-align: center;
+  }
+  .recipe-detail__meta {
+    text-align: center;
+    color: var(--on-surface-variant);
+    font-size: var(--fs-small);
+    margin: 0 0 var(--space-md);
+  }
+  .recipe-detail__section-title {
+    font-weight: var(--fw-semibold);
+    color: var(--on-surface);
+    margin: 0;
+  }
+  .recipe-detail__ingredients {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: var(--space-md);
+  }
+  .recipe-detail__ing {
+    display: flex;
+    gap: var(--space-sm);
+    color: var(--on-surface);
+    font-size: var(--fs-body);
+  }
+  .recipe-detail__ing.is-missing {
+    color: var(--error);
+  }
+</style>

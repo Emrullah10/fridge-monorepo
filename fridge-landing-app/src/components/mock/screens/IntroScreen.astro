@@ -1,0 +1,80 @@
+---
+// Kaynak: fridge-mobil/lib/features/onboarding/presentation/intro_screen.dart
+// DESIGN_SPEC §8.1: tanıtım istisnası — bu ekranda animasyon serbest.
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+
+/**
+ * @typedef {Object} Props
+ * @property {'light'|'dark'} [theme]
+ * @property {'tr'|'en'} [locale]
+ * @property {number} [page]
+ */
+const { theme = 'light', locale = 'tr', page = 0 } = Astro.props;
+
+const pagesTr = [
+  { emoji: '🧾', title: 'Fiş Tara', body: 'Market fişinin fotoğrafını çek — ürünler, fiyatlarıyla birlikte envanterine kendiliğinden düşsün.' },
+  { emoji: '🗄️', title: 'Bölümler', body: 'Buzdolabı, dondurucu, kiler — ya da atölyene özel raflar. Her ürün doğru yere otursun.' },
+  { emoji: '🛒', title: 'Alışveriş', body: 'Eksikleri listeye ekle, markette tek dokunuşla işaretle, dönüşte envantere aktar.' },
+  { emoji: '💰', title: 'Para', body: 'Ne kadar biriktirdiğini, ne kadar israf ettiğini net gör — ay ay, üye üye.' },
+];
+const pagesEn = [
+  { emoji: '🧾', title: 'Scan the receipt', body: 'Snap a photo of your grocery receipt — items land in your inventory with prices attached.' },
+  { emoji: '🗄️', title: 'Sections', body: 'Fridge, freezer, pantry — or shelves of your own. Every item finds its place.' },
+  { emoji: '🛒', title: 'Shopping', body: 'Add what you\'re missing, tick it off in the store, move it to inventory when you\'re home.' },
+  { emoji: '💰', title: 'Money', body: 'See exactly what you saved and wasted — month by month, person by person.' },
+];
+const pages = locale === 'tr' ? pagesTr : pagesEn;
+const current = pages[page];
+---
+<PhoneFrame theme={theme} label={`Tanıtım — ${current.title}`}>
+  <div class="intro-screen">
+    <div class="intro-screen__art">{current.emoji}</div>
+    <p class="intro-screen__title" role="heading" aria-level="2">{current.title}</p>
+    <p class="intro-screen__body">{current.body}</p>
+    <div class="intro-screen__dots">
+      {pages.map((_, i) => <span class:list={['intro-screen__dot', { 'is-active': i === page }]} />)}
+    </div>
+  </div>
+</PhoneFrame>
+
+<style>
+  .intro-screen {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-md);
+    padding: var(--space-lg);
+    text-align: center;
+  }
+  .intro-screen__art {
+    font-size: 72px;
+  }
+  .intro-screen__title {
+    font-size: var(--fs-section-title);
+    font-weight: var(--fw-bold);
+    color: var(--primary);
+    margin: 0;
+  }
+  .intro-screen__body {
+    color: var(--on-surface-variant);
+    font-size: var(--fs-body);
+    max-width: 28ch;
+  }
+  .intro-screen__dots {
+    display: flex;
+    gap: 6px;
+    margin-top: var(--space-lg);
+  }
+  .intro-screen__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: var(--radius-pill);
+    background: var(--outline-variant);
+  }
+  .intro-screen__dot.is-active {
+    background: var(--primary);
+    width: 20px;
+  }
+</style>

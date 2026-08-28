@@ -1,0 +1,61 @@
+---
+import Marketing from '@layouts/Marketing.astro';
+import SectionHeading from '@components/marketing/SectionHeading.astro';
+
+const locale = 'tr';
+---
+<Marketing title="Hesap Silme — Fridge" description="Fridge hesabınızı ve tüm verilerinizi kalıcı olarak silme talebinde nasıl bulunacağınız." locale={locale}>
+  <section class="container--narrow legal-page">
+    <SectionHeading eyebrow="Yasal" title="Hesap Silme" align="left" />
+
+    <div class="legal-page__body">
+      <p>
+        Fridge hesabınızı ve hesabınızla ilişkili tüm verileri kalıcı olarak silmek istiyorsanız
+        aşağıdaki iki yoldan birini kullanabilirsiniz.
+      </p>
+
+      <h2>Yöntem 1 — Uygulama içinden</h2>
+      <ol>
+        <li>Fridge uygulamasını aç</li>
+        <li>Ayarlar → Hesabım'a git</li>
+        <li>"Hesabı Sil" seçeneğine dokun</li>
+        <li>Onay adımlarını tamamla</li>
+      </ol>
+
+      <h2>Yöntem 2 — E-posta ile talep</h2>
+      <p>
+        Uygulamaya erişemiyorsanız, kayıtlı e-posta adresinizden{' '}
+        <a href="mailto:destek@fridge.app?subject=Hesap%20Silme%20Talebi">destek@fridge.app</a>{' '}
+        adresine "Hesap Silme Talebi" konu başlığıyla bir e-posta gönderin. Talebiniz
+        doğrulandıktan sonra 30 gün içinde işleme alınır.
+      </p>
+
+      <h2>Silinen veriler</h2>
+      <ul>
+        <li>Hesap bilgileri (e-posta, ad)</li>
+        <li>Üyesi olduğunuz evlerdeki katkı geçmişiniz</li>
+        <li>Kişisel alışveriş listesi ve tercihler</li>
+        <li>Bildirim jetonu</li>
+      </ul>
+      <p>
+        Bir evin <strong>tek</strong> üyesiyseniz, o eve ait envanter/fiş geçmişi de silinir.
+        Başka üyelerle paylaşılan bir evdeyseniz, ev verisi diğer üyeler için korunur; yalnızca
+        sizin kişisel bağlantınız ve katkı kaydınız kaldırılır.
+      </p>
+
+      <h2>Süre</h2>
+      <p>
+        Silme talebi doğrulandıktan sonra en geç 30 gün içinde tamamlanır. Daha fazla bilgi için{' '}
+        <a href="/gizlilik">Gizlilik Politikası</a>'na bakabilirsiniz.
+      </p>
+    </div>
+  </section>
+</Marketing>
+
+<style>
+  .legal-page { padding-block: var(--space-xl); }
+  .legal-page__body { margin-top: var(--space-lg); line-height: 1.7; }
+  .legal-page__body h2 { font-size: var(--fs-h3); margin-top: var(--space-xl); }
+  .legal-page__body p, .legal-page__body li { color: var(--on-surface-variant); }
+  .legal-page__body a { color: var(--primary); }
+</style>

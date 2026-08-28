@@ -1,0 +1,62 @@
+---
+// DESIGN_SPEC §9.5: input alanı, radius 12, outline-variant kenarlık.
+// Gerçek <input> kullanılır (salt görsel <span> değil) — hem gerçek forma daha
+// sadık hem de axe placeholder kontrastını (WCAG'nin muaf tuttuğu) yanlış pozitif
+// olarak işaretlemiyor.
+/**
+ * @typedef {Object} Props
+ * @property {string} label
+ * @property {string} [value]
+ * @property {string} [placeholder]
+ * @property {boolean} [error]
+ * @property {string} [errorText]
+ * @property {'text'|'password'|'email'} [type]
+ */
+const { label, value = '', placeholder = '', error = false, errorText, type = 'text' } = Astro.props;
+const inputId = `mi-${label.replace(/\s+/g, '-').toLowerCase()}-${Math.random().toString(36).slice(2, 7)}`;
+---
+<div class="mock-input">
+  <label class="mock-input__label" for={inputId}>{label}</label>
+  <input
+    id={inputId}
+    class:list={['mock-input__field', { 'is-error': error }]}
+    type={type}
+    value={value}
+    placeholder={placeholder}
+    readonly
+    tabindex="-1"
+    aria-invalid={error ? 'true' : undefined}
+  />
+  {error && errorText && <p class="mock-input__error">{errorText}</p>}
+</div>
+
+<style>
+  .mock-input {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .mock-input__label {
+    font-size: var(--fs-small);
+    color: var(--on-surface-variant);
+    font-weight: var(--fw-semibold);
+  }
+  .mock-input__field {
+    width: 100%;
+    border: 1px solid var(--outline-variant);
+    border-radius: var(--radius-input);
+    padding: var(--space-sm) var(--space-md);
+    font-size: var(--fs-body);
+    font-family: inherit;
+    color: var(--on-surface);
+    background: color-mix(in srgb, var(--surface-container-highest) 40%, transparent);
+  }
+  .mock-input__field.is-error {
+    border-color: var(--error);
+  }
+  .mock-input__error {
+    font-size: var(--fs-small);
+    color: var(--error);
+    margin: 0;
+  }
+</style>

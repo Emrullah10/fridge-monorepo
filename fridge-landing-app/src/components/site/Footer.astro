@@ -1,0 +1,102 @@
+---
+import { marketingDict, localePath } from '@lib/i18n';
+
+/**
+ * @typedef {Object} Props
+ * @property {'tr'|'en'} locale
+ */
+
+const { locale } = Astro.props;
+const t = marketingDict[locale];
+const year = new Date().getFullYear();
+---
+<footer class="site-footer">
+  <div class="container site-footer__inner">
+    <div class="site-footer__brand">
+      <strong>Fridge</strong>
+      <p>{t.footer.tagline}</p>
+    </div>
+    <div class="site-footer__cols">
+      <div>
+        <h3>{t.nav.features}</h3>
+        <a href={localePath(locale, '/ozellikler/fis-tarama')}>{locale === 'tr' ? 'Fiş Tarama' : 'Receipt scanning'}</a>
+        <a href={localePath(locale, '/ozellikler/envanter')}>{locale === 'tr' ? 'Envanter' : 'Inventory'}</a>
+        <a href={localePath(locale, '/ozellikler/para')}>{locale === 'tr' ? 'Para & İsraf' : 'Money & waste'}</a>
+      </div>
+      <div>
+        <h3>{locale === 'tr' ? 'Yasal' : 'Legal'}</h3>
+        <a href={localePath(locale, '/gizlilik')}>{locale === 'tr' ? 'Gizlilik' : 'Privacy'}</a>
+        {locale === 'tr' && <a href="/kvkk">KVKK</a>}
+        <a href={localePath(locale, '/sartlar')}>{locale === 'tr' ? 'Kullanım Şartları' : 'Terms'}</a>
+        <a href={localePath(locale, '/veri-silme')}>{locale === 'tr' ? 'Hesap Silme' : 'Delete account'}</a>
+      </div>
+      <div>
+        <h3>{locale === 'tr' ? 'Diğer' : 'More'}</h3>
+        <a href={localePath(locale, '/basin')}>{locale === 'tr' ? 'Basın Kiti' : 'Press kit'}</a>
+        <a href={localePath(locale, '/sss')}>{t.nav.faq}</a>
+      </div>
+    </div>
+  </div>
+  <div class="container site-footer__legal">
+    &copy; {year} Fridge. {t.footer.rights}
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    border-top: 1px solid var(--outline-variant);
+    margin-top: var(--section-gap);
+    padding-block: var(--space-xl);
+    background: var(--surface-container-low);
+  }
+  .site-footer__inner {
+    display: grid;
+    gap: var(--space-lg);
+  }
+  .site-footer__brand strong {
+    font-family: var(--font-display);
+    color: var(--primary);
+    font-size: 1.1rem;
+  }
+  .site-footer__brand p {
+    color: var(--on-surface-variant);
+    font-size: var(--fs-small);
+    max-width: 32ch;
+  }
+  .site-footer__cols {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-lg);
+  }
+  .site-footer__cols h3 {
+    font-size: var(--fs-small);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--on-surface-variant);
+    margin: 0 0 var(--space-sm);
+  }
+  .site-footer__cols a {
+    display: block;
+    text-decoration: none;
+    color: var(--on-surface);
+    font-size: var(--fs-body);
+    padding-block: var(--space-xs);
+  }
+  .site-footer__cols a:hover {
+    color: var(--primary);
+  }
+  .site-footer__legal {
+    margin-top: var(--space-xl);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--outline-variant);
+    font-size: var(--fs-small);
+    color: var(--on-surface-variant);
+  }
+
+  @media (min-width: 700px) {
+    .site-footer__inner {
+      grid-template-columns: 1.2fr 2fr;
+      align-items: start;
+    }
+  }
+</style>

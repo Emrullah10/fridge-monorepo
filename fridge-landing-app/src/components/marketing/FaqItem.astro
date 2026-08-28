@@ -1,0 +1,46 @@
+---
+/**
+ * @typedef {Object} Props
+ * @property {string} question
+ */
+const { question } = Astro.props;
+---
+<details class="faq-item">
+  <summary class="faq-item__question">{question}</summary>
+  <div class="faq-item__answer">
+    <slot />
+  </div>
+</details>
+
+<style>
+  .faq-item {
+    border-bottom: 1px solid var(--outline-variant);
+    padding-block: var(--space-md);
+  }
+  .faq-item__question {
+    font-weight: var(--fw-semibold);
+    font-size: var(--fs-body);
+    color: var(--on-surface);
+    cursor: pointer;
+    list-style: none;
+  }
+  .faq-item__question::-webkit-details-marker {
+    display: none;
+  }
+  .faq-item__question::before {
+    content: '+';
+    display: inline-block;
+    width: 1.2em;
+    color: var(--primary);
+    font-weight: var(--fw-bold);
+  }
+  .faq-item[open] .faq-item__question::before {
+    content: '−';
+  }
+  .faq-item__answer {
+    color: var(--on-surface-variant);
+    margin-top: var(--space-sm);
+    padding-left: 1.2em;
+    line-height: 1.6;
+  }
+</style>

@@ -1,0 +1,66 @@
+---
+// Kaynak: fridge-mobil/lib/features/recipe/presentation/recipes_screen.dart
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import MockAppBar from '@components/mock/atoms/MockAppBar.astro';
+import MockBottomNav from '@components/mock/atoms/MockBottomNav.astro';
+import MockBadge from '@components/mock/atoms/MockBadge.astro';
+import { getSeed } from '@seed/index';
+
+/**
+ * @typedef {Object} Props
+ * @property {'light'|'dark'} [theme]
+ * @property {'tr'|'en'} [locale]
+ */
+const { theme = 'light', locale = 'tr' } = Astro.props;
+const seed = getSeed('full');
+---
+<PhoneFrame theme={theme} label="Tarifler">
+  <MockAppBar title={locale === 'tr' ? 'Tarifler' : 'Recipes'} />
+  <div class="recipes-screen">
+    {seed.recipes.map((r) => (
+      <div class="recipes-screen__card">
+        <div class="recipes-screen__emoji">{r.imageEmoji}</div>
+        <div class="recipes-screen__body">
+          <p class="recipes-screen__title">{r.title}</p>
+          <p class="recipes-screen__meta">{r.minutes} {locale === 'tr' ? 'dk' : 'min'} · {r.servings} {locale === 'tr' ? 'kişilik' : 'servings'}</p>
+        </div>
+        {r.missingCount > 0 && <MockBadge variant="warning" text={`${r.missingCount} ${locale === 'tr' ? 'eksik' : 'missing'}`} />}
+      </div>
+    ))}
+  </div>
+  <MockBottomNav active="recipes" />
+</PhoneFrame>
+
+<style>
+  .recipes-screen {
+    padding: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  .recipes-screen__card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    background: var(--surface-container-low);
+    border-radius: var(--radius-card);
+    padding: var(--space-sm) var(--space-md);
+  }
+  .recipes-screen__emoji {
+    font-size: 32px;
+  }
+  .recipes-screen__body {
+    flex: 1;
+    min-width: 0;
+  }
+  .recipes-screen__title {
+    margin: 0;
+    font-weight: var(--fw-semibold);
+    color: var(--on-surface);
+  }
+  .recipes-screen__meta {
+    margin: 4px 0 0;
+    font-size: var(--fs-small);
+    color: var(--on-surface-variant);
+  }
+</style>

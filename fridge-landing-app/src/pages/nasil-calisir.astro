@@ -1,0 +1,77 @@
+---
+import Marketing from '@layouts/Marketing.astro';
+import SectionHeading from '@components/marketing/SectionHeading.astro';
+import Cta from '@components/marketing/Cta.astro';
+
+const locale = 'tr';
+
+const steps = [
+  { n: 1, icon: '🧾', title: 'Fişi tara', body: 'Market fişinin fotoğrafını çek. OCR telefonda çalışır, görüntü hiçbir zaman sunucuya gitmez.' },
+  { n: 2, icon: '✨', title: 'Yapay zekâ ayrıştırır', body: 'Okunan ham metin sunucuya gider; satırlar ürün adı, marka, miktar ve fiyata ayrışır.' },
+  { n: 3, icon: '✅', title: 'Sen onaylarsın', body: 'Düşük güvenli satırlar "Kontrol et" rozetiyle işaretlenir. Tek dokunuşla onaylarsın.' },
+  { n: 4, icon: '🗄️', title: 'Bölümlere düşer', body: 'Her ürün kategori/marka/anahtar kelime öncelik sırasıyla doğru bölüme önerilir.' },
+  { n: 5, icon: '🍽️', title: 'Tüket, azalt', body: 'Ürünü kullandıkça miktarı düşürürsün. Sıfırlanınca "Bitti" olur, silinmez.' },
+  { n: 6, icon: '💰', title: 'Sonucu gör', body: 'Ne kadar biriktirdiğini, ne kadar israf ettiğini ay ay, üye üye görürsün.' },
+];
+---
+<Marketing title="Nasıl Çalışır — Fridge" description="Fiş tarama, yapay zekâ ayrıştırma, bölümlere düşme ve para takibi — 6 adımda Fridge." locale={locale}>
+  <section class="container how-page">
+    <SectionHeading
+      eyebrow="Nasıl çalışır"
+      title="Fişten dolaba, dolaptan paraya"
+      lead="Fridge'in tüm akışı altı adımda özetlenir."
+    />
+    <div class="how-page__steps">
+      {steps.map((s) => (
+        <div class="how-page__step">
+          <div class="how-page__step-num">{s.n}</div>
+          <div class="how-page__step-icon" aria-hidden="true">{s.icon}</div>
+          <h3>{s.title}</h3>
+          <p>{s.body}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+  <div class="container">
+    <Cta title="Kendin dene" primaryHref="/indir" primaryText="Ücretsiz indir" secondaryHref="/ekranlar" secondaryText="Tüm ekranları gör" />
+  </div>
+</Marketing>
+
+<style>
+  .how-page { padding-block: var(--space-xl); }
+  .how-page__steps {
+    display: grid;
+    gap: var(--space-lg);
+  }
+  .how-page__step {
+    position: relative;
+    background: var(--surface-container-low);
+    border-radius: var(--radius-card);
+    padding: var(--space-lg);
+  }
+  .how-page__step-num {
+    position: absolute;
+    top: var(--space-md);
+    right: var(--space-md);
+    font-size: var(--fs-small);
+    color: var(--on-surface-variant);
+    font-weight: var(--fw-bold);
+  }
+  .how-page__step-icon {
+    font-size: 36px;
+    margin-bottom: var(--space-sm);
+  }
+  .how-page__step h3 {
+    margin: 0 0 var(--space-xs);
+    font-size: var(--fs-h3);
+  }
+  .how-page__step p {
+    margin: 0;
+    color: var(--on-surface-variant);
+  }
+  @media (min-width: 700px) {
+    .how-page__steps {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+</style>

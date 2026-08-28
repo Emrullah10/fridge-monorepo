@@ -1,0 +1,49 @@
+---
+import Marketing from '@layouts/Marketing.astro';
+import SectionHeading from '@components/marketing/SectionHeading.astro';
+import Cta from '@components/marketing/Cta.astro';
+import RecipesScreen from '@components/mock/screens/RecipesScreen.astro';
+import RecipeDetailScreen from '@components/mock/screens/RecipeDetailScreen.astro';
+
+const locale = 'tr';
+---
+<Marketing title="Tarifler — Fridge" description="Elindekilerden tarif öner, eksik malzemeyi gösterir." locale={locale}>
+  <section class="container feature-detail">
+    <SectionHeading
+      eyebrow="Özellik"
+      title="Dolabında ne varsa ondan"
+      lead="Fridge, envanterindeki ürünlere göre tarif önerir. Eksik malzeme varsa açıkça gösterir, istersen tek dokunuşla alışveriş listene ekler."
+      align="left"
+    />
+    <div class="feature-detail__screens">
+      <RecipesScreen theme="light" locale={locale} />
+      <RecipeDetailScreen theme="light" locale={locale} />
+    </div>
+    <div class="feature-detail__points">
+      <div>
+        <h3>Eksik malzeme rozeti</h3>
+        <p>Her tarifte kaç malzemenin eksik olduğu net görünür — sürpriz yok.</p>
+      </div>
+      <div>
+        <h3>Adım adım mod</h3>
+        <p>Pişirirken telefonuna bakmak zorunda kalmadan, büyük yazıyla adım adım ilerle.</p>
+      </div>
+      <div>
+        <h3>Diyet profiline uyumlu</h3>
+        <p>Vejetaryen, glutensiz, laktozsuz gibi tercihlerine göre öneriler filtrelenir.</p>
+      </div>
+    </div>
+  </section>
+  <div class="container">
+    <Cta title="Bugün ne pişirsen?" primaryHref="/indir" primaryText="Ücretsiz indir" secondaryHref="/ozellikler/sef" secondaryText="AI Şef'i keşfet" />
+  </div>
+</Marketing>
+
+<style>
+  .feature-detail { padding-block: var(--space-xl); }
+  .feature-detail__screens { display: grid; gap: var(--space-lg); max-width: 700px; margin: var(--space-xl) auto; }
+  .feature-detail__points { display: grid; gap: var(--space-md); max-width: 60ch; margin-inline: auto; }
+  .feature-detail__points h3 { font-size: var(--fs-card-title); margin: 0 0 4px; }
+  .feature-detail__points p { color: var(--on-surface-variant); margin: 0; }
+  @media (min-width: 700px) { .feature-detail__screens { grid-template-columns: 1fr 1fr; } }
+</style>

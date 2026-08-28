@@ -38,6 +38,19 @@ const makeHouseholdRepository = ({ rawQuery }) => {
       return rows.map(mapRow);
     },
 
+    // Kısmi güncelleme: verilmeyen alanlar (null) COALESCE ile korunur.
+    // `features` çağıran tarafından tam obje olarak verilir (mevcut + değişen).
+    updateProfile: async (id, { name, features }) => {
+      const { rows } = await rawQuery(
+        `UPDATE household SET name = COALESCE($2, name),
+                              features = COALESCE($3, features),
+                              updated_at = now()
+         WHERE id = $1 RETURNING *`,
+        [id, name ?? null, features ? JSON.stringify(features) : null],
+      );
+      return mapRow(rows[0]);
+    },
+
     updateSettings: async (id, { receiptImageRetentionDays }) => {
       const { rows } = await rawQuery(
         `UPDATE household SET receipt_image_retention_days = $2, updated_at = now()

@@ -1,0 +1,71 @@
+---
+import MockExpiryText from './MockExpiryText.astro';
+import MockBadge from './MockBadge.astro';
+import { formatCurrency } from '@lib/format';
+
+/**
+ * @typedef {Object} Props
+ * @property {import('@seed/inventory').InventoryItem} item
+ * @property {'tr'|'en'} [locale]
+ */
+const { item, locale = 'tr' } = Astro.props;
+const { product } = item;
+---
+<div class:list={['mock-product-card', { 'is-finished': item.isFinished }]}>
+  <div class="mock-product-card__main">
+    <p class="mock-product-card__name">{product.name}</p>
+    {product.brand && <MockBadge variant="brand" text={product.brand} />}
+  </div>
+  <div class="mock-product-card__meta">
+    {item.isFinished ? (
+      <MockBadge variant="finished" text={locale === 'tr' ? 'Bitti' : 'Done'} />
+    ) : (
+      <MockBadge variant="quantity" text={`${item.quantity} ${item.unit}`} />
+    )}
+    <MockExpiryText expiresAt={item.expiresAt} isFinished={item.isFinished} locale={locale} />
+  </div>
+</div>
+
+<style>
+  .mock-product-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-sm);
+    background: var(--surface-container-low);
+    border-radius: var(--radius-card);
+    padding: var(--space-sm) var(--space-md);
+  }
+  .mock-product-card.is-finished {
+    /* DESIGN_SPEC §15.3: "soluklaşır" (fades). Kartın kendisi zemine doğru
+       geri çekilir, ama metin rengi TOKEN'DAN değişmeden kalır — element
+       opacity'si metni de soldurup WCAG AA kontrastını düşürüyordu
+       (bkz. cerebrum.md Do-Not-Repeat). Sadece dekoratif katman soluklaşır. */
+    background: color-mix(in srgb, var(--surface-container-low) 55%, var(--surface));
+  }
+  .mock-product-card.is-finished .mock-product-card__name {
+    color: var(--on-surface-variant);
+  }
+  .mock-product-card__main {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    min-width: 0;
+  }
+  .mock-product-card__name {
+    margin: 0;
+    font-size: var(--fs-card-title);
+    font-weight: var(--fw-semibold);
+    color: var(--on-surface);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mock-product-card__meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+</style>
