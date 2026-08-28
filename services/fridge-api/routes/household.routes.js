@@ -14,6 +14,7 @@ const buildHouseholdRouter = ({ container }) => {
     const household = await useCases.createHousehold({
       name: req.body.name,
       kind: req.body.kind,
+      features: req.body.features,
       ownerUserId: req.user.id,
     });
     res.status(201).json({ household });
@@ -23,6 +24,18 @@ const buildHouseholdRouter = ({ container }) => {
     const households = await repos.householdRepo.findByUserId(req.user.id);
     res.json({ households });
   }));
+
+  router.patch(
+    '/:householdId/features',
+    requireHouseholdRole({ householdMemberRepo: repos.householdMemberRepo, minRole: 'admin' }),
+    asyncHandler(async (req, res) => {
+      const household = await useCases.updateHouseholdFeatures({
+        householdId: req.params.householdId,
+        food: req.body.food,
+      });
+      res.json({ household });
+    }),
+  );
 
   router.get(
     '/:householdId/locations',

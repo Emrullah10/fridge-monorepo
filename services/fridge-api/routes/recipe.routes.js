@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { asyncHandler } from '@fridge/helper';
-import { requireAuth, requireHouseholdRole, rateLimiter } from '@fridge/middlewares';
+import { requireAuth, requireHouseholdRole, requireHouseholdFeature, requireGuestQuota, rateLimiter } from '@fridge/middlewares';
 import { ValidationError } from '@fridge/errors';
+import { resolveFeatures } from '@fridge/core/src/domain/household-profile.js';
 
 const buildRecipeRouter = ({ container }) => {
   const router = Router({ mergeParams: true });
@@ -9,6 +10,10 @@ const buildRecipeRouter = ({ container }) => {
 
   router.use(requireAuth());
   router.use(requireHouseholdRole({ householdMemberRepo: repos.householdMemberRepo, minRole: 'viewer' }));
+  // Yemek özelliği kapalı alanlarda (ör. atölye/dükkan) tarifler anlamsız —
+  // mobil navbar zaten gizliyor, ama doğrudan istek atılabildiği için
+  // sunucu da uygulamalı.
+  router.use(requireHouseholdFeature('food', { householdRepo: repos.householdRepo, resolveFeatures }));
 
   router.get('/', asyncHandler(async (req, res) => {
     const recipes = await repos.recipeRepo.listByHousehold(req.params.householdId);
@@ -58,7 +63,13 @@ const buildRecipeRouter = ({ container }) => {
   }));
 
   // Her istek Gemini'ye para harcıyor — dakikada 3 istekle sınırla.
-  router.post('/generate', rateLimiter({ windowMs: 60_000, maxRequests: 3, keyFn: (req) => req.user.id }), asyncHandler(async (req, res) => {
+  // Misafir hesap bedava açıldığı için ayrıca günlük kota (bkz.
+  // requireGuestQuota) — kayıtlı kullanıcılar bu ek sınıra takılmaz.
+  router.post(
+    '/generate',
+    requireGuestQuota({ windowMs: 24 * 60 * 60 * 1000, maxRequests: 5 }),
+    rateLimiter({ windowMs: 60_000, maxRequests: 3, keyFn: (req) => req.user.id }),
+    asyncHandler(async (req, res) => {
     if (!useCases.generateAiRecipes) {
       return res.status(503).json({ error: { code: 'AI_DISABLED', message: 'Tarif üretimi şu anda kapalı' } });
     }

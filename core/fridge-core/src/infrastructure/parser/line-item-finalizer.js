@@ -66,7 +66,11 @@ KURALLAR:
    BELGE, MERSIS gibi satırlar ürün değildir. Sadece rakam/yüzde/tutardan
    oluşan satırlar da ürün değildir: "*9,90", "82,55", "%08" gibi tek
    başına fiyat/oran satırlarını asla ürün olarak döndürme.
-7. parsedPrice: satırdaki fiyat (virgül ondalık ayracıdır: "32,50" -> 32.50).
+7. parsedPrice: bu ürünün satır toplamı, eğer metinde görüyorsan (virgül
+   ondalık ayracıdır: "32,50" -> 32.50). Fiyat ayrı bir satırda gelmişse
+   (ör. ürün adından sonra tek başına "*9,90") onu o ürünün fiyatı say.
+   Emin değilsen null bırak — deterministik bir yedek zaten var, yanlış
+   fiyat uydurmaktan daha iyidir.
 8. Kullanıcı mesajının başında "MARKET: X" satırı varsa bu fişin hangi
    zincirden geldiğini bilirsin. Zincire özgü kısaltmaları buna göre aç
    (örn. ŞOK fişlerinde "PYT" = "Piyale", MİGROS fişlerinde "M." ön eki

@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { InvalidCredentialsError } from '../../../domain/errors/index.js';
+import { issueSession } from './issue-session.js';
 
 const makeLoginUser = ({ userRepo, sessionRepo, tokenService }) => {
   return async ({ email, password }) => {
@@ -13,14 +14,7 @@ const makeLoginUser = ({ userRepo, sessionRepo, tokenService }) => {
       throw new InvalidCredentialsError();
     }
 
-    const accessToken = tokenService.signAccessToken({ userId: user.id });
-    const refreshToken = tokenService.signRefreshToken({ userId: user.id });
-
-    await sessionRepo.create({
-      userId: user.id,
-      refreshTokenHash: tokenService.hashRefreshToken(refreshToken),
-      expiresAt: tokenService.refreshTokenExpiryDate(),
-    });
+    const { accessToken, refreshToken } = await issueSession({ sessionRepo, tokenService }, user);
 
     return {
       user: { id: user.id, email: user.email, displayName: user.displayName },

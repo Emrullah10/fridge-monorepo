@@ -75,7 +75,7 @@ const makeReceiptLineItemRepository = ({ rawQuery }) => {
       return mapRow(rows[0]);
     },
 
-    update: async (id, { parsedName, parsedBrand, parsedQuantity, parsedUnit, parsedPackSize, parsedPackUnit, matchedProductId, status, matchMethod }) => {
+    update: async (id, { parsedName, parsedBrand, parsedQuantity, parsedUnit, parsedPackSize, parsedPackUnit, parsedPrice, matchedProductId, status, matchMethod }) => {
       const { rows } = await rawQuery(
         `UPDATE receipt_line_item SET
            parsed_name = COALESCE($2, parsed_name),
@@ -84,12 +84,13 @@ const makeReceiptLineItemRepository = ({ rawQuery }) => {
            parsed_unit = COALESCE($5, parsed_unit),
            parsed_pack_size = COALESCE($6, parsed_pack_size),
            parsed_pack_unit = COALESCE($7, parsed_pack_unit),
-           matched_product_id = COALESCE($8, matched_product_id),
-           status = COALESCE($9, status),
-           match_method = COALESCE($10, match_method),
+           parsed_price = COALESCE($8, parsed_price),
+           matched_product_id = COALESCE($9, matched_product_id),
+           status = COALESCE($10, status),
+           match_method = COALESCE($11, match_method),
            updated_at = now()
          WHERE id = $1 RETURNING *`,
-        [id, parsedName, parsedBrand, parsedQuantity, parsedUnit, parsedPackSize, parsedPackUnit, matchedProductId, status, matchMethod],
+        [id, parsedName, parsedBrand, parsedQuantity, parsedUnit, parsedPackSize, parsedPackUnit, parsedPrice, matchedProductId, status, matchMethod],
       );
       return mapRow(rows[0]);
     },

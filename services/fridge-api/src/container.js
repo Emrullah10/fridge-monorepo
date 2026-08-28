@@ -37,6 +37,8 @@ import { makeChefChatRepository } from '@fridge/core/src/infrastructure/persiste
 
 import { makeRegisterUser } from '@fridge/core/src/application/use-cases/auth/register-user.use-case.js';
 import { makeLoginUser } from '@fridge/core/src/application/use-cases/auth/login-user.use-case.js';
+import { makeCreateGuestUser } from '@fridge/core/src/application/use-cases/auth/create-guest-user.use-case.js';
+import { makeUpgradeGuestUser } from '@fridge/core/src/application/use-cases/auth/upgrade-guest-user.use-case.js';
 import { makeRefreshSession } from '@fridge/core/src/application/use-cases/auth/refresh-session.use-case.js';
 import { makeLogoutUser } from '@fridge/core/src/application/use-cases/auth/logout-user.use-case.js';
 import { makeDeleteAccount } from '@fridge/core/src/application/use-cases/auth/delete-account.use-case.js';
@@ -44,6 +46,7 @@ import { makeUpdateProfile } from '@fridge/core/src/application/use-cases/auth/u
 import { makeChangePassword } from '@fridge/core/src/application/use-cases/auth/change-password.use-case.js';
 
 import { makeCreateHousehold } from '@fridge/core/src/application/use-cases/household/create-household.use-case.js';
+import { makeUpdateHouseholdFeatures } from '@fridge/core/src/application/use-cases/household/update-household-features.use-case.js';
 import { makeCreateInvite } from '@fridge/core/src/application/use-cases/household/create-invite.use-case.js';
 import { makeRevokeInvite } from '@fridge/core/src/application/use-cases/household/revoke-invite.use-case.js';
 import { makeLeaveHousehold } from '@fridge/core/src/application/use-cases/household/leave-household.use-case.js';
@@ -186,9 +189,26 @@ const buildContainer = (config) => {
     notificationPort,
   });
 
+  // createGuestUser, misafire otomatik bir alan açmak için createHousehold'a
+  // ihtiyaç duyuyor — useCases objesinin kendisine dairesel referans
+  // vermemek için önce ayrı bir değişkende kuruluyor, useCases'e de aynı
+  // referans atanıyor.
+  const createHousehold = makeCreateHousehold({
+    householdRepo: repos.householdRepo,
+    householdMemberRepo: repos.householdMemberRepo,
+    storageLocationRepo: repos.storageLocationRepo,
+  });
+
   const useCases = {
     registerUser: makeRegisterUser({ userRepo: repos.userRepo }),
     loginUser: makeLoginUser({ userRepo: repos.userRepo, sessionRepo: repos.sessionRepo, tokenService }),
+    createGuestUser: makeCreateGuestUser({
+      userRepo: repos.userRepo,
+      sessionRepo: repos.sessionRepo,
+      tokenService,
+      createHousehold,
+    }),
+    upgradeGuestUser: makeUpgradeGuestUser({ userRepo: repos.userRepo }),
     refreshSession: makeRefreshSession({ sessionRepo: repos.sessionRepo, tokenService }),
     logoutUser: makeLogoutUser({ sessionRepo: repos.sessionRepo, tokenService }),
     deleteAccount: makeDeleteAccount({
@@ -202,11 +222,8 @@ const buildContainer = (config) => {
     updateProfile: makeUpdateProfile({ userRepo: repos.userRepo }),
     changePassword: makeChangePassword({ userRepo: repos.userRepo }),
 
-    createHousehold: makeCreateHousehold({
-      householdRepo: repos.householdRepo,
-      householdMemberRepo: repos.householdMemberRepo,
-      storageLocationRepo: repos.storageLocationRepo,
-    }),
+    createHousehold,
+    updateHouseholdFeatures: makeUpdateHouseholdFeatures({ householdRepo: repos.householdRepo }),
     createInvite: makeCreateInvite({ inviteRepo: repos.inviteRepo, clock }),
     revokeInvite: makeRevokeInvite({ inviteRepo: repos.inviteRepo }),
     leaveHousehold: makeLeaveHousehold({ householdRepo: repos.householdRepo, householdMemberRepo: repos.householdMemberRepo }),

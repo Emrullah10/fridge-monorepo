@@ -1,15 +1,21 @@
 import { HOUSEHOLD_KINDS } from '../../../domain/storage-kinds.js';
-
-const DEFAULT_LOCATIONS = [
-  { name: 'Buzdolabı', kind: 'fridge', sortOrder: 0 },
-  { name: 'Dondurucu', kind: 'freezer', sortOrder: 1 },
-  { name: 'Kiler', kind: 'pantry', sortOrder: 2 },
-];
+import { defaultFeaturesForKind, defaultLocationsForKind } from '../../../domain/household-profile.js';
 
 const makeCreateHousehold = ({ householdRepo, householdMemberRepo, storageLocationRepo }) => {
-  return async ({ name, kind, ownerUserId }) => {
+  return async ({ name, kind, ownerUserId, features }) => {
     const safeKind = HOUSEHOLD_KINDS.includes(kind) ? kind : 'home';
-    const household = await householdRepo.create({ name, kind: safeKind, createdBy: ownerUserId });
+    // features kullanıcı tarafından açıkça verilmediyse türden türetilir
+    // (household-profile.js). Kullanıcı "food" anahtarını ezmiş olabilir —
+    // ör. ofis alanında mutfak özelliklerini açık isteyebilir.
+    const safeFeatures = features && typeof features.food === 'boolean'
+      ? { food: features.food }
+      : defaultFeaturesForKind(safeKind);
+    const household = await householdRepo.create({
+      name,
+      kind: safeKind,
+      features: safeFeatures,
+      createdBy: ownerUserId,
+    });
 
     await householdMemberRepo.addMember({
       householdId: household.id,
@@ -17,7 +23,7 @@ const makeCreateHousehold = ({ householdRepo, householdMemberRepo, storageLocati
       role: 'owner',
     });
 
-    for (const location of DEFAULT_LOCATIONS) {
+    for (const location of defaultLocationsForKind(safeKind)) {
       await storageLocationRepo.create({ householdId: household.id, ...location });
     }
 
@@ -25,4 +31,4 @@ const makeCreateHousehold = ({ householdRepo, householdMemberRepo, storageLocati
   };
 };
 
-export { makeCreateHousehold, DEFAULT_LOCATIONS, HOUSEHOLD_KINDS };
+export { makeCreateHousehold, HOUSEHOLD_KINDS };

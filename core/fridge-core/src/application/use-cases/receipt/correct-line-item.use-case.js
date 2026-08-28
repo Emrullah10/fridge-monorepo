@@ -11,7 +11,7 @@
 const makeCorrectLineItem = ({ receiptLineItemRepo, productAliasRepo, productRepo, productCategoryRepo }) => {
   return async ({
     lineItemId, householdId, parsedName, parsedBrand, parsedQuantity, parsedUnit,
-    parsedPackSize, parsedPackUnit, matchedProductId, categoryKey,
+    parsedPackSize, parsedPackUnit, parsedPrice, matchedProductId, categoryKey,
   }) => {
     const updated = await receiptLineItemRepo.update(lineItemId, {
       parsedName,
@@ -20,6 +20,7 @@ const makeCorrectLineItem = ({ receiptLineItemRepo, productAliasRepo, productRep
       parsedUnit,
       parsedPackSize,
       parsedPackUnit,
+      parsedPrice,
       matchedProductId,
       matchMethod: 'manual',
       status: null,
