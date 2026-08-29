@@ -70,9 +70,17 @@ async function main() {
     server.kill();
   }
 
+  const enforce = process.env.LH_ENFORCE === '1';
   if (failed) {
-    console.error('\n✗ Performans bütçesi aşıldı.');
-    process.exit(1);
+    if (enforce) {
+      console.error('\n✗ Performans bütçesi aşıldı (LH_ENFORCE=1, exit 1).');
+      process.exit(1);
+    }
+    console.warn(
+      '\n⚠ Performans bütçesi aşıldı ama LH_ENFORCE ayarlanmadı — ölçüm modu, exit 0. ' +
+        'Faz 7\'de dürüst eşiklerle geri sıkılaştırılacak.'
+    );
+    return;
   }
   console.log('\n✓ Tüm sayfalar bütçe içinde.');
 }

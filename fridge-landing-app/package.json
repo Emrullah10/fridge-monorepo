@@ -11,8 +11,10 @@
     "sync:tokens": "node scripts/extract-tokens.mjs",
     "sync:strings": "node scripts/import-arb.mjs",
     "test:e2e": "playwright test",
-    "test:a11y": "playwright test e2e/a11y.spec.ts",
-    "lighthouse": "node scripts/lighthouse-budget.mjs"
+    "test:a11y": "playwright test e2e/a11y.spec.js",
+    "lighthouse": "node scripts/lighthouse-budget.mjs",
+    "bundle-budget": "node scripts/bundle-budget.mjs",
+    "check-i18n": "node scripts/check-i18n.mjs"
   },
   "dependencies": {
     "@astrojs/react": "^6.0.4",

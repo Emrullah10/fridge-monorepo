@@ -41,4 +41,15 @@ test.describe('ana sayfa', () => {
     await page.goto('/');
     await expect(page.locator('h1')).toBeVisible();
   });
+
+  for (const width of [320, 375]) {
+    test(`${width}px'te yatay scroll üretmiyor`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto('/');
+      const hasHorizontalScroll = await page.evaluate(
+        () => document.documentElement.scrollWidth > document.documentElement.clientWidth
+      );
+      expect(hasHorizontalScroll).toBe(false);
+    });
+  }
 });
