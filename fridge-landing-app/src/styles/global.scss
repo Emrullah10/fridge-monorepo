@@ -2,6 +2,8 @@
 @use './typography';
 @use './spacing';
 @use './motion';
+@use './atmosphere';
+@use './cinema';
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -23,7 +25,16 @@ body {
   margin: 0;
   background: var(--surface);
   min-height: 100vh;
-  overflow-x: hidden; // yatay scroll asla — bkz. WEB_SITE_SPEC doğrulama listesi
+  // `hidden` DEĞİL: ScrollSmoother'ın #smooth-content'i transform ile taşıdığı
+  // katmanlarda body zaten scroll boşluğu görevi görmüyor, ve `hidden` en
+  // yakın öğeyi scrollport yapıp `position: sticky`'yi kırıyordu (bkz.
+  // cerebrum.md Do-Not-Repeat — Header `sticky`, ScrollSmoother sonrası
+  // sessizce çalışmayı bırakıyordu). `.page` üzerinde `overflow-x: clip`
+  // kullanılır — scroll konteyneri yaratmadan taşmayı keser.
+}
+
+.page {
+  overflow-x: clip;
 }
 
 img, svg, video {

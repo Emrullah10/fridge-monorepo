@@ -1,5 +1,6 @@
 ---
 import '@styles/global.scss';
+import { ClientRouter } from 'astro:transitions';
 
 /**
  * @typedef {Object} Props
@@ -23,19 +24,44 @@ const { title, description, lang = 'tr', ogImage = '/og/default.png' } = Astro.p
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImage} />
     <meta name="twitter:card" content="summary_large_image" />
+    <ClientRouter />
     <script is:inline>
-      // Tema flash'ını önlemek için ilk boyamadan önce çalışır.
+      // Boyamadan önce çalışması gereken TEK bloklayıcı script: tema (karanlık
+      // varsayılan, saklanmış 'light' tercihine izin verilir) + hareket
+      // katmanı (`data-motion`) burada birlikte çözülür — plan §"Kod bölme"
+      // bunu tek satırlık kapı olarak tanımlıyor.
       (function () {
         try {
           var stored = localStorage.getItem('fridge-theme');
-          if (stored === 'light' || stored === 'dark') {
-            document.documentElement.setAttribute('data-theme', stored);
+          // Koyu-öncelikli: yalnızca açıkça 'light' saklanmışsa açık temaya izin
+          // verilir, aksi halde (kayıt yok veya 'dark') karanlık kalır.
+          if (stored === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+          } else {
+            document.documentElement.setAttribute('data-theme', 'dark');
           }
-        } catch (e) {}
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+
+        try {
+          var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          var narrow = window.innerWidth < 900 || window.matchMedia('(pointer: coarse)').matches;
+          var cores = navigator.hardwareConcurrency;
+          var mem = navigator.deviceMemory;
+          var lowPower = (cores && cores < 4) || (mem && mem < 4);
+          var saveData = !!(navigator.connection && navigator.connection.saveData);
+          var tier = reduced ? 'still' : (narrow || lowPower || saveData ? 'lite' : 'full');
+          document.documentElement.setAttribute('data-motion', tier);
+        } catch (e) {
+          document.documentElement.setAttribute('data-motion', 'still');
+        }
       })();
     </script>
   </head>
   <body>
-    <slot />
+    <div class="page">
+      <slot />
+    </div>
   </body>
 </html>

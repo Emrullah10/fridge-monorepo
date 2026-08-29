@@ -1,0 +1,37 @@
+// Sinematik ana sayfa filminin paylaşılan yapısal stilleri. Yol gösterici kural:
+// her bölümün JS'siz, sınıfsız DOM son-durumu zaten doğru ve eksiksiz
+// kompozisyondur — GSAP yalnızca bir ofsetten doğal duruma animasyon yapar.
+
+.act {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-block: var(--section-gap);
+}
+
+.act__heading {
+  font-family: var(--font-display);
+  font-size: var(--fs-h1);
+  color: var(--on-surface);
+  max-width: 20ch;
+}
+
+.act__body {
+  color: var(--on-surface-variant);
+  font-size: var(--fs-lead);
+  max-width: 56ch;
+}
+
+// content-visibility: ekran dışı telefon çerçeveleri Lighthouse'un "aşırı DOM
+// boyutu" (>1400 düğüm) eşiğini zorluyor — bkz. plan Bölüm "Film sonrası" uyarısı.
+.cine-offscreen {
+  content-visibility: auto;
+  contain-intrinsic-size: 390px 844px;
+}
+
+// Yapısal kural: JS'siz son-durum zaten doğru — [data-reveal] bekleyen bir
+// opacity:0 başlangıcı YOK. reveal.js sadece ekstra bir .is-revealed sınıfı
+// ekler, motion/acts katmanları bunu kullanabilir; CSS'te varsayılan görünür,
+// bu yüzden burada boş bir kural tanımlamaya gerek yok.

@@ -1,0 +1,16 @@
+// Elle yazılan sanat yönü partial'ı — ASLA _tokens.scss (o npm run sync:tokens
+// ile eziliyor). Her değer üretilen token'lardan TÜRETİLİR. `in oklab` kullanılır
+// (kod tabanının bugün kullandığı `srgb` değil) — doygun yeşili şeffafa doğru
+// sRGB'de karıştırmak çamurlaşıyor (bkz. plan "Sanat yönü ve token'lar").
+// Kural: parıltılar yalnızca dekoratiftir; gövde metni asla düşük alfalı
+// parıltı renginde olmaz.
+
+:root {
+  --cine-void: #060907;
+  --cine-ground: var(--surface-container-lowest);
+  --glow-key: color-mix(in oklab, var(--primary) 40%, transparent);
+  --glow-fridge: color-mix(in oklab, var(--storage-fridge) 35%, transparent);
+  --glow-freezer: color-mix(in oklab, var(--storage-freezer) 35%, transparent);
+  --glow-pantry: color-mix(in oklab, var(--storage-pantry) 35%, transparent);
+  --ease-cine: cubic-bezier(0.16, 1, 0.3, 1);
+}
