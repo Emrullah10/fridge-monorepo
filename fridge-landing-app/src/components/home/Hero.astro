@@ -1,0 +1,113 @@
+---
+// Ana sayfa filminin ilk karesi. `titleLines`'dan overflow:clip maskeleri
+// içinde <span>'ler + PhoneFrame + HouseholdHomeScreen theme="dark".
+// LCP koruması: <h1> LCP öğesidir, asla opacity:0 ile başlamaz — maske
+// içinde yPercent animasyonu, opaklık boyunca 1 (bkz. plan "Hero").
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import HouseholdHomeScreen from '@components/mock/screens/HouseholdHomeScreen.astro';
+
+/**
+ * @typedef {Object} Props
+ * @property {{eyebrow: string, titleLines: string[], subtitle: string, ctaPrimary: string, ctaSecondary: string}} t
+ * @property {'tr'|'en'} [locale]
+ */
+const { t, locale = 'tr' } = Astro.props;
+---
+<section class="hero act" data-act="hero" id="hero">
+  <div class="container hero__grid">
+    <div class="hero__text">
+      <p class="hero__eyebrow" data-hero-eyebrow>{t.eyebrow}</p>
+      <h1 class="hero__title" data-hero-title>
+        {t.titleLines.map((line) => (
+          <span class="hero__line-mask">
+            <span class="hero__line" data-line>{line}</span>
+          </span>
+        ))}
+      </h1>
+      <p class="hero__subtitle" data-hero-subtitle>{t.subtitle}</p>
+      <div class="hero__cta" data-hero-cta>
+        <a href="/indir" class="btn btn--primary">{t.ctaPrimary}</a>
+        <a href="/ekranlar" class="btn btn--outlined">{t.ctaSecondary}</a>
+      </div>
+    </div>
+    <div class="hero__phone" data-hero-phone data-speed="0.12">
+      <HouseholdHomeScreen theme="dark" locale={locale} />
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    padding-block: clamp(64px, 10vw, 120px);
+    min-height: 90vh;
+  }
+  .hero__grid {
+    display: grid;
+    gap: var(--space-xl);
+    align-items: center;
+  }
+  .hero__text {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    text-align: center;
+  }
+  .hero__eyebrow {
+    color: var(--primary);
+    font-weight: var(--fw-semibold);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-size: var(--fs-small);
+    margin: 0;
+  }
+  .hero__title {
+    font-family: var(--font-display);
+    font-size: var(--fs-hero);
+    max-width: 18ch;
+    margin-inline: auto;
+    margin-block: 0;
+  }
+  .hero__line-mask {
+    display: block;
+    overflow: clip;
+  }
+  .hero__line {
+    display: block;
+    /* Statik son-durum zaten doğru kompozisyon: yPercent 0, opaklık 1.
+       GSAP yalnızca `gsap.from()` ile bir ofsetten buraya gelir. */
+  }
+  .hero__subtitle {
+    max-width: 56ch;
+    margin-inline: auto;
+    color: var(--on-surface-variant);
+    font-size: var(--fs-lead);
+  }
+  .hero__cta {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: var(--space-md);
+  }
+  .hero__phone {
+    max-width: 320px;
+    margin-inline: auto;
+    width: 100%;
+  }
+
+  @media (min-width: 900px) {
+    .hero__grid {
+      grid-template-columns: 1.1fr 0.9fr;
+    }
+    .hero__text {
+      text-align: left;
+    }
+    .hero__title,
+    .hero__subtitle {
+      margin-inline: 0;
+    }
+    .hero__cta {
+      justify-content: flex-start;
+    }
+  }
+</style>
