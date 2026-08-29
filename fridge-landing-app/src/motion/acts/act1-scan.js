@@ -2,12 +2,21 @@
 // lite/still; lite plays a one-shot timeline on enter (see plan's motion
 // tier table). The mock's own is-done/is-active classes advance across
 // three timeline labels.
-export function buildAct1Scan({ root, gsap, ScrollTrigger, tier }) {
+//
+// Atmosphere hook: u_sweep tracks the scan line's normalized position
+// (0..1) so the fog shader's bright band travels with the scan itself
+// (see Phase 6 - single uniform bus between GSAP and GL, not wallpaper).
+export function buildAct1Scan({ root, gsap, ScrollTrigger, tier, atmosphere }) {
   const scene = root.querySelector('[data-scan-scene]');
   const stages = Array.from(root.querySelectorAll('[data-stage]'));
   if (!scene) return () => {};
 
-  const tl = gsap.timeline({ defaults: { ease: 'none' } });
+  const tl = gsap.timeline({
+    defaults: { ease: 'none' },
+    onUpdate: () => {
+      if (atmosphere) atmosphere.setUniform('u_sweep', tl.progress());
+    },
+  });
   tl.addLabel('prepare')
     .to(scene, { '--scan-y': '30%', duration: 1 }, 'prepare')
     .call(() => setStage(1), null, 'prepare')
