@@ -1,0 +1,26 @@
+---
+// Film sonrası — FinalCta. Cta.astro yeniden kullanılır (bkz. plan).
+import Cta from '@components/marketing/Cta.astro';
+
+/**
+ * @typedef {Object} Props
+ * @property {{title: string, body: string, ctaPrimary: string, ctaSecondary: string}} t
+ */
+const { t } = Astro.props;
+---
+<div class="final-cta container" data-act="final-cta" data-reveal>
+  <Cta
+    title={t.title}
+    body={t.body}
+    primaryHref="/indir"
+    primaryText={t.ctaPrimary}
+    secondaryHref="/ekranlar"
+    secondaryText={t.ctaSecondary}
+  />
+</div>
+
+<style>
+  .final-cta {
+    padding-block: var(--section-gap);
+  }
+</style>

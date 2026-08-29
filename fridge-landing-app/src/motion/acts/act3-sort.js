@@ -1,21 +1,21 @@
-// Bölüm 3 — Bölümlere düşer. Flip'in gerçek yeri burası: altı kart tek
-// yığından üç depolama sütununa geçiyor ("aynı öğeler, farklı yerleşim",
-// kesikli durum değişimi). onEnter -> Flip.getState -> .is-stacked kaldır ->
-// Flip.from(state, { absolute: true, stagger: .06 }). Doğal CSS durumu
-// zaten sıralanmış üç sütun, yani still/lite sıfır JS ile doğru son
-// kompozisyonu görür; Flip yalnızca zaten varacağın duruma geçişi oynatır.
-// MotionPath tamamen kesilir (destedeki en jenerik hareket).
+// Act 3 - Sorted into sections. This is where Flip actually belongs: six
+// cards move from a single stack into three storage columns ("same items,
+// different layout", a discrete state change). onEnter -> Flip.getState ->
+// remove .is-stacked -> Flip.from(state, { absolute: true, stagger: .06 }).
+// The natural CSS state is ALREADY the sorted three-column layout, so
+// still/lite render the correct final composition with zero JS; Flip only
+// animates the transition INTO the state you'd already land on.
+// MotionPath is cut entirely (the most generic motion in the toolkit).
 export function buildAct3Sort({ root, gsap, ScrollTrigger, Flip, tier }) {
   const scene = root.querySelector('[data-sort-scene]');
-  if (!scene || tier !== 'full') return () => {}; // lite/still: doğal DOM zaten doğru.
+  if (!scene || tier !== 'full') return () => {}; // lite/still: natural DOM is already correct.
 
   const cards = Array.from(scene.querySelectorAll('[data-flip-id]'));
   if (!cards.length) return () => {};
 
-  // "Stacked" başlangıç durumu: tüm kartları tek bir görsel yığın gibi
-  // üst üste bindir (yalnızca full'de, JS ile eklenen bir sınıf — doğal
-  // DOM zaten hedef kompozisyon olduğu için bu sınıf CSS'te tanımlı değil,
-  // burada satır-içi stil ile uygulanır).
+  // "Stacked" starting state: visually pile all cards on top of each other
+  // (full tier only, applied via inline style - not a CSS class, since the
+  // natural DOM is already the target composition).
   cards.forEach((card, i) => {
     gsap.set(card, { position: 'relative', top: -i * 4, zIndex: cards.length - i, opacity: i === 0 ? 1 : 0.4 });
   });

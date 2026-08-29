@@ -1,7 +1,7 @@
-// Bölüm 1 — Fişi çek. Pinli, scrub'lı (full katmanı). `lite`/`still`'de pin
-// yok; `lite` girişte tek seferlik timeline oynatır (bkz. plan hareket
-// katmanları tablosu). Maketin kendi is-done/is-active sınıfları üç
-// timeline etiketinde ilerler.
+// Act 1 - Scan the receipt. Pinned, scrubbed (full tier). No pin in
+// lite/still; lite plays a one-shot timeline on enter (see plan's motion
+// tier table). The mock's own is-done/is-active classes advance across
+// three timeline labels.
 export function buildAct1Scan({ root, gsap, ScrollTrigger, tier }) {
   const scene = root.querySelector('[data-scan-scene]');
   const stages = Array.from(root.querySelectorAll('[data-stage]'));
@@ -36,7 +36,7 @@ export function buildAct1Scan({ root, gsap, ScrollTrigger, tier }) {
       animation: tl,
     });
   } else if (tier === 'lite') {
-    // pin yok, ScrollSmoother yok: girişte bir kez oynat.
+    // No pin, no ScrollSmoother: play once on enter.
     scrollTrigger = ScrollTrigger.create({
       trigger: root,
       start: 'top 70%',
