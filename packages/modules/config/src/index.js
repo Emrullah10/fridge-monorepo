@@ -52,6 +52,12 @@ const readEnv = (env = process.env) => {
     fcmServiceAccountPath: env.FCM_SERVICE_ACCOUNT_PATH,
     fcmServiceAccountBase64: env.FCM_SERVICE_ACCOUNT_BASE64,
     fcmProjectId: env.FCM_PROJECT_ID,
+    // RESEND_API_KEY yoksa container no-op mailer'a düşer (fcm ile aynı
+    // ilke) — bilinçli olarak REQUIRED_IN_PRODUCTION_KEYS'e eklenmedi,
+    // şifremi unuttum'un yokluğu boot'u patlatmamalı.
+    resendApiKey: env.RESEND_API_KEY,
+    mailFrom: env.MAIL_FROM || 'Fridge <onboarding@resend.dev>',
+    passwordResetTtlMinutes: Number(env.PASSWORD_RESET_TTL_MINUTES || 15),
     // Mobil açılışta GET /app-config ile karşılaştırır — buradan kapatılabilir
     // banner ("yeni sürüm var") ya da kapatılamaz zorunlu güncelleme ekranı
     // tetiklenir. Sadece env değişikliği yeterli, yeniden yayın gerekmez.

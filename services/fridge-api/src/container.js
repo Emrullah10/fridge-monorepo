@@ -11,6 +11,9 @@ import { makeGeminiChefChat } from '@fridge/core/src/infrastructure/chef/gemini-
 import { makeOpenFoodFactsLookup } from '@fridge/core/src/infrastructure/barcode/openfoodfacts.adapter.js';
 import { makeFcmNotifier } from '@fridge/core/src/infrastructure/notification/fcm.adapter.js';
 import { makeNoopNotifier } from '@fridge/core/src/infrastructure/notification/noop.adapter.js';
+import { makeResendMailer } from '@fridge/core/src/infrastructure/mail/resend.adapter.js';
+import { makeNoopMailer } from '@fridge/core/src/infrastructure/mail/noop-mailer.adapter.js';
+import { makePasswordResetRepository } from '@fridge/core/src/infrastructure/persistence/repositories/password-reset.repository.js';
 
 import { makeUserRepository } from '@fridge/core/src/infrastructure/persistence/repositories/user.repository.js';
 import { makeSessionRepository } from '@fridge/core/src/infrastructure/persistence/repositories/session.repository.js';
@@ -44,6 +47,8 @@ import { makeLogoutUser } from '@fridge/core/src/application/use-cases/auth/logo
 import { makeDeleteAccount } from '@fridge/core/src/application/use-cases/auth/delete-account.use-case.js';
 import { makeUpdateProfile } from '@fridge/core/src/application/use-cases/auth/update-profile.use-case.js';
 import { makeChangePassword } from '@fridge/core/src/application/use-cases/auth/change-password.use-case.js';
+import { makeRequestPasswordReset } from '@fridge/core/src/application/use-cases/auth/request-password-reset.use-case.js';
+import { makeResetPassword } from '@fridge/core/src/application/use-cases/auth/reset-password.use-case.js';
 
 import { makeCreateHousehold } from '@fridge/core/src/application/use-cases/household/create-household.use-case.js';
 import { makeUpdateHouseholdFeatures } from '@fridge/core/src/application/use-cases/household/update-household-features.use-case.js';
@@ -157,9 +162,16 @@ const buildContainer = (config) => {
     notificationPort = makeNoopNotifier();
   }
 
+  // Aynı ilke: RESEND_API_KEY yoksa boot patlamaz, no-op mailer'a düşer —
+  // dev'de kod konsola basılır, forgot-password akışı yine 204 döner.
+  const mailer = config.resendApiKey
+    ? makeResendMailer({ apiKey: config.resendApiKey, from: config.mailFrom })
+    : makeNoopMailer();
+
   const repos = {
     userRepo: makeUserRepository({ rawQuery }),
     sessionRepo: makeSessionRepository({ rawQuery }),
+    passwordResetRepo: makePasswordResetRepository({ rawQuery }),
     householdRepo: makeHouseholdRepository({ rawQuery }),
     householdMemberRepo: makeHouseholdMemberRepository({ rawQuery }),
     inviteRepo: makeHouseholdInviteRepository({ rawQuery }),
@@ -222,6 +234,17 @@ const buildContainer = (config) => {
     }),
     updateProfile: makeUpdateProfile({ userRepo: repos.userRepo }),
     changePassword: makeChangePassword({ userRepo: repos.userRepo }),
+    requestPasswordReset: makeRequestPasswordReset({
+      userRepo: repos.userRepo,
+      passwordResetRepo: repos.passwordResetRepo,
+      mailer,
+      ttlMinutes: config.passwordResetTtlMinutes,
+    }),
+    resetPassword: makeResetPassword({
+      userRepo: repos.userRepo,
+      passwordResetRepo: repos.passwordResetRepo,
+      sessionRepo: repos.sessionRepo,
+    }),
 
     createHousehold,
     updateHouseholdFeatures: makeUpdateHouseholdFeatures({ householdRepo: repos.householdRepo }),
