@@ -2,6 +2,10 @@
 import Marketing from '@layouts/Marketing.astro';
 import { marketingDict } from '@lib/i18n';
 import Hero from '@components/home/Hero.astro';
+import ActScan from '@components/home/ActScan.astro';
+import ActParse from '@components/home/ActParse.astro';
+import ActSort from '@components/home/ActSort.astro';
+import ActMoney from '@components/home/ActMoney.astro';
 
 const locale = 'tr';
 const t = marketingDict[locale].home;
@@ -16,6 +20,8 @@ const appJsonLd = {
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'TRY' },
   inLanguage: 'tr',
 };
+
+const [scanAct, parseAct, sortAct, moneyAct] = t.acts;
 ---
 <Marketing
   title="Fridge — Fişi tara, gerisini Fridge halletsin"
@@ -25,11 +31,14 @@ const appJsonLd = {
   <script type="application/ld+json" set:html={JSON.stringify(appJsonLd)} />
 
   <Hero t={t.hero} locale={locale} />
+  <ActScan t={scanAct} locale={locale} />
+  <ActParse t={parseAct} locale={locale} />
+  <ActSort t={sortAct} locale={locale} />
+  <ActMoney t={moneyAct} locale={locale} />
 
   <!--
-    Faz 3 durağı: yalnızca hero hareketi kuruldu (bkz. plan "En riskli
-    altyapı dört bölüm kurulmadan tek bölümde kanıtlanır"). Bölüm 1-4 +
-    film sonrası Faz 4-5'te eklenecek.
+    Faz 4 durağı: 4 bölüm kuruldu (bkz. plan). Film sonrası (FeatureStrip,
+    ScreenMarquee, MetricsBand, FinalCta) Faz 5'te eklenecek.
   -->
 </Marketing>
 

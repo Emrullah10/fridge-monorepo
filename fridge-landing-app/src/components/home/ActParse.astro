@@ -1,0 +1,103 @@
+---
+// Bölüm 2 — Yapay zekâ ayrıştırır (imza an). Flip KULLANILMAZ (bkz. plan
+// gerekçesi: farklı DOM/kutu/içerik, ve her refresh geometriyi geçersiz
+// kılar). Bunun yerine veriyle eşleştirilmiş elle-FLIP: her iki sütun da
+// AYNI seed.receipt.lines dizisinden render edilir, her ham satır ve kartı
+// data-line-id paylaşır (rl-1...rl-6). Yerleşim her katmanda iki sütunlu
+// grid; full'de kart sütunu ham sütunun üzerine ötelenmiş başlar, scrub
+// ilerledikçe yerine kayar — SADECE konum kanalında FLIP.
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import MockAppBar from '@components/mock/atoms/MockAppBar.astro';
+import MockProductCard from '@components/mock/atoms/MockProductCard.astro';
+import { getSeed } from '@seed/index';
+import { receiptLineToInventoryItem } from '@lib/receiptToInventory';
+
+/**
+ * @typedef {Object} Props
+ * @property {{eyebrow: string, title: string, body: string}} t
+ * @property {'tr'|'en'} [locale]
+ */
+const { t, locale = 'tr' } = Astro.props;
+const seed = getSeed('full');
+const lines = seed.receipt.lines;
+---
+<section class="act act--parse cine-offscreen" data-act="parse">
+  <div class="container act__grid">
+    <div class="act__copy" data-reveal>
+      <p class="act__eyebrow">{t.eyebrow}</p>
+      <h2 class="act__heading">{t.title}</h2>
+      <p class="act__body">{t.body}</p>
+    </div>
+    <div class="act__phone">
+      <PhoneFrame theme="dark" label={locale === 'tr' ? 'Ayrıştırma' : 'Parsing'}>
+        <MockAppBar title={locale === 'tr' ? 'Fiş Onayı' : 'Review receipt'} showBack />
+        <div class="parse-scene">
+          {lines.map((line) => (
+            <div class="parse-scene__row" data-line-id={line.id}>
+              <p
+                class="act2__raw parse-scene__raw"
+                data-scramble-target
+                data-scramble-chars="ABCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZ0123456789"
+              >{line.rawText.trim()}</p>
+              <div class="parse-scene__card">
+                <MockProductCard item={receiptLineToInventoryItem(line)} locale={locale} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </PhoneFrame>
+    </div>
+  </div>
+</section>
+
+<style>
+  .act__grid {
+    display: grid;
+    gap: var(--space-xl);
+    align-items: center;
+  }
+  .act__copy {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  .act__eyebrow {
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: var(--fs-small);
+    font-weight: var(--fw-semibold);
+    margin: 0;
+  }
+  .act__phone {
+    max-width: 320px;
+    margin-inline: auto;
+    width: 100%;
+  }
+
+  .parse-scene {
+    padding: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  .parse-scene__row {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .parse-scene__raw {
+    font-family: monospace;
+    font-size: 10px;
+    color: var(--on-surface-variant);
+    background: var(--surface-container-lowest);
+    border-radius: 12px;
+    padding: var(--space-xs) var(--space-sm);
+    margin: 0 0 4px;
+    white-space: pre-wrap;
+  }
+  .parse-scene__card {
+    /* Doğal son-durum: kart hamın altında, kayma yok. `full`de motion
+       modülü kartı ham satırın üzerine öteler ve scrub ile yerine kaydırır. */
+  }
+</style>

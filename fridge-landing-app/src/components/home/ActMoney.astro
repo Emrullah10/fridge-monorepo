@@ -1,0 +1,185 @@
+---
+// Bölüm 4 — Para görünür. Pinsiz. insights this-month'tan gerçek sayaçlar,
+// formatCurrency ile. Son değer SUNUCUDA DOM'a yazılır, aria-live="off",
+// font-variant-numeric: tabular-nums (rakam genişliği titremesi CLS
+// üretmesin). DrawSVG yalnızca "3 dönem biriken" çizgisini çizer; kategori
+// çubukları scaleY (DrawSVG sadece stroke animasyonu yapar).
+import { getSeed } from '@seed/index';
+import { formatCurrency } from '@lib/format';
+
+/**
+ * @typedef {Object} Props
+ * @property {{eyebrow: string, title: string, body: string}} t
+ * @property {'tr'|'en'} [locale]
+ */
+const { t, locale = 'tr' } = Astro.props;
+const seed = getSeed('full');
+const thisMonth = seed.insights.find((i) => i.period.key === 'this-month');
+const allPeriods = [...seed.insights].reverse(); // 90-days, last-month, this-month -> kronolojik
+
+const maxSaved = Math.max(...allPeriods.map((p) => p.saved));
+// 3 dönemlik "biriken" çizgisi için basit bir SVG polyline path.
+const points = allPeriods.map((p, i) => {
+  const x = (i / (allPeriods.length - 1)) * 280 + 10;
+  const y = 100 - (p.saved / maxSaved) * 80;
+  return `${x},${y}`;
+});
+const linePath = `M ${points.join(' L ')}`;
+---
+<section class="act act--money cine-offscreen" data-act="money">
+  <div class="container act__grid">
+    <div class="act__copy" data-reveal>
+      <p class="act__eyebrow">{t.eyebrow}</p>
+      <h2 class="act__heading">{t.title}</h2>
+      <p class="act__body">{t.body}</p>
+    </div>
+
+    <div class="money-scene" data-money-scene>
+      <div class="money-scene__counters">
+        <div class="money-scene__counter">
+          <p class="money-scene__label">{locale === 'tr' ? 'Biriken' : 'Saved'}</p>
+          <p class="money-scene__value" data-counter data-counter-target={thisMonth.saved} aria-live="off">
+            {formatCurrency(thisMonth.saved)}
+          </p>
+        </div>
+        <div class="money-scene__counter">
+          <p class="money-scene__label">{locale === 'tr' ? 'İsraf' : 'Wasted'}</p>
+          <p class="money-scene__value money-scene__value--warning" data-counter data-counter-target={thisMonth.wasted} aria-live="off">
+            {formatCurrency(thisMonth.wasted)}
+          </p>
+        </div>
+        <div class="money-scene__counter">
+          <p class="money-scene__label">{locale === 'tr' ? 'Harcanan' : 'Spent'}</p>
+          <p class="money-scene__value" data-counter data-counter-target={thisMonth.spent} aria-live="off">
+            {formatCurrency(thisMonth.spent)}
+          </p>
+        </div>
+      </div>
+
+      <p class="money-scene__missing">
+        {locale === 'tr'
+          ? `${thisMonth.missingPriceCount} hareket fiyatsız olduğu için toplamlara dahil edilmedi.`
+          : `${thisMonth.missingPriceCount} transactions had no price and were excluded from totals.`}
+      </p>
+
+      <svg
+        class="money-scene__chart"
+        viewBox="0 0 300 110"
+        role="img"
+        aria-labelledby="money-chart-title"
+      >
+        <title id="money-chart-title">
+          {locale === 'tr' ? '3 dönemde biriken tutar grafiği' : 'Amount saved over 3 periods'}
+        </title>
+        <path d={linePath} fill="none" stroke="var(--primary)" stroke-width="3" data-draw-line />
+        {allPeriods.map((p, i) => {
+          const x = (i / (allPeriods.length - 1)) * 280 + 10;
+          const barHeight = (p.wasted / maxSaved) * 60;
+          return (
+            <rect
+              x={x - 8}
+              y={100 - barHeight}
+              width="16"
+              height={barHeight}
+              fill="var(--status-warning)"
+              opacity="0.6"
+              data-money-bar
+              data-bar-scale={(barHeight / 60).toFixed(3)}
+              style={`transform-origin: ${x}px 100px;`}
+            />
+          );
+        })}
+      </svg>
+      <!-- WCAG 1.1.1: görsel-gizli sayı tablosu — axe SVG içeriğini yakalamaz. -->
+      <table class="visually-hidden">
+        <caption>{locale === 'tr' ? '3 dönemde biriken ve israf edilen tutar' : 'Saved and wasted amount over 3 periods'}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{locale === 'tr' ? 'Dönem' : 'Period'}</th>
+            <th scope="col">{locale === 'tr' ? 'Biriken' : 'Saved'}</th>
+            <th scope="col">{locale === 'tr' ? 'İsraf' : 'Wasted'}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {allPeriods.map((p) => (
+            <tr>
+              <td>{p.period.label}</td>
+              <td>{formatCurrency(p.saved)}</td>
+              <td>{formatCurrency(p.wasted)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<style>
+  .act__grid {
+    display: grid;
+    gap: var(--space-xl);
+    align-items: center;
+  }
+  .act__copy {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  .act__eyebrow {
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: var(--fs-small);
+    font-weight: var(--fw-semibold);
+    margin: 0;
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .money-scene {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    background: var(--surface-container-low);
+    border-radius: 20px;
+    padding: var(--space-lg);
+  }
+  .money-scene__counters {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-md);
+  }
+  .money-scene__label {
+    margin: 0 0 4px;
+    color: var(--on-surface-variant);
+    font-size: var(--fs-small);
+  }
+  .money-scene__value {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--fs-h3);
+    font-weight: var(--fw-bold);
+    color: var(--primary);
+    font-variant-numeric: tabular-nums;
+  }
+  .money-scene__value--warning {
+    color: var(--status-warning);
+  }
+  .money-scene__missing {
+    margin: 0;
+    color: var(--on-surface-variant);
+    font-size: var(--fs-small);
+  }
+  .money-scene__chart {
+    width: 100%;
+    height: auto;
+    max-width: 400px;
+  }
+</style>

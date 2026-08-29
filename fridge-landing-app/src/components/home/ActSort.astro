@@ -1,0 +1,155 @@
+---
+// Bölüm 3 — Bölümlere düşer. Flip'in gerçek yeri burası: altı kart tek
+// yığından üç depolama sütununa geçiyor. Doğal CSS durumu ZATEN sıralanmış
+// üç sütun — still/lite sıfır JS ile doğru son kompozisyonu görür; Flip
+// yalnızca zaten varacağın duruma geçişi full'de oynatır.
+//
+// rl-6 (BIRSAH YOGURT 500G, confidence low, suggestedStorageKind null)
+// sıralanmadan havada kalır — "Kontrol et" rozetiyle ve "sen seç" alt
+// yazısıyla. Yapay zekânın başarısız olup kullanıcıya sorduğu an.
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import MockAppBar from '@components/mock/atoms/MockAppBar.astro';
+import MockProductCard from '@components/mock/atoms/MockProductCard.astro';
+import MockBadge from '@components/mock/atoms/MockBadge.astro';
+import MockStorageIcon from '@components/mock/atoms/MockStorageIcon.astro';
+import { getSeed } from '@seed/index';
+import { receiptLineToInventoryItem } from '@lib/receiptToInventory';
+
+/**
+ * @typedef {Object} Props
+ * @property {{eyebrow: string, title: string, body: string}} t
+ * @property {'tr'|'en'} [locale]
+ */
+const { t, locale = 'tr' } = Astro.props;
+const seed = getSeed('full');
+const lines = seed.receipt.lines;
+
+const byStorage = {
+  fridge: lines.filter((l) => l.suggestedStorageKind === 'fridge'),
+  pantry: lines.filter((l) => l.suggestedStorageKind === 'pantry'),
+  freezer: lines.filter((l) => l.suggestedStorageKind === 'freezer'),
+};
+const uncertain = lines.filter((l) => !l.suggestedStorageKind);
+
+const storageLabels = locale === 'tr'
+  ? { fridge: 'Buzdolabı', freezer: 'Dondurucu', pantry: 'Kiler' }
+  : { fridge: 'Fridge', freezer: 'Freezer', pantry: 'Pantry' };
+---
+<section class="act act--sort cine-offscreen" data-act="sort">
+  <div class="container act__grid">
+    <div class="act__copy" data-reveal>
+      <p class="act__eyebrow">{t.eyebrow}</p>
+      <h2 class="act__heading">{t.title}</h2>
+      <p class="act__body">{t.body}</p>
+    </div>
+    <div class="act__phone">
+      <PhoneFrame theme="dark" label={locale === 'tr' ? 'Envanter' : 'Inventory'}>
+        <MockAppBar title={locale === 'tr' ? 'Envanter' : 'Inventory'} showBack />
+        <div class="sort-scene" data-sort-scene>
+          {uncertain.length > 0 && (
+            <div class="sort-scene__uncertain" data-sort-uncertain>
+              {uncertain.map((line) => (
+                <div class="sort-scene__uncertain-card" data-line-id={line.id}>
+                  <MockProductCard item={receiptLineToInventoryItem(line)} locale={locale} />
+                  <div class="sort-scene__uncertain-footer">
+                    <MockBadge variant="quantity" text={locale === 'tr' ? 'Kontrol et' : 'Needs review'} />
+                    <span class="sort-scene__uncertain-caption">
+                      {locale === 'tr' ? 'Hangi bölüme koyalım? Sen seç.' : "Which section? You pick."}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div class="sort-scene__columns">
+            {Object.entries(byStorage).map(([kind, kindLines]) => (
+              <div class="sort-scene__column" data-storage={kind}>
+                <div class="sort-scene__column-header">
+                  <MockStorageIcon kind={kind} size={20} />
+                  <span>{storageLabels[kind]}</span>
+                </div>
+                {kindLines.map((line) => (
+                  <div class="sort-scene__card" data-line-id={line.id} data-flip-id={line.id}>
+                    <MockProductCard item={receiptLineToInventoryItem(line)} locale={locale} />
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </PhoneFrame>
+    </div>
+  </div>
+</section>
+
+<style>
+  .act__grid {
+    display: grid;
+    gap: var(--space-xl);
+    align-items: center;
+  }
+  .act__copy {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  .act__eyebrow {
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: var(--fs-small);
+    font-weight: var(--fw-semibold);
+    margin: 0;
+  }
+  .act__phone {
+    max-width: 320px;
+    margin-inline: auto;
+    width: 100%;
+  }
+
+  .sort-scene {
+    padding: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+  .sort-scene__uncertain-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border: 1px dashed var(--status-warning);
+    border-radius: 16px;
+    padding: var(--space-xs);
+  }
+  .sort-scene__uncertain-footer {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding-inline: var(--space-xs);
+  }
+  .sort-scene__uncertain-caption {
+    font-size: var(--fs-small);
+    color: var(--on-surface-variant);
+  }
+
+  .sort-scene__columns {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+  .sort-scene__column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+  .sort-scene__column-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: var(--fs-small);
+    font-weight: var(--fw-semibold);
+    color: var(--on-surface-variant);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+</style>
