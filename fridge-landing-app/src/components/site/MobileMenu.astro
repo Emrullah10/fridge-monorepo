@@ -1,0 +1,107 @@
+---
+// 900px altında hiç navigasyon menüsü yoktu (mevcut nav display:none, yerine
+// hiçbir şey konmamıştı) — bkz. plan "yol boyunca düzeltilen mevcut kusurlar".
+// Saf CSS + minimal vanilla JS (checkbox hack yerine <details> — JS'siz de
+// açılır/kapanır, erişilebilir).
+import { marketingDict, localePath } from '@lib/i18n';
+
+/**
+ * @typedef {Object} Props
+ * @property {'tr'|'en'} locale
+ */
+const { locale } = Astro.props;
+const t = marketingDict[locale].nav;
+---
+<details class="mobile-menu">
+  <summary class="mobile-menu__trigger" aria-label={locale === 'tr' ? 'Menüyü aç' : 'Open menu'}>
+    <span class="mobile-menu__bar"></span>
+    <span class="mobile-menu__bar"></span>
+    <span class="mobile-menu__bar"></span>
+  </summary>
+  <nav class="mobile-menu__panel">
+    <a href={localePath(locale, '/ozellikler')}>{t.features}</a>
+    <a href={localePath(locale, '/ekranlar')}>{t.screens}</a>
+    <a href={localePath(locale, '/nasil-calisir')}>{t.howItWorks}</a>
+    <a href={localePath(locale, '/metrikler')}>{t.metrics}</a>
+    <a href={localePath(locale, '/sss')}>{t.faq}</a>
+    <a href={localePath(locale, '/indir')} class="btn btn--primary">{t.download}</a>
+  </nav>
+</details>
+
+<script>
+  // Bir bağlantıya tıklanınca menüyü kapat (aksi halde <details> açık kalır
+  // ve sayfa geçişinde görünür durumda yeniden mount olur).
+  document.addEventListener('click', (e) => {
+    const target = e.target;
+    if (!(target instanceof HTMLElement)) return;
+    const menu = target.closest('.mobile-menu');
+    if (menu && target.tagName === 'A') {
+      menu.removeAttribute('open');
+    }
+  });
+</script>
+
+<style>
+  .mobile-menu {
+    display: block;
+    position: relative;
+  }
+  .mobile-menu__trigger {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 32px;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    list-style: none;
+    border-radius: 12px;
+  }
+  .mobile-menu__trigger::marker {
+    content: '';
+  }
+  .mobile-menu__bar {
+    width: 20px;
+    height: 2px;
+    background: var(--on-surface);
+    border-radius: 999px;
+  }
+  .mobile-menu__panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: var(--surface-container);
+    border: 1px solid var(--outline-variant);
+    border-radius: 16px;
+    padding: 8px;
+    min-width: 200px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    z-index: 60;
+  }
+  .mobile-menu__panel a {
+    text-decoration: none;
+    color: var(--on-surface-variant);
+    font-size: var(--fs-body);
+    font-weight: var(--fw-semibold);
+    padding: 8px 16px;
+    border-radius: 12px;
+  }
+  .mobile-menu__panel a:hover {
+    background: var(--surface-container-high);
+    color: var(--primary);
+  }
+  .mobile-menu__panel .btn {
+    margin-top: 4px;
+    justify-content: center;
+  }
+
+  @media (min-width: 900px) {
+    .mobile-menu {
+      display: none;
+    }
+  }
+</style>

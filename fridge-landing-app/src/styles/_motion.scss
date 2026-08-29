@@ -1,5 +1,11 @@
 // Hareket token'ları. DESIGN_SPEC §8.1: tanıtım yüzeyinde animasyon serbest, ama
 // reduced-motion'da HER ZAMAN anlamlı bir statik son kare kalmalı.
+//
+// `.fade-up` SİLİNDİ (bkz. plan "yol gösterici yapısal kural"): CSS'te
+// opacity:0 ile başlayıp görünmek için JS'e muhtaçtı — yapısal kuralın tam
+// tersi. Yeni model: her bölümün JS'siz DOM son-durumu zaten doğru
+// kompozisyondur; GSAP yalnızca `gsap.from()` ile bir ofsetten doğal duruma
+// gider, asla `gsap.to()` ile doğal durumdan gizlemeye değil.
 
 :root {
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
@@ -15,24 +21,5 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
-  }
-}
-
-.fade-up {
-  opacity: 0;
-  transform: translateY(24px);
-  transition: opacity var(--dur-slow) var(--ease-standard),
-              transform var(--dur-slow) var(--ease-standard);
-
-  &.is-visible {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .fade-up {
-    opacity: 1;
-    transform: none;
   }
 }

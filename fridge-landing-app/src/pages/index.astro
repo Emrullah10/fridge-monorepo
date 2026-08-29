@@ -1,9 +1,6 @@
 ---
 import Marketing from '@layouts/Marketing.astro';
 import { marketingDict } from '@lib/i18n';
-import HeroScene from '@islands/HeroScene.jsx';
-import ScrollStory from '@islands/ScrollStory.jsx';
-import SmoothScroll from '@islands/SmoothScroll.jsx';
 
 const locale = 'tr';
 const t = marketingDict[locale].hero;
@@ -25,8 +22,13 @@ const appJsonLd = {
   locale={locale}
 >
   <script type="application/ld+json" set:html={JSON.stringify(appJsonLd)} />
-  <SmoothScroll client:visible />
 
+  <!--
+    Faz 1 (kabuk ameliyatı) durağı: eski HeroScene/ScrollStory/SmoothScroll
+    adaları silindi (bkz. plan "Silinen dosyalar"). Bu, film kurulana kadar
+    (Faz 3-4) geçici statik bir hero — görsel nihai hal değil, sadece yapısal
+    doğrulama noktası: site koyu ve sticky/fixed doğru çalışıyor mu.
+  -->
   <section class="hero container">
     <div class="hero__text">
       <p class="hero__eyebrow">{t.eyebrow}</p>
@@ -37,37 +39,22 @@ const appJsonLd = {
         <a href="/ekranlar" class="btn btn--outlined">{t.ctaSecondary}</a>
       </div>
     </div>
-    <div class="hero__scene">
-      <HeroScene client:visible posterLight="/posters/hero-light.webp" posterDark="/posters/hero-dark.webp" />
-    </div>
-  </section>
-
-  <section class="story container">
-    <h2 class="story__heading">Nasıl çalışır</h2>
-    <ScrollStory client:visible locale={locale} />
-    <noscript>
-      <ol class="story__fallback">
-        <li>🧾 Fişi çek — market fişinin fotoğrafını çek.</li>
-        <li>✨ Yapay zekâ ayrıştırır — satırlar ürünlere döner.</li>
-        <li>🗄️ Bölümlere düşer — buzdolabı, dondurucu, kiler.</li>
-        <li>💰 Para görünür — biriken ve israf edilen anında görünür.</li>
-      </ol>
-    </noscript>
   </section>
 </Marketing>
 
 <style>
   .hero {
     padding-block: clamp(48px, 8vw, 100px);
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: var(--space-xl);
     align-items: center;
+    text-align: center;
   }
   .hero__text {
     display: flex;
     flex-direction: column;
     gap: var(--space-md);
-    text-align: center;
   }
   .hero__eyebrow {
     color: var(--primary);
@@ -93,108 +80,5 @@ const appJsonLd = {
     flex-wrap: wrap;
     justify-content: center;
     margin-top: var(--space-md);
-  }
-  .hero__scene {
-    aspect-ratio: 1;
-    max-width: 480px;
-    width: 100%;
-    margin-inline: auto;
-  }
-
-  @media (min-width: 900px) {
-    .hero {
-      grid-template-columns: 1.1fr 0.9fr;
-    }
-    .hero__text {
-      text-align: left;
-    }
-    .hero__title,
-    .hero__subtitle {
-      margin-inline: 0;
-    }
-    .hero__cta {
-      justify-content: flex-start;
-    }
-  }
-
-  .story {
-    padding-block: var(--section-gap);
-  }
-  .story__heading {
-    text-align: center;
-    font-size: var(--fs-h2);
-    margin-bottom: var(--space-xl);
-  }
-  .story__fallback {
-    max-width: 60ch;
-    margin-inline: auto;
-    color: var(--on-surface-variant);
-    line-height: 1.8;
-  }
-</style>
-
-<style is:global>
-  .hero-scene,
-  .hero-scene__poster {
-    width: 100%;
-    height: 100%;
-    border-radius: var(--radius-card);
-    overflow: hidden;
-  }
-  .hero-scene canvas {
-    display: block;
-    width: 100% !important;
-    height: 100% !important;
-  }
-  .hero-scene__poster img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .scroll-story {
-    display: grid;
-    gap: var(--space-lg);
-  }
-  .scroll-story__panel {
-    background: var(--surface-container-low);
-    border-radius: var(--radius-card);
-    padding: var(--space-xl) var(--space-lg);
-    text-align: center;
-    opacity: 0.5;
-    transform: scale(0.98);
-    transition: opacity var(--dur-slow) var(--ease-standard), transform var(--dur-slow) var(--ease-standard);
-  }
-  .scroll-story[data-animated='false'] .scroll-story__panel {
-    opacity: 1;
-    transform: none;
-  }
-  .scroll-story__panel[data-active='true'] {
-    opacity: 1;
-    transform: scale(1);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-  }
-  .scroll-story__icon {
-    font-size: 40px;
-    display: block;
-    margin-bottom: var(--space-sm);
-  }
-  .scroll-story__title {
-    font-weight: var(--fw-bold);
-    font-size: var(--fs-h3);
-    color: var(--on-surface);
-    margin: 0 0 var(--space-xs);
-  }
-  .scroll-story__body {
-    color: var(--on-surface-variant);
-    margin: 0;
-    max-width: 42ch;
-    margin-inline: auto;
-  }
-
-  @media (min-width: 700px) {
-    .scroll-story {
-      grid-template-columns: repeat(4, 1fr);
-    }
   }
 </style>

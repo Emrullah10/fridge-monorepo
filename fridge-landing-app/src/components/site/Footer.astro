@@ -10,7 +10,7 @@ const { locale } = Astro.props;
 const t = marketingDict[locale];
 const year = new Date().getFullYear();
 ---
-<footer class="site-footer">
+<footer class="site-footer" transition:persist>
   <div class="container site-footer__inner">
     <div class="site-footer__brand">
       <strong>Fridge</strong>

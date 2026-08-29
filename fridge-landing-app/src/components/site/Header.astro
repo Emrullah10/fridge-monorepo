@@ -1,5 +1,6 @@
 ---
 import { marketingDict, localePath } from '@lib/i18n';
+import MobileMenu from '@components/site/MobileMenu.astro';
 
 /**
  * @typedef {Object} Props
@@ -9,7 +10,7 @@ import { marketingDict, localePath } from '@lib/i18n';
 const { locale } = Astro.props;
 const t = marketingDict[locale].nav;
 ---
-<header class="site-header">
+<header class="site-header" transition:persist>
   <div class="container site-header__inner">
     <a href={localePath(locale, '/')} class="site-header__brand">Fridge</a>
     <nav class="site-header__nav">
@@ -23,14 +24,20 @@ const t = marketingDict[locale].nav;
       <a href={locale === 'tr' ? '/en' : '/'} class="site-header__lang" aria-label="Dil değiştir / Switch language">
         {locale === 'tr' ? 'EN' : 'TR'}
       </a>
-      <a href={localePath(locale, '/indir')} class="btn btn--primary">{t.download}</a>
+      <a href={localePath(locale, '/indir')} class="btn btn--primary site-header__cta">{t.download}</a>
+      <MobileMenu locale={locale} />
     </div>
   </div>
 </header>
 
 <style>
+  /* ScrollSmoother #smooth-content'i transform ile taşıdığı için sticky/fixed
+     içeride ölür (bkz. plan "Kabuk ameliyatı — ScrollSmoother'ın bedeli").
+     Header artık #smooth-wrapper'ın DIŞINDA kardeş olarak render edilir
+     (bkz. Marketing.astro) ve fixed'e geçirilir. */
   .site-header {
-    position: sticky;
+    position: fixed;
+    inset-inline: 0;
     top: 0;
     z-index: 40;
     background: color-mix(in srgb, var(--surface) 85%, transparent);
@@ -78,10 +85,16 @@ const t = marketingDict[locale].nav;
     border-radius: var(--radius-pill);
     border: 1px solid var(--outline-variant);
   }
+  .site-header__cta {
+    display: none;
+  }
 
   @media (min-width: 900px) {
     .site-header__nav {
       display: flex;
+    }
+    .site-header__cta {
+      display: inline-flex;
     }
   }
 </style>

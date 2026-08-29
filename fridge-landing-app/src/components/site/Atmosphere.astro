@@ -1,0 +1,54 @@
+---
+// Atmosfer — CSS gradyan tabanı. Shader (Faz 6) bunun ÜZERİNE oturur; bu taban
+// katman shader'ın yedeğidir, `still`/`lite` katmanları shader'ı hiç görmez ve
+// yalnızca bu katmanı görür (bkz. plan "Atmosfer" bölümü). pointer-events:none,
+// aria-hidden — tamamen dekoratif.
+---
+<div class="atmosphere" aria-hidden="true" transition:persist>
+  <canvas class="atmosphere__gl" data-atmosphere-canvas></canvas>
+</div>
+
+<style>
+  .atmosphere {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    overflow: hidden;
+    background:
+      radial-gradient(60% 50% at 20% 10%, var(--glow-key), transparent 60%),
+      radial-gradient(50% 45% at 85% 25%, var(--glow-fridge), transparent 65%),
+      radial-gradient(55% 50% at 30% 85%, var(--glow-freezer), transparent 65%),
+      radial-gradient(45% 40% at 90% 90%, var(--glow-pantry), transparent 60%),
+      var(--cine-void);
+    background-color: var(--cine-void);
+    animation: atmosphere-drift 40s ease-in-out infinite alternate;
+  }
+
+  .atmosphere__gl {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+  }
+  .atmosphere__gl[data-ready='true'] {
+    opacity: 0.85;
+    transition: opacity 1.2s var(--ease-cine, ease);
+  }
+
+  @keyframes atmosphere-drift {
+    0% {
+      background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0 0;
+    }
+    100% {
+      background-position: 4% 3%, -3% 4%, 3% -3%, -4% -2%, 0 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .atmosphere {
+      animation: none;
+    }
+  }
+</style>
