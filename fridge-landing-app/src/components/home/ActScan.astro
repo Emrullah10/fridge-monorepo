@@ -1,0 +1,146 @@
+---
+// Bölüm 1 — Fişi çek. Pinli, scrub'lı (full). Maketin kendi is-done/is-active
+// sahne sınıfları üç timeline etiketinde ilerler — maket kendi kendini
+// oynatır (bkz. plan "Bölüm 1"). Tarama çizgisi bir --scan-y özel özelliğini
+// sürer, mask-image bunu kullanarak altındaki ayrıştırılmış durumu açar.
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import MockAppBar from '@components/mock/atoms/MockAppBar.astro';
+import { getSeed } from '@seed/index';
+
+/**
+ * @typedef {Object} Props
+ * @property {{eyebrow: string, title: string, body: string}} t
+ * @property {'tr'|'en'} [locale]
+ */
+const { t, locale = 'tr' } = Astro.props;
+const seed = getSeed('full');
+const stages = locale === 'tr'
+  ? ['Görüntü hazırlanıyor', 'Metin okunuyor (OCR)', 'Yapay zekâ ayrıştırıyor', 'Son kontrol']
+  : ['Preparing image', 'Reading text (OCR)', 'AI is parsing', 'Final check'];
+---
+<section class="act act--scan cine-offscreen" data-act="scan">
+  <div class="container act__grid">
+    <div class="act__copy" data-reveal>
+      <p class="act__eyebrow">{t.eyebrow}</p>
+      <h2 class="act__heading">{t.title}</h2>
+      <p class="act__body">{t.body}</p>
+    </div>
+    <div class="act__phone">
+      <PhoneFrame theme="dark" label={locale === 'tr' ? 'Fişi Tara' : 'Scan receipt'}>
+        <MockAppBar title={locale === 'tr' ? 'Fişi Tara' : 'Scan receipt'} showBack />
+        <div class="scan-scene" data-scan-scene>
+          <div class="scan-scene__circle" data-scan-circle>🧾</div>
+          <div class="scan-scene__line" data-scan-line aria-hidden="true"></div>
+          <div class="scan-scene__stages">
+            {stages.map((s, i) => (
+              <div class:list={['scan-scene__stage', { 'is-done': i === 0, 'is-active': i === 1 }]} data-stage={i}>
+                <span class="scan-scene__stage-dot" />
+                <span>{s}</span>
+              </div>
+            ))}
+          </div>
+          <p class="scan-scene__raw" data-scan-raw>{seed.receipt.rawText}</p>
+        </div>
+      </PhoneFrame>
+    </div>
+  </div>
+</section>
+
+<style>
+  .act--scan {
+    --scan-y: 0%;
+  }
+  .act__grid {
+    display: grid;
+    gap: var(--space-xl);
+    align-items: center;
+  }
+  .act__copy {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  .act__eyebrow {
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: var(--fs-small);
+    font-weight: var(--fw-semibold);
+    margin: 0;
+  }
+  .act__phone {
+    max-width: 320px;
+    margin-inline: auto;
+    width: 100%;
+  }
+
+  .scan-scene {
+    position: relative;
+    padding: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+    min-height: 100%;
+  }
+  .scan-scene__circle {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: var(--primary-container);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    box-shadow: 0 0 0 8px color-mix(in oklab, var(--primary) 15%, transparent);
+  }
+  .scan-scene__line {
+    position: absolute;
+    left: var(--space-md);
+    right: var(--space-md);
+    height: 2px;
+    background: var(--primary);
+    top: calc(var(--scan-y, 0%));
+    box-shadow: 0 0 12px 2px var(--primary);
+    opacity: 0.9;
+  }
+  .scan-scene__stages {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  .scan-scene__stage {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    color: var(--on-surface-variant);
+    font-size: var(--fs-small);
+  }
+  .scan-scene__stage.is-done {
+    color: var(--primary);
+  }
+  .scan-scene__stage.is-active {
+    color: var(--on-surface);
+    font-weight: var(--fw-semibold);
+  }
+  .scan-scene__stage-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .scan-scene__raw {
+    font-family: monospace;
+    font-size: 11px;
+    color: var(--on-surface-variant);
+    white-space: pre-wrap;
+    text-align: left;
+    width: 100%;
+    margin: 0;
+    /* mask-image altında yalnızca taranan kısmı açar — --scan-y ilerledikçe
+       yukarıdan aşağıya doğru "okunmuş" his verir. */
+    -webkit-mask-image: linear-gradient(to bottom, black var(--scan-y, 0%), transparent var(--scan-y, 0%));
+    mask-image: linear-gradient(to bottom, black var(--scan-y, 0%), transparent var(--scan-y, 0%));
+  }
+</style>
