@@ -1,6 +1,7 @@
 ---
 import '@styles/global.scss';
 import { ClientRouter } from 'astro:transitions';
+import { Font } from 'astro:assets';
 
 /**
  * @typedef {Object} Props
@@ -24,6 +25,7 @@ const { title, description, lang = 'tr', ogImage = '/og/default.png' } = Astro.p
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImage} />
     <meta name="twitter:card" content="summary_large_image" />
+    <Font cssVariable="--font-display" preload />
     <ClientRouter />
     <script is:inline>
       // Boyamadan önce çalışması gereken TEK bloklayıcı script: tema (karanlık

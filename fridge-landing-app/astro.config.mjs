@@ -1,4 +1,4 @@
-import { defineConfig } from 'astro/config';
+import { defineConfig, fontProviders } from 'astro/config';
 import react from '@astrojs/react';
 import sitemap from '@astrojs/sitemap';
 
@@ -21,4 +21,22 @@ export default defineConfig({
       prefixDefaultLocale: false, // tr kökte (/), en /en/ altında
     },
   },
+  // Görüntü fontu — bkz. plan "Tipografi — Türkçe kararı belirliyor".
+  // `subsets: ['latin', 'latin-ext']` ZORUNLU: ç ö ü latin'de ama
+  // ğ ı İ Ş ş latin-ext'te — latin-only bir alt küme sayfanın en önemli dört
+  // kelimesini ("Buzdolabı", "İsraf", "Ayrıştırır", "Şef") sessizce tofu yapar.
+  // Astro derleme zamanında indirir, size-adjust/ascent-override yedek
+  // metrikleriyle @font-face üretir (font-swap CLS'ini öldüren şey bu) ve
+  // preload ekler — sıfır dış istek.
+  fonts: [
+    {
+      provider: fontProviders.fontsource(),
+      name: 'Bricolage Grotesque',
+      cssVariable: '--font-display',
+      subsets: ['latin', 'latin-ext'],
+      weights: ['200 800'],
+      styles: ['normal'],
+      fallbacks: ['Archivo', 'sans-serif'],
+    },
+  ],
 });
