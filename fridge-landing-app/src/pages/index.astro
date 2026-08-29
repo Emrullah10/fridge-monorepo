@@ -1,9 +1,10 @@
 ---
 import Marketing from '@layouts/Marketing.astro';
 import { marketingDict } from '@lib/i18n';
+import Hero from '@components/home/Hero.astro';
 
 const locale = 'tr';
-const t = marketingDict[locale].hero;
+const t = marketingDict[locale].home;
 
 const appJsonLd = {
   '@context': 'https://schema.org',
@@ -23,62 +24,21 @@ const appJsonLd = {
 >
   <script type="application/ld+json" set:html={JSON.stringify(appJsonLd)} />
 
+  <Hero t={t.hero} locale={locale} />
+
   <!--
-    Faz 1 (kabuk ameliyatı) durağı: eski HeroScene/ScrollStory/SmoothScroll
-    adaları silindi (bkz. plan "Silinen dosyalar"). Bu, film kurulana kadar
-    (Faz 3-4) geçici statik bir hero — görsel nihai hal değil, sadece yapısal
-    doğrulama noktası: site koyu ve sticky/fixed doğru çalışıyor mu.
+    Faz 3 durağı: yalnızca hero hareketi kuruldu (bkz. plan "En riskli
+    altyapı dört bölüm kurulmadan tek bölümde kanıtlanır"). Bölüm 1-4 +
+    film sonrası Faz 4-5'te eklenecek.
   -->
-  <section class="hero container">
-    <div class="hero__text">
-      <p class="hero__eyebrow">{t.eyebrow}</p>
-      <h1 class="hero__title">{t.title}</h1>
-      <p class="hero__subtitle">{t.subtitle}</p>
-      <div class="hero__cta">
-        <a href="/indir" class="btn btn--primary">{t.ctaPrimary}</a>
-        <a href="/ekranlar" class="btn btn--outlined">{t.ctaSecondary}</a>
-      </div>
-    </div>
-  </section>
 </Marketing>
 
-<style>
-  .hero {
-    padding-block: clamp(48px, 8vw, 100px);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-xl);
-    align-items: center;
-    text-align: center;
+<script>
+  // Kod bölme kapısı: GSAP yalnızca `/` üzerinde ve yalnızca `still`
+  // olmayan katmanlarda indirilir (bkz. plan "Kod bölme" — is:inline
+  // import'u çözmez, bu yüzden paketlenmiş <script> kullanılır).
+  const tier = document.documentElement.getAttribute('data-motion');
+  if (tier !== 'still') {
+    import('../scripts/home.js');
   }
-  .hero__text {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-md);
-  }
-  .hero__eyebrow {
-    color: var(--primary);
-    font-weight: var(--fw-semibold);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    font-size: var(--fs-small);
-  }
-  .hero__title {
-    font-size: var(--fs-hero);
-    max-width: 18ch;
-    margin-inline: auto;
-  }
-  .hero__subtitle {
-    max-width: 56ch;
-    margin-inline: auto;
-    color: var(--on-surface-variant);
-    font-size: var(--fs-lead);
-  }
-  .hero__cta {
-    display: flex;
-    gap: var(--space-sm);
-    flex-wrap: wrap;
-    justify-content: center;
-    margin-top: var(--space-md);
-  }
-</style>
+</script>
