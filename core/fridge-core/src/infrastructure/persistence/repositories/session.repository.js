@@ -30,6 +30,15 @@ const makeSessionRepository = ({ rawQuery }) => {
     revoke: async (id) => {
       await rawQuery('UPDATE user_session SET revoked_at = now() WHERE id = $1', [id]);
     },
+
+    // Şifre sıfırlandığında çalınmış/eski oturumların hepsi düşmeli —
+    // reset-password.use-case.js bunu şifre değişimiyle birlikte çağırır.
+    revokeAllForUser: async (userId) => {
+      await rawQuery(
+        'UPDATE user_session SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL',
+        [userId],
+      );
+    },
   };
 };
 
