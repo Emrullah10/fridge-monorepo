@@ -1,0 +1,60 @@
+---
+// ScreenMarquee — ASLA otomatik oynamaz (5sn üstü duraklatılamayan hareket
+// WCAG 2.2.2 ihlali). Scroll'a bağlı; kopya şerit aria-hidden (bkz. plan
+// "Film sonrası"). Statik son-durum: iki şerit yan yana duran ekran
+// görüntüleri — JS'siz de anlamlı.
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import WelcomeScreen from '@components/mock/screens/WelcomeScreen.astro';
+import LoginScreen from '@components/mock/screens/LoginScreen.astro';
+import HouseholdHomeScreen from '@components/mock/screens/HouseholdHomeScreen.astro';
+import InventoryScreen from '@components/mock/screens/InventoryScreen.astro';
+import RecipeDetailScreen from '@components/mock/screens/RecipeDetailScreen.astro';
+import SettingsScreen from '@components/mock/screens/SettingsScreen.astro';
+
+/**
+ * @typedef {Object} Props
+ * @property {'tr'|'en'} [locale]
+ */
+const { locale = 'tr' } = Astro.props;
+
+const SCREENS = [WelcomeScreen, LoginScreen, HouseholdHomeScreen, InventoryScreen, RecipeDetailScreen, SettingsScreen];
+---
+<section class="screen-marquee cine-offscreen" data-act="marquee" aria-label={locale === 'tr' ? 'Uygulama ekranları şeridi' : 'App screens marquee'}>
+  <div class="screen-marquee__row" data-marquee-row>
+    {SCREENS.map((Screen) => (
+      <div class="screen-marquee__item cine-offscreen">
+        <Screen theme="dark" locale={locale} />
+      </div>
+    ))}
+  </div>
+  <!-- Kopya şerit: sonsuz döngü hissi için, ekran okuyucudan tamamen gizli. -->
+  <div class="screen-marquee__row" data-marquee-row aria-hidden="true">
+    {SCREENS.map((Screen) => (
+      <div class="screen-marquee__item cine-offscreen">
+        <Screen theme="dark" locale={locale} />
+      </div>
+    ))}
+  </div>
+</section>
+
+<style>
+  .screen-marquee {
+    padding-block: var(--space-xl);
+    overflow: hidden;
+  }
+  .screen-marquee__row {
+    display: flex;
+    gap: var(--space-lg);
+    padding-inline: var(--space-md);
+    /* Statik son-durum: JS'siz normal akan bir sıra, taşma yok (flex-wrap). */
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .screen-marquee__row[aria-hidden='true'] {
+    display: none; /* still/lite'de kopya şeride hiç gerek yok, JS'siz gizli. */
+  }
+  .screen-marquee__item {
+    max-width: 160px;
+    flex: 0 0 auto;
+  }
+</style>

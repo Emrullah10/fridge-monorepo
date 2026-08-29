@@ -1,13 +1,14 @@
-// Bölüm 2 — Yapay zekâ ayrıştırır. Flip KULLANILMAZ (bkz. plan gerekçesi).
-// Veriyle eşleştirilmiş elle-FLIP: her satır çifti için tek getBoundingClientRect,
-// invalidateOnRefresh'te önbelleklenir. Yalnızca konum kanalında hareket —
-// "satır karta dönüştü" hissini satan tek kanal bu; biçim değişimini geometri
-// değil çapraz geçiş (opacity) satar.
+// Act 2 - AI parses it. Flip is NOT used (see plan rationale: different
+// DOM/box/content, and every refresh invalidates the captured geometry).
+// Instead: data-matched manual FLIP. Each line pair does a single
+// getBoundingClientRect, cached via invalidateOnRefresh. Motion happens
+// only on the position channel - that's the one channel selling "the raw
+// line became a card"; the shape change is sold by cross-fade, not geometry.
 import { ScrambleTextPlugin } from 'gsap/ScrambleTextPlugin';
 
-// Karakter kumesi CAGIRAN tarafindan verilir (data-scramble-chars ozniteligi
-// uzerinden) — bu dosya check-i18n.mjs kuraliyla Turkce'ye ozgu karakter
-// icermemeli (bkz. plan i18n kural 3: hareket modulleri metne dokunmaz).
+// Character set is supplied by the CALLER via a data-scramble-chars
+// attribute - this file must stay free of language-specific characters
+// (see check-i18n.mjs rule 3: motion modules never touch copy).
 const FALLBACK_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 export function buildAct2Parse({ root, gsap, ScrollTrigger, tier }) {
@@ -18,8 +19,8 @@ export function buildAct2Parse({ root, gsap, ScrollTrigger, tier }) {
   const cleanups = [];
 
   if (tier === 'full') {
-    // Her çift için offset hesapla: kart, ham satırın üzerine ötelenmiş
-    // başlar (yPercent -100 kadar), scrub ilerledikçe 0'a döner.
+    // For each pair: the card starts offset above the raw line (yPercent),
+    // and scrubs back to 0 as scroll progresses.
     const tweens = rows.map((row) => {
       const card = row.querySelector('.parse-scene__card');
       const raw = row.querySelector('.parse-scene__raw');
@@ -56,9 +57,9 @@ export function buildAct2Parse({ root, gsap, ScrollTrigger, tier }) {
     });
   }
 
-  // ScrambleText — karakter kumesi DOM'daki data-scramble-chars ozniteliginden
-  // okunur (bkz. plan: Turkce karakter setiyle kucuk bir keyif + latin-ext
-  // kaniti). aria-live'a ASLA sarilmaz (statik metin zaten erisilebilir).
+  // ScrambleText - character set is read from the DOM's data-scramble-chars
+  // attribute (see plan: a Turkish charset as a small delight + latin-ext
+  // proof). Never wrapped in aria-live (the static text is already accessible).
   if (tier !== 'still' && scrambleTargets.length) {
     scrambleTargets.forEach((el) => {
       const original = el.textContent;

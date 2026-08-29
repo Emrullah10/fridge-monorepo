@@ -1,0 +1,91 @@
+---
+// Film sonrası — 8 özellik × 8 mevcut maket. `full`de yatay pin, `lite`/
+// `still`'de scroll-snap-type: x mandatory ile YEREL yatay scroll konteyneri
+// (dokunmatikte gerçekten daha iyi, kapı documentElement.scrollWidth
+// ölçtüğü için iç scroller geçer — bkz. plan "Film sonrası").
+import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import ReceiptScanScreen from '@components/mock/screens/ReceiptScanScreen.astro';
+import InventoryScreen from '@components/mock/screens/InventoryScreen.astro';
+import NotificationsScreen from '@components/mock/screens/NotificationsScreen.astro';
+import ShoppingListScreen from '@components/mock/screens/ShoppingListScreen.astro';
+import RecipesScreen from '@components/mock/screens/RecipesScreen.astro';
+import ChefChatScreen from '@components/mock/screens/ChefChatScreen.astro';
+import HouseholdMembersScreen from '@components/mock/screens/HouseholdMembersScreen.astro';
+import InsightsScreen from '@components/mock/screens/InsightsScreen.astro';
+
+/**
+ * @typedef {Object} Props
+ * @property {Array<{key: string, title: string, body: string}>} features
+ * @property {'tr'|'en'} [locale]
+ */
+const { features, locale = 'tr' } = Astro.props;
+
+const SCREEN_BY_KEY = {
+  receipt: ReceiptScanScreen,
+  inventory: InventoryScreen,
+  expiry: NotificationsScreen,
+  shopping: ShoppingListScreen,
+  recipes: RecipesScreen,
+  chef: ChefChatScreen,
+  sharing: HouseholdMembersScreen,
+  notifications: InsightsScreen,
+};
+---
+<section class="feature-strip cine-offscreen" data-act="feature-strip">
+  <div class="container feature-strip__intro" data-reveal>
+    <h2 class="act__heading">{locale === 'tr' ? 'Uygulamanın içinden' : 'Inside the app'}</h2>
+  </div>
+  <div class="feature-strip__track" data-feature-track>
+    {features.map((f) => {
+      const Screen = SCREEN_BY_KEY[f.key];
+      return (
+        <article class="feature-strip__item" data-feature-item>
+          <div class="feature-strip__phone cine-offscreen">
+            {Screen && <Screen theme="dark" locale={locale} />}
+          </div>
+          <h3 class="feature-strip__title">{f.title}</h3>
+          <p class="feature-strip__body">{f.body}</p>
+        </article>
+      );
+    })}
+  </div>
+</section>
+
+<style>
+  .feature-strip {
+    padding-block: var(--section-gap);
+  }
+  .feature-strip__intro {
+    margin-bottom: var(--space-xl);
+  }
+  .feature-strip__track {
+    display: flex;
+    gap: var(--space-lg);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-inline: var(--space-md);
+    padding-bottom: var(--space-md);
+    scrollbar-width: thin;
+  }
+  .feature-strip__item {
+    flex: 0 0 260px;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  .feature-strip__phone {
+    max-width: 220px;
+  }
+  .feature-strip__title {
+    font-family: var(--font-display);
+    font-size: var(--fs-h3);
+    margin: 0;
+    color: var(--on-surface);
+  }
+  .feature-strip__body {
+    margin: 0;
+    color: var(--on-surface-variant);
+    font-size: var(--fs-body);
+  }
+</style>

@@ -1,23 +1,28 @@
-// Film yönetmeni — yalnızca `/` üzerinde, küçük bir kapıdan tek `import('./home.js')`
-// ile yüklenir (bkz. plan "Kod bölme"). `still` katmanında bu dosya HİÇ
-// indirilmez — gate script bunu kontrol eder (bkz. src/pages/index.astro).
+// Film director - loaded only on `/`, via a tiny gate as a single
+// `import('./home.js')` (see plan "code splitting"). This file is NEVER
+// downloaded in the `still` tier - the gate script enforces that (see
+// src/pages/index.astro).
 import { createRuntime } from '@lib/motion/runtime.js';
 import { buildHero } from '../motion/acts/hero.js';
 import { buildAct1Scan } from '../motion/acts/act1-scan.js';
 import { buildAct2Parse } from '../motion/acts/act2-parse.js';
 import { buildAct3Sort } from '../motion/acts/act3-sort.js';
 import { buildAct4Money } from '../motion/acts/act4-money.js';
+import { buildFeatureStrip } from '../motion/acts/featureStrip.js';
+import { buildScreenMarquee } from '../motion/acts/screenMarquee.js';
 
 const ACT_BUILDERS = {
   scan: buildAct1Scan,
   parse: buildAct2Parse,
   sort: buildAct3Sort,
   money: buildAct4Money,
+  'feature-strip': buildFeatureStrip,
+  marquee: buildScreenMarquee,
 };
 
 function mountFilm() {
   const tier = document.documentElement.getAttribute('data-motion') || 'still';
-  if (tier === 'still') return; // GSAP hiç indirilmemeli — gate zaten engeller, çift güvenlik.
+  if (tier === 'still') return; // GSAP must never load - gate already prevents this, belt and suspenders.
 
   createRuntime(tier, (ctx) => {
     const cleanups = [];
@@ -32,8 +37,8 @@ function mountFilm() {
       if (builder) cleanups.push(builder({ root, ...ctx }));
     });
 
-    // full katmanında bölüm yüklendikten sonra layout değişebilir (font,
-    // pin) — bir kez refresh tetiklemek pin/scrub konumlarını doğrular.
+    // Layout can shift after acts mount in the full tier (font, pin) - one
+    // refresh call re-validates pin/scrub positions.
     ctx.ScrollTrigger.refresh();
 
     return () => cleanups.forEach((fn) => typeof fn === 'function' && fn());

@@ -1,0 +1,47 @@
+---
+// Film sonrası — MetricsBand. StatTile yeniden kullanılır. Gerçek seed
+// verisinden (this-month insights) beslenir, doğal DOM son-durumu zaten
+// doğru — reveal.js ekstra bir giriş sağlar.
+import StatTile from '@components/marketing/StatTile.astro';
+import { getSeed } from '@seed/index';
+import { formatCurrency } from '@lib/format';
+
+/**
+ * @typedef {Object} Props
+ * @property {string} heading
+ * @property {'tr'|'en'} [locale]
+ */
+const { heading, locale = 'tr' } = Astro.props;
+const seed = getSeed('full');
+const thisMonth = seed.insights.find((i) => i.period.key === 'this-month');
+---
+<section class="metrics-band container" data-act="metrics-band" data-reveal>
+  <h2 class="act__heading metrics-band__heading">{heading}</h2>
+  <div class="metrics-band__grid">
+    <StatTile value={formatCurrency(thisMonth.saved)} label={locale === 'tr' ? 'Bu ay biriken' : 'Saved this month'} tone="good" />
+    <StatTile value={formatCurrency(thisMonth.wasted)} label={locale === 'tr' ? 'Bu ay israf' : 'Wasted this month'} tone="bad" />
+    <StatTile value={String(seed.inventory.length)} label={locale === 'tr' ? 'Envanterdeki ürün' : 'Items in inventory'} />
+    <StatTile value={String(seed.household.members.length)} label={locale === 'tr' ? 'Ev üyesi' : 'Household members'} />
+  </div>
+</section>
+
+<style>
+  .metrics-band {
+    padding-block: var(--section-gap);
+  }
+  .metrics-band__heading {
+    text-align: center;
+    margin-bottom: var(--space-xl);
+  }
+  .metrics-band__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-md);
+  }
+
+  @media (min-width: 900px) {
+    .metrics-band__grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+</style>

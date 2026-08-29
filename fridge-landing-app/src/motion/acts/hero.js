@@ -1,6 +1,6 @@
-// Hero girişi + scrub'lı wdth sıkışması. Saf fabrika: buildHero({ root, gsap, tier }).
-// GSAP fontVariationSettings string'ini doğrudan interpolate edemez — proxy
-// nesne + onUpdate kullanılır (bkz. plan "Hero").
+// Hero entrance + scrubbed wdth compression. Pure factory: buildHero({ root, gsap, tier }).
+// GSAP cannot interpolate the fontVariationSettings string directly - a
+// proxy object + onUpdate is used instead (see plan "Hero").
 export function buildHero({ root, gsap, tier }) {
   const titleEl = root.querySelector('[data-hero-title]');
   const lines = Array.from(root.querySelectorAll('[data-line]'));
@@ -20,8 +20,8 @@ export function buildHero({ root, gsap, tier }) {
   if (phone) tl.from(phone, { opacity: 0, y: 24, duration: 0.8 }, 0.15);
 
   let scrubTween = null;
-  // wdth sıkışması yalnızca `full` katmanında (scrub, pin gerektirmiyor ama
-  // ağır bir sürekli onUpdate'tir — lite'ta atlanır, still'de GSAP hiç yok).
+  // wdth compression only in the `full` tier (scrub without a pin, but a
+  // heavy continuous onUpdate) - skipped in lite, never loaded in still.
   if (tier === 'full' && titleEl) {
     const proxy = { wdth: 100 };
     scrubTween = gsap.to(proxy, {

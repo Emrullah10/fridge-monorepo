@@ -6,6 +6,10 @@ import ActScan from '@components/home/ActScan.astro';
 import ActParse from '@components/home/ActParse.astro';
 import ActSort from '@components/home/ActSort.astro';
 import ActMoney from '@components/home/ActMoney.astro';
+import FeatureStrip from '@components/home/FeatureStrip.astro';
+import ScreenMarquee from '@components/home/ScreenMarquee.astro';
+import MetricsBand from '@components/home/MetricsBand.astro';
+import FinalCta from '@components/home/FinalCta.astro';
 
 const locale = 'tr';
 const t = marketingDict[locale].home;
@@ -36,10 +40,10 @@ const [scanAct, parseAct, sortAct, moneyAct] = t.acts;
   <ActSort t={sortAct} locale={locale} />
   <ActMoney t={moneyAct} locale={locale} />
 
-  <!--
-    Faz 4 durağı: 4 bölüm kuruldu (bkz. plan). Film sonrası (FeatureStrip,
-    ScreenMarquee, MetricsBand, FinalCta) Faz 5'te eklenecek.
-  -->
+  <FeatureStrip features={t.features} locale={locale} />
+  <ScreenMarquee locale={locale} />
+  <MetricsBand heading={t.metrics.heading} locale={locale} />
+  <FinalCta t={t.finalCta} />
 </Marketing>
 
 <script>

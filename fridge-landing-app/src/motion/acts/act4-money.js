@@ -1,8 +1,8 @@
-// Bölüm 4 — Para görünür. Pinsiz. DrawSVG yalnızca "biriken" çizgisini
-// çizer; kategori çubukları scaleY (DrawSVG sadece stroke animasyonu yapar
-// — araç grafik tipini seçmesin). Son değer sunucuda DOM'a zaten yazılı
-// (bkz. ActMoney.astro) — burada yalnızca 0'dan o değere sayan bir görsel
-// katman eklenir, gerçek metin asla kaybolmaz (yapısal kural).
+// Act 4 - See the numbers. Unpinned. DrawSVG animates only the "saved"
+// trend line; category bars use scaleY (DrawSVG only animates stroke - it
+// shouldn't dictate the chart type). The final value is already
+// server-rendered (see ActMoney.astro) - this only adds a visual counting
+// overlay on top, the real text never disappears (structural rule).
 import { DrawSVGPlugin } from 'gsap/DrawSVGPlugin';
 
 export function buildAct4Money({ root, gsap, ScrollTrigger, tier }) {
@@ -40,8 +40,8 @@ export function buildAct4Money({ root, gsap, ScrollTrigger, tier }) {
             el.textContent = proxy.v.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₺';
           },
           onComplete() {
-            // Gercek deger (formatCurrency ile sunucuda uretilen) her zaman
-            // son karede geri yazilir — sayac sadece gorsel bir katman.
+            // The real value (produced server-side via formatCurrency) is
+            // always restored on the final frame - the counter is purely visual.
             el.textContent = finalText;
           },
         });
