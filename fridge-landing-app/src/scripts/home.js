@@ -10,6 +10,7 @@ import { buildAct3Sort } from '../motion/acts/act3-sort.js';
 import { buildAct4Money } from '../motion/acts/act4-money.js';
 import { buildFeatureStrip } from '../motion/acts/featureStrip.js';
 import { buildScreenMarquee } from '../motion/acts/screenMarquee.js';
+import { mountAtmosphere } from '../motion/atmosphere/mount.js';
 
 const ACT_BUILDERS = {
   scan: buildAct1Scan,
@@ -20,21 +21,33 @@ const ACT_BUILDERS = {
   marquee: buildScreenMarquee,
 };
 
-function mountFilm() {
+async function mountFilm() {
   const tier = document.documentElement.getAttribute('data-motion') || 'still';
   if (tier === 'still') return; // GSAP must never load - gate already prevents this, belt and suspenders.
 
+  // Atmosphere shader mounts only in `full` (raw WebGL2, see Phase 6) -
+  // lite/still keep the CSS gradient base from Atmosphere.astro and never
+  // reach this branch, so zero shader JS ships to them. mountAtmosphere is
+  // awaited first because gl.js is a dynamic import (see mount.js) -
+  // the act builders need the resolved handle before they wire onUpdate.
+  let atmosphere = null;
+  if (tier === 'full') {
+    const canvas = document.querySelector('[data-atmosphere-canvas]');
+    if (canvas) atmosphere = await mountAtmosphere(canvas);
+  }
+
   createRuntime(tier, (ctx) => {
     const cleanups = [];
+    if (atmosphere) cleanups.push(() => atmosphere.destroy());
 
     const heroRoot = document.getElementById('hero');
-    if (heroRoot) cleanups.push(buildHero({ root: heroRoot, ...ctx }));
+    if (heroRoot) cleanups.push(buildHero({ root: heroRoot, ...ctx, atmosphere }));
 
     document.querySelectorAll('[data-act]').forEach((root) => {
       const key = root.getAttribute('data-act');
       if (key === 'hero') return;
       const builder = ACT_BUILDERS[key];
-      if (builder) cleanups.push(builder({ root, ...ctx }));
+      if (builder) cleanups.push(builder({ root, ...ctx, atmosphere }));
     });
 
     // Layout can shift after acts mount in the full tier (font, pin) - one

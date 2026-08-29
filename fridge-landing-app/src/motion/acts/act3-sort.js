@@ -6,7 +6,10 @@
 // still/lite render the correct final composition with zero JS; Flip only
 // animates the transition INTO the state you'd already land on.
 // MotionPath is cut entirely (the most generic motion in the toolkit).
-export function buildAct3Sort({ root, gsap, ScrollTrigger, Flip, tier }) {
+// Atmosphere hook: entering this act pushes u_progress toward the freezer
+// leg of the fog gradient (see gl.js - u_progress mixes key green into
+// storage-freezer cyan past ~0.6).
+export function buildAct3Sort({ root, gsap, ScrollTrigger, Flip, tier, atmosphere }) {
   const scene = root.querySelector('[data-sort-scene]');
   if (!scene || tier !== 'full') return () => {}; // lite/still: natural DOM is already correct.
 
@@ -36,6 +39,16 @@ export function buildAct3Sort({ root, gsap, ScrollTrigger, Flip, tier }) {
         absolute: true,
         stagger: 0.06,
       });
+      if (atmosphere) {
+        gsap.to({ v: 0 }, {
+          v: 1,
+          duration: 1.2,
+          ease: 'cine',
+          onUpdate() {
+            atmosphere.setUniform('u_progress', this.targets()[0].v);
+          },
+        });
+      }
     },
   });
 

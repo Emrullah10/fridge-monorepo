@@ -5,7 +5,9 @@
 // overlay on top, the real text never disappears (structural rule).
 import { DrawSVGPlugin } from 'gsap/DrawSVGPlugin';
 
-export function buildAct4Money({ root, gsap, ScrollTrigger, tier }) {
+// Atmosphere hook: the waste counter warms the fog toward
+// --status-warning (u_intensity 0->1, see gl.js) as the numbers land.
+export function buildAct4Money({ root, gsap, ScrollTrigger, tier, atmosphere }) {
   gsap.registerPlugin(DrawSVGPlugin);
 
   const scene = root.querySelector('[data-money-scene]');
@@ -54,6 +56,16 @@ export function buildAct4Money({ root, gsap, ScrollTrigger, tier }) {
         const scale = parseFloat(bar.getAttribute('data-bar-scale') || '1');
         gsap.to(bar, { scaleY: scale, duration: 0.8, ease: 'cine', delay: i * 0.05 });
       });
+      if (atmosphere) {
+        gsap.to({ v: 0 }, {
+          v: 1,
+          duration: 1.2,
+          ease: 'cine',
+          onUpdate() {
+            atmosphere.setUniform('u_intensity', this.targets()[0].v);
+          },
+        });
+      }
     },
   });
   cleanups.push(() => st.kill());

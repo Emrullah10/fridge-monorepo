@@ -29,7 +29,7 @@ async function main() {
     const buf = await readFile(full);
     const gz = gzipSync(buf).length;
     // "home"a ait olduğu tahmini: dosya adı home/act/motion/atmosphere içeriyorsa.
-    const isHomeChunk = /home|act[0-9]|hero|atmosphere|motion|runtime/i.test(file);
+    const isHomeChunk = /home|act[0-9]|hero|atmosphere|motion|runtime|^gl\./i.test(file);
     if (isHomeChunk) homeTotal += gz;
     report.push({ file, gz, isHomeChunk });
   }
