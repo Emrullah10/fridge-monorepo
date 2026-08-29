@@ -10,6 +10,11 @@ const loginRateLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 10
 // çağrılabilirse DB'de sınırsız kullanıcı/household yaratılabilir.
 const guestRateLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 5 });
 
+// Mail gönderimini (ve enumeration denemelerini) sınırlar — kod doğrulama
+// deneme sınırı use-case içinde (MAX_ATTEMPTS) ayrıca var.
+const forgotPasswordRateLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 3 });
+const resetPasswordRateLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 10 });
+
 const REFRESH_COOKIE_OPTS = {
   httpOnly: true,
   sameSite: 'lax',
@@ -170,6 +175,30 @@ const buildAuthRouter = ({ container }) => {
       currentPassword: req.body?.currentPassword,
       newPassword: req.body?.newPassword,
     });
+    res.status(204).end();
+  }));
+
+  // Şifresini unutan kullanıcı için e-posta ile 6 haneli kod. Her koşulda
+  // 204 döner (kayıtlı e-posta olsun olmasın) — use-case bunu içeride
+  // garanti eder (enumeration sızdırmama).
+  router.post('/forgot-password', forgotPasswordRateLimiter, asyncHandler(async (req, res) => {
+    const { email } = req.body ?? {};
+    if (typeof email !== 'string' || !EMAIL_PATTERN.test(email)) {
+      throw new ValidationError('Geçerli bir e-posta adresi gerekli');
+    }
+    await useCases.requestPasswordReset({ email });
+    res.status(204).end();
+  }));
+
+  router.post('/reset-password', resetPasswordRateLimiter, asyncHandler(async (req, res) => {
+    const { email, code, newPassword } = req.body ?? {};
+    if (typeof email !== 'string' || !EMAIL_PATTERN.test(email)) {
+      throw new ValidationError('Geçerli bir e-posta adresi gerekli');
+    }
+    if (typeof code !== 'string' || !/^\d{6}$/.test(code)) {
+      throw new ValidationError('Geçerli bir kod gerekli');
+    }
+    await useCases.resetPassword({ email, code, newPassword });
     res.status(204).end();
   }));
 
