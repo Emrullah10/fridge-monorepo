@@ -39,11 +39,22 @@ import { makeNotificationRepository } from '@fridge/core/src/infrastructure/pers
 import { makeNotificationPreferenceRepository } from '@fridge/core/src/infrastructure/persistence/repositories/notification-preference.repository.js';
 import { makeInsightsRepository } from '@fridge/core/src/infrastructure/persistence/repositories/insights.repository.js';
 import { makeChefChatRepository } from '@fridge/core/src/infrastructure/persistence/repositories/chef-chat.repository.js';
+import { makeSubscriptionRepository } from '@fridge/core/src/infrastructure/persistence/repositories/subscription.repository.js';
+import { makeUsageCounterRepository } from '@fridge/core/src/infrastructure/persistence/repositories/usage-counter.repository.js';
+import { makeBillingEventRepository } from '@fridge/core/src/infrastructure/persistence/repositories/billing-event.repository.js';
 
 import { makeRegisterUser } from '@fridge/core/src/application/use-cases/auth/register-user.use-case.js';
 import { makeLoginUser } from '@fridge/core/src/application/use-cases/auth/login-user.use-case.js';
 import { makeCreateGuestUser } from '@fridge/core/src/application/use-cases/auth/create-guest-user.use-case.js';
 import { makeUpgradeGuestUser } from '@fridge/core/src/application/use-cases/auth/upgrade-guest-user.use-case.js';
+import { makeGetEntitlements } from '@fridge/core/src/application/use-cases/billing/get-entitlements.use-case.js';
+import { makeStartReverseTrial } from '@fridge/core/src/application/use-cases/billing/start-reverse-trial.use-case.js';
+import { makeReserveAiUsage } from '@fridge/core/src/application/use-cases/billing/reserve-ai-usage.use-case.js';
+import { makeReleaseAiUsage } from '@fridge/core/src/application/use-cases/billing/release-ai-usage.use-case.js';
+import { makeApplyBillingEvent } from '@fridge/core/src/application/use-cases/billing/apply-billing-event.use-case.js';
+import { makeReconcileSubscriptions } from '@fridge/core/src/application/use-cases/billing/reconcile-subscriptions.use-case.js';
+import { buildPlanLimits } from '@fridge/core/src/domain/plans.js';
+import { canUseAiFeature } from '@fridge/core/src/domain/entitlements.js';
 import { makeRefreshSession } from '@fridge/core/src/application/use-cases/auth/refresh-session.use-case.js';
 import { makeLogoutUser } from '@fridge/core/src/application/use-cases/auth/logout-user.use-case.js';
 import { makeDeleteAccount } from '@fridge/core/src/application/use-cases/auth/delete-account.use-case.js';
@@ -100,7 +111,7 @@ import { makeGetHouseholdInsights } from '@fridge/core/src/application/use-cases
 import { makeSendChefMessage } from '@fridge/core/src/application/use-cases/chef/send-chef-message.use-case.js';
 import { makeLookupBarcode } from '@fridge/core/src/application/use-cases/product/lookup-barcode.use-case.js';
 
-import { makeSystemClock } from '@fridge/helper';
+import { makeSystemClock, log } from '@fridge/helper';
 
 const buildContainer = (config) => {
   const datasource = makeDatasource({ connectionString: config.databaseUrl });
@@ -208,7 +219,15 @@ const buildContainer = (config) => {
     insightsRepo: makeInsightsRepository({ rawQuery }),
     chefChatRepo: makeChefChatRepository({ rawQuery }),
     aiUsageLogRepo,
+    subscriptionRepo: makeSubscriptionRepository({ rawQuery }),
+    usageCounterRepo: makeUsageCounterRepository({ rawQuery, datasource }),
+    billingEventRepo: makeBillingEventRepository({ rawQuery }),
   };
+
+  // Plan/kota limit tablosu — env PLAN_LIMITS_JSON ile ezilebilir (bkz.
+  // domain/plans.js). Bir kez hesaplanır, tüm entitlement use-case'leri
+  // aynı referansı paylaşır.
+  const planLimitsByPlan = buildPlanLimits(config.planLimitsJson);
 
   const notifyHousehold = makeNotifyHousehold({
     householdMemberRepo: repos.householdMemberRepo,
@@ -217,6 +236,12 @@ const buildContainer = (config) => {
     notificationPreferenceRepo: repos.notificationPreferenceRepo,
     notificationPort,
   });
+
+  // process-receipt-scan.use-case.js kota iadesi için releaseAiUsage'a
+  // ihtiyaç duyuyor — useCases objesinin kendisine dairesel referans
+  // vermemek için (createHousehold ile aynı desen) önce ayrı bir
+  // değişkende kuruluyor, useCases'e de aynı referans atanıyor.
+  const releaseAiUsage = makeReleaseAiUsage({ usageCounterRepo: repos.usageCounterRepo });
 
   // createGuestUser, misafire otomatik bir alan açmak için createHousehold'a
   // ihtiyaç duyuyor — useCases objesinin kendisine dairesel referans
@@ -238,6 +263,30 @@ const buildContainer = (config) => {
       createHousehold,
     }),
     upgradeGuestUser: makeUpgradeGuestUser({ userRepo: repos.userRepo }),
+    getEntitlements: makeGetEntitlements({
+      userRepo: repos.userRepo,
+      subscriptionRepo: repos.subscriptionRepo,
+      usageCounterRepo: repos.usageCounterRepo,
+      householdMemberRepo: repos.householdMemberRepo,
+      planLimitsByPlan,
+      clock,
+    }),
+    startReverseTrial: makeStartReverseTrial({ userRepo: repos.userRepo, clock }),
+    reserveAiUsage: makeReserveAiUsage({ usageCounterRepo: repos.usageCounterRepo }),
+    releaseAiUsage,
+    applyBillingEvent: makeApplyBillingEvent({
+      billingEventRepo: repos.billingEventRepo,
+      subscriptionRepo: repos.subscriptionRepo,
+      userRepo: repos.userRepo,
+    }),
+    reconcileSubscriptions: makeReconcileSubscriptions({
+      subscriptionRepo: repos.subscriptionRepo,
+      // Faz 5'te RevenueCat REST istemcisiyle değiştirilecek — şimdilik
+      // no-op (her zaman null döner, hiçbir şeyi değiştirmez) böylece cron
+      // Faz 1'de bile güvenle çalıştırılabilir/test edilebilir.
+      fetchLatestFromStore: async () => null,
+      log,
+    }),
     refreshSession: makeRefreshSession({ sessionRepo: repos.sessionRepo, tokenService }),
     logoutUser: makeLogoutUser({ sessionRepo: repos.sessionRepo, tokenService }),
     deleteAccount: makeDeleteAccount({
@@ -277,6 +326,7 @@ const buildContainer = (config) => {
       userRepo: repos.userRepo,
       notifyHousehold,
       clock,
+      planLimitsByPlan,
     }),
     updateHouseholdSettings: makeUpdateHouseholdSettings({ householdRepo: repos.householdRepo }),
 
@@ -316,6 +366,7 @@ const buildContainer = (config) => {
       ocrPort,
       receiptParserPort,
       notifyHousehold,
+      releaseAiUsage,
     }),
     correctLineItem: makeCorrectLineItem({
       receiptLineItemRepo: repos.receiptLineItemRepo,
@@ -401,7 +452,7 @@ const buildContainer = (config) => {
       : null,
   };
 
-  return { config, datasource, tokenService, storagePort, notificationPort, repos, useCases };
+  return { config, datasource, tokenService, storagePort, notificationPort, repos, useCases, planLimitsByPlan, canUseAiFeature };
 };
 
 export { buildContainer };

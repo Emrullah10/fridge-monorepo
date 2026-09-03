@@ -10,6 +10,7 @@ import { buildProductRouter } from './product.routes.js';
 import { buildInsightsRouter } from './insights.routes.js';
 import { buildChefRouter } from './chef.routes.js';
 import { buildDeviceRouter, buildNotificationRouter } from './notification.routes.js';
+import { buildBillingRouter } from './billing.routes.js';
 
 const buildRouter = ({ container, authenticate }) => {
   const router = Router();
@@ -28,6 +29,7 @@ const buildRouter = ({ container, authenticate }) => {
   router.use('/households/:householdId/chef', buildChefRouter({ container }));
   router.use('/devices', buildDeviceRouter({ container }));
   router.use('/notifications', buildNotificationRouter({ container }));
+  router.use('/', buildBillingRouter({ container })); // /me/entitlements, /me/subscription/manage-url
 
   return router;
 };

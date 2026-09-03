@@ -11,7 +11,9 @@ const makeAuthMiddleware = ({ tokenService, userRepo }) => {
 
       const payload = tokenService.verifyAccessToken(token);
       const user = await userRepo.findById(payload.userId);
-      req.user = user ? { id: user.id, email: user.email, isGuest: user.isGuest ?? false } : null;
+      req.user = user
+        ? { id: user.id, email: user.email, isGuest: user.isGuest ?? false, guestDeviceId: user.guestDeviceId ?? null }
+        : null;
       return next();
     } catch {
       req.user = null;

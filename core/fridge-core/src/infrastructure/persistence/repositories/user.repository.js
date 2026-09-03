@@ -9,6 +9,9 @@ const mapRow = (row) => row && ({
   isGuest: row.is_guest ?? false,
   guestDeviceId: row.guest_device_id ?? null,
   lastSeenAt: row.last_seen_at ?? null,
+  trialStartedAt: row.trial_started_at ?? null,
+  trialEndsAt: row.trial_ends_at ?? null,
+  trialDeviceId: row.trial_device_id ?? null,
 });
 
 const makeUserRepository = ({ rawQuery }) => {
@@ -90,6 +93,35 @@ const makeUserRepository = ({ rawQuery }) => {
         `UPDATE app_user SET password_hash = $2, updated_at = now() WHERE id = $1`,
         [id, passwordHash],
       );
+    },
+
+    // 14 günlük ters deneme — register/upgrade-guest akışında bir kez
+    // çağrılır (bkz. start-reverse-trial.use-case.js). trialDeviceId aynı
+    // cihazın ikinci kez deneme almasını önlemek için ayrı sorgulanır
+    // (findTrialByDeviceId) — burası sadece yazar, karar use-case'te.
+    startTrial: async (id, { startedAt, endsAt, deviceId }) => {
+      const { rows } = await rawQuery(
+        `UPDATE app_user SET
+           trial_started_at = $2, trial_ends_at = $3, trial_device_id = $4, updated_at = now()
+         WHERE id = $1 RETURNING *`,
+        [id, startedAt, endsAt, deviceId],
+      );
+      return mapRow(rows[0]);
+    },
+
+    // Bu cihaz (guest_device_id VEYA trial_device_id eşleşen) daha önce
+    // deneme almış mı? start-reverse-trial suistimal koruması burada karar
+    // vermez — sadece "geçmişte var mıydı" bilgisini döner, sessizce
+    // ücretsiz kademede başlatma kararı use-case'te.
+    findTrialByDeviceId: async (deviceId) => {
+      if (!deviceId) return null;
+      const { rows } = await rawQuery(
+        `SELECT * FROM app_user
+         WHERE trial_device_id = $1 OR guest_device_id = $1
+         LIMIT 1`,
+        [deviceId],
+      );
+      return mapRow(rows[0]);
     },
   };
 };

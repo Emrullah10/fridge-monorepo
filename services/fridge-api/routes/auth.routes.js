@@ -58,9 +58,15 @@ const buildAuthRouter = ({ container }) => {
   const { useCases, repos } = container;
 
   router.post('/register', asyncHandler(async (req, res) => {
-    const { email, password, displayName, locale } = req.body ?? {};
+    const { email, password, displayName, locale, deviceId } = req.body ?? {};
     assertValidRegisterInput({ email, password, displayName });
     const user = await useCases.registerUser({ email, password, displayName, locale });
+    // 14 günlük ters deneme — her yeni kayıtta bir kez başlar (plan §Faz 3).
+    // deviceId opsiyonel (eski mobil sürümler henüz göndermiyor olabilir);
+    // yoksa suistimal kontrolü atlanır, deneme yine de verilir.
+    if (useCases.startReverseTrial) {
+      await useCases.startReverseTrial({ userId: user.id, deviceId: deviceId ?? null });
+    }
     res.status(201).json({ user: { id: user.id, email: user.email, displayName: user.displayName } });
   }));
 
@@ -98,7 +104,7 @@ const buildAuthRouter = ({ container }) => {
   // Misafir hesabını kalıcı hesaba yükseltir — aynı satır UPDATE edilir,
   // alan/envanter/fiş hiç taşınmaz (zaten aynı user_id). Oturum korunur.
   router.post('/upgrade', requireAuth(), asyncHandler(async (req, res) => {
-    const { email, password, displayName } = req.body ?? {};
+    const { email, password, displayName, deviceId } = req.body ?? {};
     assertValidRegisterInput({ email, password, displayName });
     const user = await useCases.upgradeGuestUser({
       userId: req.user.id,
@@ -107,6 +113,12 @@ const buildAuthRouter = ({ container }) => {
       password,
       displayName,
     });
+    // Misafirden yükselirken de deneme başlar — deviceId burada zaten
+    // biliniyor olabilir (device_id_storage.dart), yoksa da güvenli:
+    // startReverseTrial kendi suistimal kontrolünü yapar.
+    if (useCases.startReverseTrial) {
+      await useCases.startReverseTrial({ userId: user.id, deviceId: deviceId ?? req.user.guestDeviceId ?? null });
+    }
     res.json({ user: publicUser(user) });
   }));
 
