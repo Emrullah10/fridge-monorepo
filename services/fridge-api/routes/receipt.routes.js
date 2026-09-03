@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { asyncHandler } from '@fridge/helper';
-import { requireAuth, requireHouseholdRole, requireGuestQuota, rateLimiter } from '@fridge/middlewares';
+import { requireAuth, requireHouseholdRole, rateLimiter } from '@fridge/middlewares';
 import { NotFoundError, ValidationError } from '@fridge/errors';
+import { canUseAiFeature } from '@fridge/core/src/domain/entitlements.js';
 import { assertOwnedByHousehold } from './helpers/assert-owned-by-household.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -19,9 +20,31 @@ const scanTextRateLimiter = rateLimiter({
   limitName: 'receipt-scan-text',
 });
 
-// Misafir hesap bedava açıldığı için fiş tarama (OCR + Gemini) ayrıca
-// günlük kotalanır — kayıtlı kullanıcılar bu ek sınıra takılmaz.
-const guestScanQuota = requireGuestQuota({ windowMs: 24 * 60 * 60 * 1000, maxRequests: 10, limitName: 'guest-receipt' });
+// Fiş tarama plan/kota kontrolü — requireCapability kullanılamıyor çünkü
+// scanId (ref_id) İSTEK İÇİNDE, uploadReceiptScan çağrısından SONRA üretilir
+// (middleware'de henüz yok). Bu yüzden aynı desen (kota kontrolü + rezervasyon)
+// burada elle uygulanıyor — misafir burada SIGNUP_REQUIRED alır (demo mod
+// mobil tarafta, bkz. plan §Faz 2).
+const checkReceiptCapability = async ({ req, res, useCases }) => {
+  const entitlements = await useCases.getEntitlements({ userId: req.user.id });
+  const { allowed, reason } = canUseAiFeature(entitlements, 'receipt');
+  if (!allowed) {
+    const quota = entitlements.quotas.receipt;
+    res.status(402).json({
+      error: { code: reason, message: reason === 'SIGNUP_REQUIRED'
+        ? 'Fiş tarama için ücretsiz hesap açman gerekiyor.'
+        : 'Bu ayki fiş tarama hakkını doldurdun.' },
+      plan: entitlements.plan,
+      feature: 'receipt',
+      limit: quota?.limit ?? null,
+      used: quota?.used ?? null,
+      resetsAt: quota?.resetsAt ?? null,
+      upgradeAvailable: entitlements.plan !== 'premium',
+    });
+    return false;
+  }
+  return true;
+};
 
 const buildReceiptRouter = ({ container }) => {
   const router = Router({ mergeParams: true });
@@ -30,10 +53,12 @@ const buildReceiptRouter = ({ container }) => {
   router.use(requireAuth());
   router.use(requireHouseholdRole({ householdMemberRepo: repos.householdMemberRepo, minRole: 'member' }));
 
-  router.post('/scan', guestScanQuota, upload.single('image'), asyncHandler(async (req, res) => {
+  router.post('/scan', upload.single('image'), asyncHandler(async (req, res) => {
     if (!req.file) {
       return res.status(422).json({ error: { code: 'VALIDATION_ERROR', message: 'image file is required' } });
     }
+    if (!(await checkReceiptCapability({ req, res, useCases }))) return;
+
     const extension = req.file.originalname.split('.').pop() || 'jpg';
     const scan = await useCases.uploadReceiptScan({
       householdId: req.params.householdId,
@@ -41,10 +66,14 @@ const buildReceiptRouter = ({ container }) => {
       imageBuffer: req.file.buffer,
       extension,
     });
+    // Rezervasyon scanId'ye bağlanır — worker (scan-processor.js) terminal
+    // hata/0-ürün sonucunda /:scanId/retry veya kendi hata yolunda iade
+    // edecek (bkz. reserveAiUsage kullanımı burada, release scan-processor'da).
+    await useCases.reserveAiUsage({ refId: scan.id, userId: req.user.id, feature: 'receipt' });
     res.status(202).json({ scanId: scan.id, status: scan.status });
   }));
 
-  router.post('/scan-text', guestScanQuota, scanTextRateLimiter, asyncHandler(async (req, res) => {
+  router.post('/scan-text', scanTextRateLimiter, asyncHandler(async (req, res) => {
     const { rawText } = req.body ?? {};
     if (typeof rawText !== 'string' || rawText.trim().length === 0) {
       throw new ValidationError('rawText gerekli');
@@ -52,15 +81,22 @@ const buildReceiptRouter = ({ container }) => {
     if (rawText.length > MAX_RAW_TEXT_LENGTH) {
       throw new ValidationError(`rawText ${MAX_RAW_TEXT_LENGTH} karakteri aşamaz`);
     }
+    if (!(await checkReceiptCapability({ req, res, useCases }))) return;
 
     const scan = await useCases.uploadReceiptScanText({
       householdId: req.params.householdId,
       uploadedBy: req.user.id,
     });
-    // Ham metni doğrudan işlenmiş kabul ediyoruz; kademe 1 atlandığı için
-    // processReceiptScan'e rawText geçirilir (ocrPort mlkit-passthrough olmalı).
-    await useCases.processReceiptScan({ scanId: scan.id, rawText });
-    res.status(202).json({ scanId: scan.id, status: 'processing' });
+    await useCases.reserveAiUsage({ refId: scan.id, userId: req.user.id, feature: 'receipt' });
+    try {
+      // Ham metni doğrudan işlenmiş kabul ediyoruz; kademe 1 atlandığı için
+      // processReceiptScan'e rawText geçirilir (ocrPort mlkit-passthrough olmalı).
+      await useCases.processReceiptScan({ scanId: scan.id, rawText });
+      res.status(202).json({ scanId: scan.id, status: 'processing' });
+    } catch (error) {
+      await useCases.releaseAiUsage({ refId: scan.id });
+      throw error;
+    }
   }));
 
   router.get('/', asyncHandler(async (req, res) => {
@@ -89,9 +125,12 @@ const buildReceiptRouter = ({ container }) => {
     res.json({ scan, lineItems });
   }));
 
+  // Aynı scanId = aynı ref_id -> usage_reservation zaten idempotent, retry
+  // kotayı TEKRAR yakmaz (bkz. usage-counter.repository.js reserve()).
   router.post('/:scanId/retry', asyncHandler(async (req, res) => {
     const existing = await repos.receiptScanRepo.findById(req.params.scanId);
     assertOwnedByHousehold(existing, req.params.householdId, 'Receipt scan not found');
+    await useCases.reserveAiUsage({ refId: req.params.scanId, userId: req.user.id, feature: 'receipt' });
     const scan = await useCases.retryReceiptScan({ scanId: req.params.scanId });
     res.json({ scan });
   }));

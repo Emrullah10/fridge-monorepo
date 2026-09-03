@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { asyncHandler } from '@fridge/helper';
-import { requireAuth, requireHouseholdRole } from '@fridge/middlewares';
+import { requireAuth, requireHouseholdRole, requireStructuralLimit } from '@fridge/middlewares';
 import { translateDomainError } from '@fridge/errors';
 import { LocationNotEmptyError } from '@fridge/core/src/domain/errors/index.js';
 
@@ -10,15 +10,29 @@ const buildHouseholdRouter = ({ container }) => {
 
   router.use(requireAuth());
 
-  router.post('/', asyncHandler(async (req, res) => {
-    const household = await useCases.createHousehold({
-      name: req.body.name,
-      kind: req.body.kind,
-      features: req.body.features,
-      ownerUserId: req.user.id,
-    });
-    res.status(201).json({ household });
-  }));
+  router.post(
+    '/',
+    // findByUserId ÜYE olunan tüm alanları döner (sahip + davetle katılan) —
+    // bilinçli olarak "kaç alanla ilişkisi var" sınırlanıyor, sadece
+    // "sahip olduğu" değil; aksi halde bir kullanıcı sınırsız alana davetle
+    // katılıp limiti aşabilirdi.
+    requireStructuralLimit('household.count', {
+      getEntitlements: useCases.getEntitlements,
+      countCurrent: async (req) => {
+        const memberships = await repos.householdRepo.findByUserId(req.user.id);
+        return memberships.length;
+      },
+    }),
+    asyncHandler(async (req, res) => {
+      const household = await useCases.createHousehold({
+        name: req.body.name,
+        kind: req.body.kind,
+        features: req.body.features,
+        ownerUserId: req.user.id,
+      });
+      res.status(201).json({ household });
+    }),
+  );
 
   router.get('/', asyncHandler(async (req, res) => {
     const households = await repos.householdRepo.findByUserId(req.user.id);
@@ -49,6 +63,13 @@ const buildHouseholdRouter = ({ container }) => {
   router.post(
     '/:householdId/locations',
     requireHouseholdRole({ householdMemberRepo: repos.householdMemberRepo, minRole: 'member' }),
+    requireStructuralLimit('location.perHousehold', {
+      getEntitlements: useCases.getEntitlements,
+      countCurrent: async (req) => {
+        const locations = await repos.storageLocationRepo.listByHousehold(req.params.householdId);
+        return locations.length;
+      },
+    }),
     asyncHandler(async (req, res) => {
       const location = await useCases.createStorageLocation({
         householdId: req.params.householdId,

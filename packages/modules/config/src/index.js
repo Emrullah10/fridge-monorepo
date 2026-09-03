@@ -76,6 +76,11 @@ const readEnv = (env = process.env) => {
     appLatestVersion: env.APP_LATEST_VERSION || '1.0.0',
     appMinSupportedVersion: env.APP_MIN_SUPPORTED_VERSION || '1.0.0',
     appStoreUrl: env.APP_STORE_URL || 'https://play.google.com/store/apps/details?id=com.fridge.fridge_mobil',
+    // Plan/kota limitlerini uygulama sürümü çıkarmadan ayarlamak için —
+    // bkz. domain/plans.js buildPlanLimits(). Kısmi bir JSON objesi
+    // (yalnızca değişecek alanlar) yeterli, deep merge edilir. Bozuk JSON
+    // sessizce yok sayılır (boot çökmez).
+    planLimitsJson: env.PLAN_LIMITS_JSON || null,
   };
 };
 

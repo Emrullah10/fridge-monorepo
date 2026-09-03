@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { asyncHandler } from '@fridge/helper';
-import { requireAuth, requireHouseholdRole, requireHouseholdFeature, requireGuestQuota, rateLimiter } from '@fridge/middlewares';
+import { requireAuth, requireHouseholdRole, requireHouseholdFeature, requireCapability, rateLimiter } from '@fridge/middlewares';
 import { resolveFeatures } from '@fridge/core/src/domain/household-profile.js';
+import { canUseAiFeature } from '@fridge/core/src/domain/entitlements.js';
 
 const buildChefRouter = ({ container }) => {
   const router = Router({ mergeParams: true });
@@ -21,22 +22,34 @@ const buildChefRouter = ({ container }) => {
     res.json({ messages });
   }));
 
-  // Her mesaj Gemini'ye para harcıyor — dakikada 10 istekle sınırla.
-  // Misafir hesap bedava açıldığı için ayrıca günlük kota.
+  // Plan/kota kontrolü + rezervasyon — misafir burada SIGNUP_REQUIRED alır
+  // (demo mod mobil tarafta, bkz. plan §Faz 2). requireHouseholdFeature'dan
+  // SONRA, rateLimiter'dan ÖNCE (402, 429'dan önce dönmeli).
   router.post(
     '/messages',
-    requireGuestQuota({ windowMs: 24 * 60 * 60 * 1000, maxRequests: 10, limitName: 'guest-chef' }),
+    requireCapability('chef', {
+      getEntitlements: useCases.getEntitlements,
+      reserveAiUsage: useCases.reserveAiUsage,
+      canUseAiFeature,
+    }),
     rateLimiter({ windowMs: 60_000, maxRequests: 10, keyFn: (req) => req.user.id, limitName: 'chef-messages' }),
     asyncHandler(async (req, res) => {
       if (!useCases.sendChefMessage) {
+        await useCases.releaseAiUsage({ refId: req.aiUsageRefId });
         return res.status(503).json({ error: { code: 'AI_DISABLED', message: 'AI Chef şu anda kapalı' } });
       }
-      const result = await useCases.sendChefMessage({
-        householdId: req.params.householdId,
-        userId: req.user.id,
-        message: req.body?.message,
-      });
-      res.status(201).json(result);
+      try {
+        const result = await useCases.sendChefMessage({
+          householdId: req.params.householdId,
+          userId: req.user.id,
+          message: req.body?.message,
+          isGuest: req.user.isGuest ?? false,
+        });
+        res.status(201).json(result);
+      } catch (error) {
+        await useCases.releaseAiUsage({ refId: req.aiUsageRefId });
+        throw error;
+      }
     }),
   );
 
