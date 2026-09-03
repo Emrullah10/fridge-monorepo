@@ -38,6 +38,15 @@ const makeSubscriptionRepository = ({ rawQuery }) => {
     // yıllık) veya resubscribe etse bile TEK satır kalır, geçmiş satırlar
     // billing_event tablosunda (event_id PK, ayrı) zaten denetim izi olarak
     // duruyor.
+    //
+    // COALESCE(EXCLUDED.x, subscription.x): productId/purchaseToken/
+    // currentPeriodEnd/cancelReason RC'nin HER event'inde gelmiyor (ör.
+    // bazı CANCELLATION/EXPIRATION payload'larında product_id boş kalabilir)
+    // — bunlar null geldiğinde MEVCUT değeri silmemeli, sadece dolu geldiğinde
+    // güncellemeli. status/store/environment/autoRenewing/canceledAt/raw her
+    // zaman anlamlı bir değerle gelir (apply-billing-event.use-case.js zaten
+    // status'u resolveStatusForEventType ile hesaplıyor), o yüzden onlar
+    // koşulsuz EXCLUDED'dan alınır.
     upsert: async ({
       userId, store, productId, purchaseToken, rcAppUserId, status,
       autoRenewing, currentPeriodEnd, canceledAt, cancelReason, environment, raw,
@@ -50,14 +59,14 @@ const makeSubscriptionRepository = ({ rawQuery }) => {
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11, now(), $12, now())
          ON CONFLICT (user_id) DO UPDATE SET
            store = EXCLUDED.store,
-           product_id = EXCLUDED.product_id,
-           purchase_token = EXCLUDED.purchase_token,
+           product_id = COALESCE(EXCLUDED.product_id, subscription.product_id),
+           purchase_token = COALESCE(EXCLUDED.purchase_token, subscription.purchase_token),
            rc_app_user_id = EXCLUDED.rc_app_user_id,
            status = EXCLUDED.status,
            auto_renewing = EXCLUDED.auto_renewing,
-           current_period_end = EXCLUDED.current_period_end,
+           current_period_end = COALESCE(EXCLUDED.current_period_end, subscription.current_period_end),
            canceled_at = EXCLUDED.canceled_at,
-           cancel_reason = EXCLUDED.cancel_reason,
+           cancel_reason = COALESCE(EXCLUDED.cancel_reason, subscription.cancel_reason),
            environment = EXCLUDED.environment,
            last_event_at = now(),
            raw = EXCLUDED.raw,
