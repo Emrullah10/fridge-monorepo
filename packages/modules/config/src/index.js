@@ -81,6 +81,13 @@ const readEnv = (env = process.env) => {
     // (yalnızca değişecek alanlar) yeterli, deep merge edilir. Bozuk JSON
     // sessizce yok sayılır (boot çökmez).
     planLimitsJson: env.PLAN_LIMITS_JSON || null,
+    // RevenueCat Dashboard > Webhooks'ta "Authorization Header Value"
+    // olarak ayarlanan paylaşılan sır — webhook route'u gelen isteğin
+    // Authorization header'ını buna eşitleyip doğrular (bkz. RC docs
+    // "Authorization Header Setup"). Boşsa webhook route'u TÜM istekleri
+    // reddeder (fail-closed — ödeme durumunu güncelleyen bir uç, diğer
+    // no-op adaptörlerin aksine sessizce açık bırakılamaz).
+    revenueCatWebhookSecret: env.REVENUECAT_WEBHOOK_SECRET || null,
   };
 };
 
