@@ -4,6 +4,7 @@ import { makeTokenService } from '@fridge/core/src/infrastructure/token-service.
 import { makeLocalDiskStorage } from '@fridge/core/src/infrastructure/storage/local-disk.adapter.js';
 import { makeTesseractOcr } from '@fridge/core/src/infrastructure/ocr/tesseract.adapter.js';
 import { makeGeminiTextParser } from '@fridge/core/src/infrastructure/parser/gemini-text.adapter.js';
+import { makeGroqTextParser } from '@fridge/core/src/infrastructure/parser/groq-text.adapter.js';
 import { makeRuleBasedParser } from '@fridge/core/src/infrastructure/parser/rule-based.adapter.js';
 import { makeGeminiRecipeGenerator } from '@fridge/core/src/infrastructure/recipe/gemini-recipe.adapter.js';
 import { makeGeminiShoppingSuggester } from '@fridge/core/src/infrastructure/shopping/gemini-shopping.adapter.js';
@@ -14,6 +15,7 @@ import { makeNoopNotifier } from '@fridge/core/src/infrastructure/notification/n
 import { makeResendMailer } from '@fridge/core/src/infrastructure/mail/resend.adapter.js';
 import { makeNoopMailer } from '@fridge/core/src/infrastructure/mail/noop-mailer.adapter.js';
 import { makePasswordResetRepository } from '@fridge/core/src/infrastructure/persistence/repositories/password-reset.repository.js';
+import { makeAiUsageLogRepository } from '@fridge/core/src/infrastructure/persistence/repositories/ai-usage-log.repository.js';
 
 import { makeUserRepository } from '@fridge/core/src/infrastructure/persistence/repositories/user.repository.js';
 import { makeSessionRepository } from '@fridge/core/src/infrastructure/persistence/repositories/session.repository.js';
@@ -118,26 +120,39 @@ const buildContainer = (config) => {
   // olması kafa karıştırıcı ve imza uyumsuzluğuna (imagePath vs rawText) açıktı.
   const ocrPort = makeTesseractOcr({ storagePort });
 
+  // Her Gemini çağrısının (özellik, model, token, gecikme, hata kodu) kaydı —
+  // bu olmadan "hangi özellik ne kadar harcıyor / hangi limit vuruyor" hiçbir
+  // veriyle cevaplanamıyordu. record() kendi try/catch'ini yönetir, asla
+  // reject etmez — onUsage burada await edilmeden ateşlenir (fire-and-forget),
+  // bir log yazımı asla kullanıcının AI yanıtını geciktirmemeli.
+  const aiUsageLogRepo = makeAiUsageLogRepository({ rawQuery });
+  const onUsage = (entry) => { aiUsageLogRepo.record(entry); };
+
+  // groq: 1000 istek/gün ücretsiz (2026-08-29 ölçümü) — Gemini'nin 20/gün
+  // ücretsiz kotasına sıkışıldığında env değişikliğiyle (PARSER_PROVIDER=groq)
+  // devreye alınabilir, kod değişikliği gerekmez.
   const receiptParserPort = config.parserProvider === 'rule-based'
     ? makeRuleBasedParser()
-    : makeGeminiTextParser({ apiKey: config.geminiApiKey, model: config.geminiModel });
+    : config.parserProvider === 'groq'
+    ? makeGroqTextParser({ apiKey: config.groqApiKey, model: config.groqModel, onUsage })
+    : makeGeminiTextParser({ apiKey: config.geminiApiKey, model: config.geminiModel, onUsage });
 
   // recipeAiEnabled=false ise null kalır — recipe.routes.js bunu görüp 503
   // döner, key eksikken sessizce boot edip runtime'da patlamak yerine.
   const recipeGeneratorPort = config.recipeAiEnabled
-    ? makeGeminiRecipeGenerator({ apiKey: config.geminiApiKey, model: config.geminiRecipeModel })
+    ? makeGeminiRecipeGenerator({ apiKey: config.geminiApiKey, model: config.geminiRecipeModel, onUsage })
     : null;
 
   // shoppingAiEnabled=false ise null kalır — shopping.routes.js bunu görüp
   // 503 döner, recipeGeneratorPort ile aynı desen.
   const shoppingSuggesterPort = config.shoppingAiEnabled
-    ? makeGeminiShoppingSuggester({ apiKey: config.geminiApiKey, model: config.geminiShoppingModel })
+    ? makeGeminiShoppingSuggester({ apiKey: config.geminiApiKey, model: config.geminiShoppingModel, onUsage })
     : null;
 
   // chefAiEnabled=false ise null kalır — chef.routes.js bunu görüp 503 döner,
   // recipeGeneratorPort ile aynı desen.
   const chefChatPort = config.chefAiEnabled
-    ? makeGeminiChefChat({ apiKey: config.geminiApiKey, model: config.geminiChefModel })
+    ? makeGeminiChefChat({ apiKey: config.geminiApiKey, model: config.geminiChefModel, onUsage })
     : null;
 
   // Kimlik bilgisi eksikse (dosya yok/okunamıyor) no-op'a düş — push'un
@@ -192,6 +207,7 @@ const buildContainer = (config) => {
     notificationPreferenceRepo: makeNotificationPreferenceRepository({ rawQuery }),
     insightsRepo: makeInsightsRepository({ rawQuery }),
     chefChatRepo: makeChefChatRepository({ rawQuery }),
+    aiUsageLogRepo,
   };
 
   const notifyHousehold = makeNotifyHousehold({

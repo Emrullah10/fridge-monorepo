@@ -16,11 +16,12 @@ const scanTextRateLimiter = rateLimiter({
   windowMs: 60 * 1000,
   maxRequests: 20,
   keyFn: (req) => req.user?.id ?? req.ip,
+  limitName: 'receipt-scan-text',
 });
 
 // Misafir hesap bedava açıldığı için fiş tarama (OCR + Gemini) ayrıca
 // günlük kotalanır — kayıtlı kullanıcılar bu ek sınıra takılmaz.
-const guestScanQuota = requireGuestQuota({ windowMs: 24 * 60 * 60 * 1000, maxRequests: 10 });
+const guestScanQuota = requireGuestQuota({ windowMs: 24 * 60 * 60 * 1000, maxRequests: 10, limitName: 'guest-receipt' });
 
 const buildReceiptRouter = ({ container }) => {
   const router = Router({ mergeParams: true });

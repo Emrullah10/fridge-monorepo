@@ -17,7 +17,7 @@ const makeSendChefMessage = ({
   chefChatPort,
   clock,
 }) => {
-  return async ({ householdId, userId, message }) => {
+  return async ({ householdId, userId, message, isGuest = false }) => {
     const text = typeof message === 'string' ? message.trim() : '';
     if (!text) throw new ValidationError('Mesaj boş olamaz');
     if (text.length > MAX_MESSAGE_LEN) {
@@ -64,7 +64,11 @@ const makeSendChefMessage = ({
       diet: mergeDietConstraints(dietProfiles),
     };
 
-    const { reply, suggestedShoppingItems } = await chefChatPort.reply({ history, kitchen });
+    const { reply, suggestedShoppingItems } = await chefChatPort.reply({
+      history,
+      kitchen,
+      context: { userId, householdId, isGuest },
+    });
 
     const saved = await chefChatRepo.append({
       householdId,

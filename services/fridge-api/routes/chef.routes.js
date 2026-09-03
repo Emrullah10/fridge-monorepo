@@ -25,8 +25,8 @@ const buildChefRouter = ({ container }) => {
   // Misafir hesap bedava açıldığı için ayrıca günlük kota.
   router.post(
     '/messages',
-    requireGuestQuota({ windowMs: 24 * 60 * 60 * 1000, maxRequests: 10 }),
-    rateLimiter({ windowMs: 60_000, maxRequests: 10, keyFn: (req) => req.user.id }),
+    requireGuestQuota({ windowMs: 24 * 60 * 60 * 1000, maxRequests: 10, limitName: 'guest-chef' }),
+    rateLimiter({ windowMs: 60_000, maxRequests: 10, keyFn: (req) => req.user.id, limitName: 'chef-messages' }),
     asyncHandler(async (req, res) => {
       if (!useCases.sendChefMessage) {
         return res.status(503).json({ error: { code: 'AI_DISABLED', message: 'AI Chef şu anda kapalı' } });

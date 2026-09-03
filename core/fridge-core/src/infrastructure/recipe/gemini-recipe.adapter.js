@@ -1,5 +1,6 @@
 import { toGeminiSchema } from '../gemini/gemini-schema.js';
 import { RECIPE_RESPONSE_SCHEMA, SYSTEM_PROMPT, buildUserPrompt } from './recipe-prompt.js';
+import { callGemini, extractJson } from '../gemini/gemini-client.js';
 
 const GEMINI_RECIPE_SCHEMA = toGeminiSchema(RECIPE_RESPONSE_SCHEMA);
 
@@ -7,41 +8,28 @@ const GEMINI_RECIPE_SCHEMA = toGeminiSchema(RECIPE_RESPONSE_SCHEMA);
 // aynı REST çağrı şekli, iki fark: temperature yüksek (tarif üretimi
 // yaratıcılık istiyor, fiş ayrıştırma tam tersini) ve timeout daha uzun
 // (üç tarif + adımlar tek istekte üretiliyor, daha çok token demek).
-const makeGeminiRecipeGenerator = ({ apiKey, model, fetchFn = fetch }) => {
+// HTTP/hata/retry/kullanım ölçümü artık gemini-client.js'de paylaşılıyor.
+const makeGeminiRecipeGenerator = ({ apiKey, model, fetchFn = fetch, onUsage }) => {
   return {
-    generate: async ({ ingredients, beverages = [], preferences }) => {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 45_000);
+    generate: async ({ ingredients, beverages = [], preferences, context }) => {
+      const body = await callGemini({
+        apiKey,
+        model,
+        feature: 'recipe',
+        systemPrompt: SYSTEM_PROMPT,
+        contents: [{ role: 'user', parts: [{ text: buildUserPrompt({ ingredients, beverages, preferences }) }] }],
+        generationConfig: {
+          temperature: 0.7,
+          responseMimeType: 'application/json',
+          responseSchema: GEMINI_RECIPE_SCHEMA,
+        },
+        timeoutMs: 45_000,
+        fetchFn,
+        onUsage,
+        context,
+      });
 
-      let response;
-      try {
-        response = await fetchFn(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            signal: controller.signal,
-            body: JSON.stringify({
-              systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-              contents: [{ role: 'user', parts: [{ text: buildUserPrompt({ ingredients, beverages, preferences }) }] }],
-              generationConfig: {
-                temperature: 0.7,
-                responseMimeType: 'application/json',
-                responseSchema: GEMINI_RECIPE_SCHEMA,
-              },
-            }),
-          },
-        );
-      } finally {
-        clearTimeout(timeout);
-      }
-
-      if (!response.ok) {
-        throw new Error(`Gemini recipe request failed: ${response.status} ${response.statusText}`);
-      }
-
-      const body = await response.json();
-      const parsed = JSON.parse(body.candidates[0].content.parts[0].text);
+      const parsed = extractJson(body);
 
       return {
         recipes: parsed.recipes.map((recipe) => ({

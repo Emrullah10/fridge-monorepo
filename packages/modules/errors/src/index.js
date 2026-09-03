@@ -37,6 +37,31 @@ class ForbiddenError extends DomainError {
   }
 }
 
+// Gemini 429 (RESOURCE_EXHAUSTED) — kota gerçekten bitti, retry'ın faydası yok.
+// httpStatus 503 (kalıcı değil, "şimdilik hizmet veremiyoruz" anlamında) —
+// istemci bunu 500 INTERNAL_ERROR'dan ayırt edip farklı bir mesaj gösterebilsin.
+class AiQuotaError extends DomainError {
+  constructor(message = 'Yapay zeka günlük sınırına ulaşıldı. Yarın tekrar dene.') {
+    super(message, { code: 'AI_QUOTA_EXCEEDED', httpStatus: 503 });
+  }
+}
+
+// Gemini 500/502/503 (geçici aşırı yüklenme) — retry sonrası hâlâ başarısızsa
+// buraya düşer.
+class AiBusyError extends DomainError {
+  constructor(message = 'Yapay zeka şu anda yoğun, birazdan tekrar dene.') {
+    super(message, { code: 'AI_BUSY', httpStatus: 503 });
+  }
+}
+
+// AbortController zaman aşımı (fetch tamamlanamadı) — kota/yoğunluktan ayrı,
+// 504 Gateway Timeout kullanıcıya "sunucu değil, işlem uzun sürdü" anlamı verir.
+class AiTimeoutError extends DomainError {
+  constructor(message = 'İşlem çok uzun sürdü, tekrar dene.') {
+    super(message, { code: 'AI_TIMEOUT', httpStatus: 504 });
+  }
+}
+
 const translateDomainError = (error) => {
   if (error instanceof DomainError) {
     return {
@@ -58,5 +83,8 @@ export {
   ConflictError,
   UnauthorizedError,
   ForbiddenError,
+  AiQuotaError,
+  AiBusyError,
+  AiTimeoutError,
   translateDomainError,
 };
