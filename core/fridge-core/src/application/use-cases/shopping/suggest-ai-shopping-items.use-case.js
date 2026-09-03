@@ -9,7 +9,7 @@
 const MAX_SUGGESTIONS = 8;
 
 const makeSuggestAiShoppingItems = ({ shoppingListRepo, shoppingSuggesterPort }) => {
-  return async ({ householdId, userId }) => {
+  return async ({ householdId, userId, isGuest = false }) => {
     const list = await shoppingListRepo.getOrCreateActiveList({ householdId, userId });
     const profile = await shoppingListRepo.consumptionProfile({ householdId, shoppingListId: list.id });
 
@@ -21,7 +21,10 @@ const makeSuggestAiShoppingItems = ({ shoppingListRepo, shoppingSuggesterPort })
     }
 
     const knownProductIds = new Set(profile.map((item) => item.productId));
-    const { suggestions } = await shoppingSuggesterPort.suggest({ profile });
+    const { suggestions } = await shoppingSuggesterPort.suggest({
+      profile,
+      context: { userId, householdId, isGuest },
+    });
 
     // Sunucu tarafı doğrulama — model verilmeyen bir productId uydurursa
     // (halüsinasyon) yeni ürün önerisi gibi ele al, kırık bir id gönderme.

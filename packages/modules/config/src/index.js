@@ -23,6 +23,11 @@ const readEnv = (env = process.env) => {
     if ((parserProvider === 'gemini-text' || recipeAiEnabled || shoppingAiEnabled || chefAiEnabled) && !env.GEMINI_API_KEY) {
       missing.push('GEMINI_API_KEY');
     }
+    // groq sağlayıcısı seçiliyken aynı sessiz-boot riski GROQ_API_KEY için de
+    // geçerli — aynı gerekçe, aynı desen.
+    if (parserProvider === 'groq' && !env.GROQ_API_KEY) {
+      missing.push('GROQ_API_KEY');
+    }
   }
   if (missing.length > 0) {
     throw new Error(`Missing required env vars: ${missing.join(', ')}`);
@@ -38,6 +43,13 @@ const readEnv = (env = process.env) => {
     parserProvider: env.PARSER_PROVIDER || 'gemini-text',
     geminiApiKey: env.GEMINI_API_KEY,
     geminiModel: env.GEMINI_MODEL || 'gemini-2.5-flash',
+    // 2026-08-29 ölçümü: Groq'un ücretsiz katmanı openai/gpt-oss-120b için
+    // 1000 istek/gün veriyor (Gemini 2.5 Flash'ın ücretsiz 20/gün'ünün 50
+    // katı), kredi kartsız. PARSER_PROVIDER=groq ile fiş ayrıştırma buna
+    // yönlendirilebilir — gemini-text ile aynı SYSTEM_PROMPT/finalizeItem
+    // zincirini kullanır (bkz. groq-text.adapter.js).
+    groqApiKey: env.GROQ_API_KEY,
+    groqModel: env.GROQ_MODEL || 'openai/gpt-oss-120b',
     recipeAiEnabled: env.RECIPE_AI_ENABLED !== 'false',
     geminiRecipeModel: env.GEMINI_RECIPE_MODEL || 'gemini-2.5-flash',
     shoppingAiEnabled: env.SHOPPING_AI_ENABLED !== 'false',

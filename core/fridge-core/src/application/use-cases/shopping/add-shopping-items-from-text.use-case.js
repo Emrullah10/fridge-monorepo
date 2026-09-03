@@ -7,7 +7,7 @@ import { ValidationError } from '@fridge/errors';
 const MAX_SUGGESTIONS = 10;
 
 const makeAddShoppingItemsFromText = ({ inventoryItemRepo, shoppingSuggesterPort }) => {
-  return async ({ householdId, text }) => {
+  return async ({ householdId, text, userId = null, isGuest = false }) => {
     if (!text?.trim()) {
       throw new ValidationError('İstek metni boş olamaz');
     }
@@ -15,7 +15,11 @@ const makeAddShoppingItemsFromText = ({ inventoryItemRepo, shoppingSuggesterPort
     const inventoryItems = await inventoryItemRepo.listByHousehold(householdId);
     const inventorySummary = inventoryItems.map((item) => ({ name: item.productName }));
 
-    const { suggestions } = await shoppingSuggesterPort.fromText({ text: text.trim(), inventorySummary });
+    const { suggestions } = await shoppingSuggesterPort.fromText({
+      text: text.trim(),
+      inventorySummary,
+      context: { userId, householdId, isGuest },
+    });
 
     return {
       suggestions: suggestions

@@ -37,7 +37,7 @@ const makeGenerateAiRecipes = ({
   makeRecipeRepo,
   recipeGeneratorPort,
 }) => {
-  return async ({ householdId, createdBy, preferences = {} }) => {
+  return async ({ householdId, createdBy, preferences = {}, isGuest = false }) => {
     const inventoryItems = await inventoryItemRepo.listByHousehold(householdId);
     if (inventoryItems.length === 0) {
       throw new ValidationError('Tarif üretmek için dolabında en az bir ürün olmalı');
@@ -69,7 +69,12 @@ const makeGenerateAiRecipes = ({
       throw new ValidationError('Dolabındaki ürünler yemek malzemesi olarak tanınmadı');
     }
 
-    const { recipes } = await recipeGeneratorPort.generate({ ingredients, beverages, preferences });
+    const { recipes } = await recipeGeneratorPort.generate({
+      ingredients,
+      beverages,
+      preferences,
+      context: { userId: createdBy, householdId, isGuest },
+    });
 
     return datasource.withTransaction(async ({ query }) => {
       const productRepo = makeProductRepo({ rawQuery: query });

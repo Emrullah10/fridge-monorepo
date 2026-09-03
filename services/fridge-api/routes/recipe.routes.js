@@ -67,8 +67,8 @@ const buildRecipeRouter = ({ container }) => {
   // requireGuestQuota) — kayıtlı kullanıcılar bu ek sınıra takılmaz.
   router.post(
     '/generate',
-    requireGuestQuota({ windowMs: 24 * 60 * 60 * 1000, maxRequests: 5 }),
-    rateLimiter({ windowMs: 60_000, maxRequests: 3, keyFn: (req) => req.user.id }),
+    requireGuestQuota({ windowMs: 24 * 60 * 60 * 1000, maxRequests: 5, limitName: 'guest-recipe' }),
+    rateLimiter({ windowMs: 60_000, maxRequests: 3, keyFn: (req) => req.user.id, limitName: 'recipe-generate' }),
     asyncHandler(async (req, res) => {
     if (!useCases.generateAiRecipes) {
       return res.status(503).json({ error: { code: 'AI_DISABLED', message: 'Tarif üretimi şu anda kapalı' } });

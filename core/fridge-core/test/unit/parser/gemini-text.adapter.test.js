@@ -3,12 +3,21 @@ import assert from 'node:assert/strict';
 
 import { makeGeminiTextParser, toGeminiSchema } from '../../../src/infrastructure/parser/gemini-text.adapter.js';
 import { RESPONSE_SCHEMA } from '../../../src/infrastructure/parser/line-item-finalizer.js';
+import { AiQuotaError, AiBusyError, AiTimeoutError } from '@fridge/errors';
 
-const fakeGeminiResponse = (parsed) => ({
+const fakeGeminiResponse = (parsed, usageMetadata) => ({
   ok: true,
   json: async () => ({
     candidates: [{ content: { parts: [{ text: JSON.stringify(parsed) }] } }],
+    ...(usageMetadata ? { usageMetadata } : {}),
   }),
+});
+
+const fakeErrorResponse = (status, statusText, errorBody = null) => ({
+  ok: false,
+  status,
+  statusText,
+  json: async () => errorBody ?? { error: { message: statusText } },
 });
 
 describe('makeGeminiTextParser', () => {
@@ -52,14 +61,81 @@ describe('makeGeminiTextParser', () => {
     assert.equal(result.lineItems[0].lineNo, 1);
   });
 
-  test("response.ok false ise Gemini'e özgü hata mesajı fırlatır", async () => {
-    const fetchFn = async () => ({ ok: false, status: 429, statusText: 'Too Many Requests' });
+  test('usageMetadata onUsage callback ile bildirilir', async () => {
+    const fetchFn = async () =>
+      fakeGeminiResponse(
+        { merchantName: null, purchasedAt: null, totalAmount: null, lineItems: [] },
+        { promptTokenCount: 120, candidatesTokenCount: 40, totalTokenCount: 160 },
+      );
+
+    const usageCalls = [];
+    const parser = makeGeminiTextParser({
+      apiKey: 'test-key',
+      model: 'gemini-2.5-flash',
+      fetchFn,
+      onUsage: (entry) => usageCalls.push(entry),
+    });
+    await parser.parse({ rawText: 'AYRAN' });
+
+    assert.equal(usageCalls.length, 1);
+    assert.equal(usageCalls[0].feature, 'receipt');
+    assert.equal(usageCalls[0].ok, true);
+    assert.equal(usageCalls[0].promptTokens, 120);
+    assert.equal(usageCalls[0].outputTokens, 40);
+  });
+
+  test('429 (RESOURCE_EXHAUSTED) retry edilmeden AiQuotaError fırlatır', async () => {
+    let callCount = 0;
+    const fetchFn = async () => {
+      callCount += 1;
+      return fakeErrorResponse(429, 'Too Many Requests', {
+        error: { status: 'RESOURCE_EXHAUSTED', message: 'Quota exceeded' },
+      });
+    };
     const parser = makeGeminiTextParser({ apiKey: 'test-key', model: 'gemini-2.5-flash', fetchFn });
 
-    await assert.rejects(
-      () => parser.parse({ rawText: 'AYRAN' }),
-      /Gemini request failed: 429 Too Many Requests/,
-    );
+    await assert.rejects(() => parser.parse({ rawText: 'AYRAN' }), AiQuotaError);
+    assert.equal(callCount, 1, '429 retry edilmemeli');
+  });
+
+  test('503 iki kez retry edildikten sonra hâlâ başarısızsa AiBusyError fırlatır', async () => {
+    let callCount = 0;
+    const fetchFn = async () => {
+      callCount += 1;
+      return fakeErrorResponse(503, 'Service Unavailable');
+    };
+    const parser = makeGeminiTextParser({ apiKey: 'test-key', model: 'gemini-2.5-flash', fetchFn });
+
+    await assert.rejects(() => parser.parse({ rawText: 'AYRAN' }), AiBusyError);
+    assert.equal(callCount, 3, '1 ilk deneme + 2 retry');
+  });
+
+  test('503 ilk denemede geçici, ikinci denemede başarılı olursa sonucu döner', async () => {
+    let callCount = 0;
+    const fetchFn = async () => {
+      callCount += 1;
+      if (callCount === 1) return fakeErrorResponse(503, 'Service Unavailable');
+      return fakeGeminiResponse({ merchantName: null, purchasedAt: null, totalAmount: null, lineItems: [] });
+    };
+    const parser = makeGeminiTextParser({ apiKey: 'test-key', model: 'gemini-2.5-flash', fetchFn });
+
+    const result = await parser.parse({ rawText: 'AYRAN' });
+    assert.equal(result.provider, 'gemini-text');
+    assert.equal(callCount, 2);
+  });
+
+  test('timeout (AbortError) AiTimeoutError fırlatır', async () => {
+    // gemini-client.js'in gerçek 30sn'lik AbortController süresini burada
+    // beklemek istemediğimiz için fetchFn doğrudan AbortError fırlatıyor —
+    // gerçek fetch'in signal abort edildiğinde davrandığı gibi.
+    const fetchFn = async () => {
+      const error = new Error('The operation was aborted');
+      error.name = 'AbortError';
+      throw error;
+    };
+    const parser = makeGeminiTextParser({ apiKey: 'test-key', model: 'gemini-2.5-flash', fetchFn });
+
+    await assert.rejects(() => parser.parse({ rawText: 'AYRAN' }), AiTimeoutError);
   });
 
   test('totalAmount model boş dönerse ham metinden yedek okunur', async () => {

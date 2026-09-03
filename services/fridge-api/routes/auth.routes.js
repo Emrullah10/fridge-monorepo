@@ -4,16 +4,16 @@ import { ValidationError } from '@fridge/errors';
 import { rateLimiter, requireAuth } from '@fridge/middlewares';
 
 // Brute-force koruması: aynı IP'den 15 dakikada en fazla 10 giriş denemesi.
-const loginRateLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 10 });
+const loginRateLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 10, limitName: 'login' });
 
 // Misafir hesap açmak bedava (şifre/email doğrulaması yok) — sınırsız
 // çağrılabilirse DB'de sınırsız kullanıcı/household yaratılabilir.
-const guestRateLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 5 });
+const guestRateLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 5, limitName: 'guest-signup' });
 
 // Mail gönderimini (ve enumeration denemelerini) sınırlar — kod doğrulama
 // deneme sınırı use-case içinde (MAX_ATTEMPTS) ayrıca var.
-const forgotPasswordRateLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 3 });
-const resetPasswordRateLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 10 });
+const forgotPasswordRateLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 3, limitName: 'forgot-password' });
+const resetPasswordRateLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 10, limitName: 'reset-password' });
 
 const REFRESH_COOKIE_OPTS = {
   httpOnly: true,

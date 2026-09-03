@@ -1,6 +1,7 @@
 import { normalizeOcrArtifacts } from './text-normalize.js';
 import { RESPONSE_SCHEMA, SYSTEM_PROMPT, finalizeItem, extractTotalAmount } from './line-item-finalizer.js';
 import { toGeminiSchema } from '../gemini/gemini-schema.js';
+import { callGemini, extractJson } from '../gemini/gemini-client.js';
 
 const GEMINI_RESPONSE_SCHEMA = toGeminiSchema(RESPONSE_SCHEMA);
 
@@ -8,9 +9,10 @@ const GEMINI_RESPONSE_SCHEMA = toGeminiSchema(RESPONSE_SCHEMA);
 // aynı ReceiptParserPort sözleşmesini uygular (bkz.
 // application/ports/receipt-parser-port.js); deterministik post-processing
 // (ölçü/marka/isim/kategori) line-item-finalizer.js'de paylaşılıyor.
-const makeGeminiTextParser = ({ apiKey, model, fetchFn = fetch }) => {
+// HTTP/hata/retry/kullanım ölçümü artık gemini-client.js'de paylaşılıyor.
+const makeGeminiTextParser = ({ apiKey, model, fetchFn = fetch, onUsage }) => {
   return {
-    parse: async ({ rawText, merchantHint = null }) => {
+    parse: async ({ rawText, merchantHint = null, context }) => {
       // Modele göndermeden önce sık OCR kod sayfası kaymalarını düzelt
       // (İ/Ì, Ğ/à karışması) — model daha temiz girdi görsün.
       const cleanedRawText = normalizeOcrArtifacts(rawText);
@@ -21,40 +23,26 @@ const makeGeminiTextParser = ({ apiKey, model, fetchFn = fetch }) => {
         ? `MARKET: ${merchantHint}\n${cleanedRawText}`
         : cleanedRawText;
 
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 30_000);
+      const body = await callGemini({
+        apiKey,
+        model,
+        feature: 'receipt',
+        systemPrompt: SYSTEM_PROMPT,
+        contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+        generationConfig: {
+          // Fiş ayrıştırma kural takibi istiyor, yaratıcılık değil —
+          // düşük temperature modelin miktar/birim uydurmasını azaltır.
+          temperature: 0.1,
+          responseMimeType: 'application/json',
+          responseSchema: GEMINI_RESPONSE_SCHEMA,
+        },
+        timeoutMs: 30_000,
+        fetchFn,
+        onUsage,
+        context,
+      });
 
-      let response;
-      try {
-        response = await fetchFn(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            signal: controller.signal,
-            body: JSON.stringify({
-              systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-              contents: [{ role: 'user', parts: [{ text: userMessage }] }],
-              generationConfig: {
-                // Fiş ayrıştırma kural takibi istiyor, yaratıcılık değil —
-                // düşük temperature modelin miktar/birim uydurmasını azaltır.
-                temperature: 0.1,
-                responseMimeType: 'application/json',
-                responseSchema: GEMINI_RESPONSE_SCHEMA,
-              },
-            }),
-          },
-        );
-      } finally {
-        clearTimeout(timeout);
-      }
-
-      if (!response.ok) {
-        throw new Error(`Gemini request failed: ${response.status} ${response.statusText}`);
-      }
-
-      const body = await response.json();
-      const parsed = JSON.parse(body.candidates[0].content.parts[0].text);
+      const parsed = extractJson(body);
 
       return {
         lineItems: parsed.lineItems.map((item, index) => ({

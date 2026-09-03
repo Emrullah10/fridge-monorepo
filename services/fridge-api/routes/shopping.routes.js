@@ -29,7 +29,7 @@ const buildShoppingRouter = ({ container }) => {
   // Açık kullanıcı jesti — otomatik çağrılmaz, her istek Gemini'ye para
   // harcıyor. Mevcut GET /suggestions (ücretsiz, otomatik yüklenen) aynen
   // kalır, bu AI yolu ayrı ve isteğe bağlı.
-  router.post('/suggestions/ai', rateLimiter({ windowMs: 60_000, maxRequests: 3, keyFn: (req) => req.user.id }), asyncHandler(async (req, res) => {
+  router.post('/suggestions/ai', rateLimiter({ windowMs: 60_000, maxRequests: 3, keyFn: (req) => req.user.id, limitName: 'shopping-ai' }), asyncHandler(async (req, res) => {
     if (!useCases.suggestAiShoppingItems) {
       return res.status(503).json({ error: { code: 'AI_DISABLED', message: 'Akıllı öneriler şu anda kapalı' } });
     }
@@ -40,7 +40,7 @@ const buildShoppingRouter = ({ container }) => {
     res.json(result);
   }));
 
-  router.post('/from-text', rateLimiter({ windowMs: 60_000, maxRequests: 3, keyFn: (req) => req.user.id }), asyncHandler(async (req, res) => {
+  router.post('/from-text', rateLimiter({ windowMs: 60_000, maxRequests: 3, keyFn: (req) => req.user.id, limitName: 'shopping-from-text' }), asyncHandler(async (req, res) => {
     if (!useCases.addShoppingItemsFromText) {
       return res.status(503).json({ error: { code: 'AI_DISABLED', message: 'Akıllı öneriler şu anda kapalı' } });
     }
