@@ -26,7 +26,7 @@ const scanTextRateLimiter = rateLimiter({
 // burada elle uygulanıyor — misafir burada SIGNUP_REQUIRED alır (demo mod
 // mobil tarafta, bkz. plan §Faz 2).
 const checkReceiptCapability = async ({ req, res, useCases }) => {
-  const entitlements = await useCases.getEntitlements({ userId: req.user.id });
+  const entitlements = await useCases.getEntitlements({ userId: req.user.id, platform: req.clientPlatform });
   const { allowed, reason } = canUseAiFeature(entitlements, 'receipt');
   if (!allowed) {
     const quota = entitlements.quotas.receipt;
@@ -127,9 +127,14 @@ const buildReceiptRouter = ({ container }) => {
 
   // Aynı scanId = aynı ref_id -> usage_reservation zaten idempotent, retry
   // kotayı TEKRAR yakmaz (bkz. usage-counter.repository.js reserve()).
+  // checkReceiptCapability /scan ve /scan-text ile AYNI kapı — bu uç daha
+  // önce plan kontrolsüz bırakılmıştı (retry-receipt-scan.use-case.js'in
+  // kendi MAX_ATTEMPTS=3 sınırı etkiyi azaltıyordu ama kotası dolmuş bir
+  // kullanıcı yine de ek Gemini çağrısı tetikleyebiliyordu, bkz. plan §Faz B#4).
   router.post('/:scanId/retry', asyncHandler(async (req, res) => {
     const existing = await repos.receiptScanRepo.findById(req.params.scanId);
     assertOwnedByHousehold(existing, req.params.householdId, 'Receipt scan not found');
+    if (!(await checkReceiptCapability({ req, res, useCases }))) return;
     await useCases.reserveAiUsage({ refId: req.params.scanId, userId: req.user.id, feature: 'receipt' });
     const scan = await useCases.retryReceiptScan({ scanId: req.params.scanId });
     res.json({ scan });

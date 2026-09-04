@@ -5,8 +5,14 @@ import { PLAN, AI_FEATURES } from '../../../domain/plans.js';
 // gelen ham veriyi entitlements.js'in beklediği şekle indirger, karar
 // mantığının TAMAMI domain'de kalır (bu use-case sadece I/O + şekillendirme
 // yapar, hexagonal kısıt).
-const makeGetEntitlements = ({ userRepo, subscriptionRepo, usageCounterRepo, householdMemberRepo, planLimitsByPlan, clock }) => {
-  return async ({ userId }) => {
+// planLimitsFor(platform): container.js'te boot'ta önceden hesaplanmış
+// android/ios tablolarından birini döner (bkz. plans.js buildPlanLimits
+// platform parametresi, plan §Faz D). platform verilmezse 'android' —
+// çağıranın X-Client-Platform başlığını unuttuğu yerlerde sessizce en
+// cömert (mevcut) davranışa düşer, asla daha KISIK bir limite değil.
+const makeGetEntitlements = ({ userRepo, subscriptionRepo, usageCounterRepo, householdMemberRepo, planLimitsFor, clock }) => {
+  return async ({ userId, platform = 'android' }) => {
+    const planLimitsByPlan = planLimitsFor(platform);
     const user = await userRepo.findById(userId);
     const subscription = await subscriptionRepo.findByUserId(userId);
     const now = clock.now();
@@ -39,6 +45,35 @@ const makeGetEntitlements = ({ userRepo, subscriptionRepo, usageCounterRepo, hou
       usageByFeature[feature] = await usageCounterRepo.getCurrentUsage({ userId, feature });
     }
 
+    // Aile koltuğu — kullanıcının bağlı olduğu aile sponsoru varsa, kendi
+    // aktif aboneliği yoksa koltuk PLAN.PREMIUM'a taşır (bkz. entitlements.js
+    // resolvePlan sıralaması). rank<=seats ve sponsor aboneliği erişim veren
+    // durumdaysa "active" — canlı karar burada verilir, repo ham veri döner
+    // (household-member.repository.js findFamilySeatForUser aynı ilke).
+    const familySeatRow = await householdMemberRepo.findFamilySeatForUser(userId);
+    const familySeat = familySeatRow
+      ? {
+          active:
+            familySeatRow.rank !== null &&
+            familySeatRow.rank <= familySeatRow.seats &&
+            isSubscriptionCurrentlyActive(
+              { status: familySeatRow.sponsorStatus, currentPeriodEnd: familySeatRow.sponsorCurrentPeriodEnd },
+              now,
+            ),
+          sponsorUserId: familySeatRow.sponsorUserId,
+          sponsorName: familySeatRow.sponsorName,
+          householdId: familySeatRow.householdId,
+        }
+      : null;
+
+    // Roster: SADECE kullanıcının kendisi bir aile aboneliğinin sahibiyse
+    // dolu döner — abonelik ekranında "Aile üyeleri 3/5" göstermek için.
+    let familyRoster = null;
+    if (subscription?.planTier === 'family' && isSubscriptionCurrentlyActive(subscription, now)) {
+      const seatRows = await householdMemberRepo.listFamilySeats({ ownerUserId: userId, seats: subscription.seats });
+      familyRoster = { seats: subscription.seats, used: seatRows.filter((s) => s.active).length, members: seatRows };
+    }
+
     return resolveEntitlements({
       user: { isGuest: user.isGuest, trialEndsAt: user.trialEndsAt },
       subscription,
@@ -46,6 +81,8 @@ const makeGetEntitlements = ({ userRepo, subscriptionRepo, usageCounterRepo, hou
       usageByFeature,
       planLimitsByPlan,
       now,
+      familySeat,
+      familyRoster,
     });
   };
 };

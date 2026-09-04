@@ -17,7 +17,7 @@ const requireCapability = (feature, { getEntitlements, reserveAiUsage, canUseAiF
   return async (req, res, next) => {
     try {
       const userId = req.user.id;
-      const entitlements = await getEntitlements({ userId });
+      const entitlements = await getEntitlements({ userId, platform: req.clientPlatform });
       const { allowed, reason } = canUseAiFeature(entitlements, feature);
 
       if (!allowed) {

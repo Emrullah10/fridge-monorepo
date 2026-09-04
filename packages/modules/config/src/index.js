@@ -81,6 +81,15 @@ const readEnv = (env = process.env) => {
     // (yalnızca değişecek alanlar) yeterli, deep merge edilir. Bozuk JSON
     // sessizce yok sayılır (boot çökmez).
     planLimitsJson: env.PLAN_LIMITS_JSON || null,
+    // Aile paketi ürün→kademe/koltuk haritası — bkz. domain/plans.js
+    // buildProductTiers(). Aynı ilke: kısmi JSON, deep merge, bozuk JSON
+    // sessizce yok sayılır.
+    productTiersJson: env.PRODUCT_TIERS_JSON || null,
+    // Platform bazlı (Android/iOS) limit ek ezmesi — bkz. domain/plans.js
+    // buildPlanLimits() platform parametresi. PLATFORM_LIMITS_JSON=
+    // '{"ios":{"free":{"ai":{"receipt":5}}}}' şeklinde platform anahtarı
+    // içeren bir üst seviye taşır.
+    platformLimitsJson: env.PLATFORM_LIMITS_JSON || null,
     // RevenueCat Dashboard > Webhooks'ta "Authorization Header Value"
     // olarak ayarlanan paylaşılan sır — webhook route'u gelen isteğin
     // Authorization header'ını buna eşitleyip doğrular (bkz. RC docs

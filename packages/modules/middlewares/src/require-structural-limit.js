@@ -12,7 +12,7 @@ const requireStructuralLimit = (limitKey, { getEntitlements, countCurrent, house
   return async (req, res, next) => {
     try {
       const userId = req.user.id;
-      const entitlements = await getEntitlements({ userId });
+      const entitlements = await getEntitlements({ userId, platform: req.clientPlatform });
 
       // Alan-bazlı limitler (location/member) alanın SAHİBİNİN planından
       // gelir — entitlements.households[householdId] (bkz. entitlements.js
