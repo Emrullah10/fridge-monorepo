@@ -8,9 +8,13 @@
 :root {
   --cine-void: #060907;
   --cine-ground: var(--surface-container-lowest);
-  --glow-key: color-mix(in oklab, var(--primary) 40%, transparent);
-  --glow-fridge: color-mix(in oklab, var(--storage-fridge) 35%, transparent);
-  --glow-freezer: color-mix(in oklab, var(--storage-freezer) 35%, transparent);
-  --glow-pantry: color-mix(in oklab, var(--storage-pantry) 35%, transparent);
+  // Alfalar %35-40 -> %28 (bkz. plan Bölüm E) — perde altyazılarının/gövde
+  // metninin tepe noktalarında parıltıyla karışıp kontrast kaybettiği
+  // ölçüldü; scrim (_cinema.scss #film .act__copy) korunuyor, bu yalnızca
+  // arka planın kendi yoğunluğunu azaltıyor.
+  --glow-key: color-mix(in oklab, var(--primary) 28%, transparent);
+  --glow-fridge: color-mix(in oklab, var(--storage-fridge) 24%, transparent);
+  --glow-freezer: color-mix(in oklab, var(--storage-freezer) 24%, transparent);
+  --glow-pantry: color-mix(in oklab, var(--storage-pantry) 24%, transparent);
   --ease-cine: cubic-bezier(0.16, 1, 0.3, 1);
 }

@@ -1,15 +1,17 @@
 ---
 // DESIGN_SPEC §9.9: boş durum — büyük ikon (48) + başlık + açıklama.
+import Icon from '@components/site/Icon.astro';
+
 /**
  * @typedef {Object} Props
- * @property {string} icon
+ * @property {string} icon Material Symbols adı
  * @property {string} title
  * @property {string} [description]
  */
 const { icon, title, description } = Astro.props;
 ---
 <div class="mock-empty">
-  <span class="mock-empty__icon" aria-hidden="true">{icon}</span>
+  <span class="mock-empty__icon"><Icon name={icon} size={48} /></span>
   <p class="mock-empty__title">{title}</p>
   {description && <p class="mock-empty__desc">{description}</p>}
 </div>
@@ -25,7 +27,6 @@ const { icon, title, description } = Astro.props;
     color: var(--on-surface-variant);
   }
   .mock-empty__icon {
-    font-size: 48px;
     opacity: 0.6;
   }
   .mock-empty__title {

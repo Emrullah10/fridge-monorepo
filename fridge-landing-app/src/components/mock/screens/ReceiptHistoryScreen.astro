@@ -21,7 +21,7 @@ const receipts = seed.receipt.lines.length > 0 ? [seed.receipt] : [];
   <div class="history-screen">
     {receipts.length === 0 ? (
       <MockEmptyState
-        icon="🧾"
+        icon="receipt_long"
         title={locale === 'tr' ? 'Henüz fiş yok' : 'No receipts yet'}
         description={locale === 'tr' ? 'İlk fişini tarayarak başla.' : 'Scan your first receipt to get started.'}
       />

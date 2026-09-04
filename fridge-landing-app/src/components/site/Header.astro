@@ -21,9 +21,10 @@ const t = marketingDict[locale].nav;
       <a href={localePath(locale, '/sss')}>{t.faq}</a>
     </nav>
     <div class="site-header__actions">
-      <a href={locale === 'tr' ? '/en' : '/'} class="site-header__lang" aria-label="Dil değiştir / Switch language">
-        {locale === 'tr' ? 'EN' : 'TR'}
-      </a>
+      <!-- EN dil düğmesi kaldırıldı — /en hiç üretilmiyor (20 sayfanın hepsi
+           locale='tr' sabit, satır içi Türkçe metin), düğme 404'e gidiyordu
+           (bkz. plan Bölüm B). i18n altyapısı (marketing.en.js, localePath())
+           dokunulmadan duruyor — ileride EN sayfalar üretilirse hazır. -->
       <a href={localePath(locale, '/indir')} class="btn btn--primary site-header__cta">{t.download}</a>
       <MobileMenu locale={locale} />
     </div>
@@ -75,15 +76,6 @@ const t = marketingDict[locale].nav;
     display: flex;
     align-items: center;
     gap: var(--space-sm);
-  }
-  .site-header__lang {
-    font-size: var(--fs-small);
-    font-weight: var(--fw-semibold);
-    color: var(--on-surface-variant);
-    text-decoration: none;
-    padding: var(--space-xs) var(--space-sm);
-    border-radius: var(--radius-pill);
-    border: 1px solid var(--outline-variant);
   }
   .site-header__cta {
     display: none;

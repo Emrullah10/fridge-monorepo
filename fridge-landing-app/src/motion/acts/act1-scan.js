@@ -1,11 +1,14 @@
-// Act 1 - Scan the receipt. Pinned, scrubbed (full tier). No pin in
-// lite/still; lite plays a one-shot timeline on enter (see plan's motion
-// tier table). The mock's own is-done/is-active classes advance across
-// three timeline labels.
-//
-// Atmosphere hook: u_sweep tracks the scan line's normalized position
-// (0..1) so the fog shader's bright band travels with the scan itself
-// (see Phase 6 - single uniform bus between GSAP and GL, not wallpaper).
+// Act 1 - Scan the receipt. `full` katmanında bu perdenin CSS telefonu
+// artık görünmez (kalıcı 3B sahne onun yerine geçti — bkz.
+// _cinema.scss `#film .act__phone { opacity: 0 }`), bu yüzden `full`'de
+// kendi pin/scrub'ı KALDIRILDI — film.js tek scrub'lı ana zaman çizelgesi
+// kamerayı sürüyor. Do-Not-Repeat: bu pin kaldırılmadan `#film`'in toplam
+// yüksekliği ~1200px fazla kalıyordu (GSAP `pin-spacer`'ı `end: '+=150%'`
+// kadar ekstra boşluk ekliyordu), bu da FeatureStrip'in pinlenmiş yatay
+// kaydırmasının klavye-Tab odak konumlandırmasını bozuyordu (e2e/
+// keyboard.spec.js — flake değil, tutarlı başarısızdı, ölçülerek izole
+// edildi). `lite`'ta hâlâ tek seferlik enter'da oynatılan bir zaman
+// çizelgesi var - CSS telefon orada görünür.
 export function buildAct1Scan({ root, gsap, ScrollTrigger, tier, atmosphere }) {
   const scene = root.querySelector('[data-scan-scene]');
   const stages = Array.from(root.querySelectorAll('[data-stage]'));
@@ -35,16 +38,7 @@ export function buildAct1Scan({ root, gsap, ScrollTrigger, tier, atmosphere }) {
   }
 
   let scrollTrigger = null;
-  if (tier === 'full') {
-    scrollTrigger = ScrollTrigger.create({
-      trigger: root,
-      start: 'top top',
-      end: '+=150%',
-      pin: true,
-      scrub: 1,
-      animation: tl,
-    });
-  } else if (tier === 'lite') {
+  if (tier === 'lite') {
     // No pin, no ScrollSmoother: play once on enter.
     scrollTrigger = ScrollTrigger.create({
       trigger: root,

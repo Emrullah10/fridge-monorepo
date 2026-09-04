@@ -1,6 +1,7 @@
 ---
 // Kaynak: fridge-mobil/lib/features/auth/presentation/welcome_screen.dart
 import PhoneFrame from '@components/mock/PhoneFrame.astro';
+import Icon from '@components/site/Icon.astro';
 
 /**
  * @typedef {Object} Props
@@ -11,7 +12,7 @@ const { theme = 'light', locale = 'tr' } = Astro.props;
 ---
 <PhoneFrame theme={theme} label="Karşılama">
   <div class="welcome-screen">
-    <div class="welcome-screen__logo">🧊</div>
+    <div class="welcome-screen__logo"><Icon name="kitchen" size={36} /></div>
     <p class="welcome-screen__title">Fridge</p>
     <p class="welcome-screen__subtitle">
       {locale === 'tr' ? 'Mutfağının dijital defteri' : "Your kitchen's digital ledger"}
@@ -39,10 +40,10 @@ const { theme = 'light', locale = 'tr' } = Astro.props;
     height: 72px;
     border-radius: var(--radius-logo);
     background: var(--primary-container);
+    color: var(--on-primary-container);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 36px;
     margin-bottom: var(--space-md);
   }
   .welcome-screen__title {

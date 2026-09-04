@@ -1,9 +1,11 @@
 ---
 // Maket olsa da gerçek bir <button>; ikon-only FAB'lar aria-label olmadan
 // axe "Element has no accessible name" (critical) verir — bkz. cerebrum.md.
+import Icon from '@components/site/Icon.astro';
+
 /**
  * @typedef {Object} Props
- * @property {string} icon
+ * @property {string} icon Material Symbols adı (ör. "add", "document_scanner")
  * @property {string} [label]
  * @property {string} [ariaLabel]
  * @property {boolean} [secondary]
@@ -11,7 +13,7 @@
 const { icon, label, ariaLabel, secondary = false } = Astro.props;
 ---
 <button class:list={['mock-fab', { 'mock-fab--secondary': secondary }]} type="button" aria-label={label ?? ariaLabel ?? icon}>
-  <span aria-hidden="true">{icon}</span>
+  <Icon name={icon} size={20} />
   {label && <span class="mock-fab__label">{label}</span>}
 </button>
 

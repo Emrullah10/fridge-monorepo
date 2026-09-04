@@ -27,7 +27,7 @@ const title = location?.name ?? (locale === 'tr' ? 'Buzdolabı' : 'Fridge');
   <div class="inventory-screen__body">
     {items.length === 0 ? (
       <MockEmptyState
-        icon="🗄️"
+        icon="inventory_2"
         title={locale === 'tr' ? 'Bu bölüm boş' : 'This section is empty'}
         description={locale === 'tr' ? 'Fiş tarayarak veya manuel ekleyerek başla.' : 'Start by scanning a receipt or adding manually.'}
       />
@@ -37,7 +37,7 @@ const title = location?.name ?? (locale === 'tr' ? 'Buzdolabı' : 'Fridge');
       </div>
     )}
   </div>
-  <MockFab icon="+" ariaLabel={locale === 'tr' ? 'Dolaba Ekle' : 'Add to inventory'} />
+  <MockFab icon="add" ariaLabel={locale === 'tr' ? 'Dolaba Ekle' : 'Add to inventory'} />
 </PhoneFrame>
 
 <style>

@@ -35,3 +35,113 @@
 // opacity:0 başlangıcı YOK. reveal.js sadece ekstra bir .is-revealed sınıfı
 // ekler, motion/acts katmanları bunu kullanabilir; CSS'te varsayılan görünür,
 // bu yüzden burada boş bir kural tanımlamaya gerek yok.
+
+// `full` katmanı VE film sahnesi gerçekten mont edildiğinde (data-film-ready,
+// home.js `ensureFilmScene()` başarıyla çözülünce <html>'e ekliyor): kalıcı
+// 3B sahne (StudioScene.astro) telefonun YERİNE geçiyor — Hero/ActScan/
+// ActParse/ActSort'un kendi CSS telefon maketleri (.act__phone / .hero__phone)
+// gizlenir, yazı sütunu (.act__copy) tek ortalanmış sütuna iner ve sahne
+// üstünde yüzen dar bir altyazı bloğuna dönüşür (bkz. plan "DOM ve katman
+// yedekleri"). ActMoney (Perde 4) İSTİSNA — iki sütun kalır, kamera geri
+// çekilip okunabilir düzene döner, kendi .act__phone'u yok (DOM SVG grafiği
+// kullanıyor).
+// SADECE `data-motion='full'` YETERLİ DEĞİL — WebGL context açılamazsa
+// (nadir: sürücü/tarayıcı reddi) film hiç mont olmayabilir; data-film-ready
+// olmadan bu kural devreye girmez, DOM maketleri görünür kalır (sessiz düşüş).
+// `lite`/`still` bu kuralları hiç görmez.
+html[data-motion='full'][data-film-ready='true'] {
+  // `opacity: 0` — layout kutusunu (`visibility:hidden` gibi) korur ama
+  // ondan farklı olarak hiçbir intrinsic boyut yeniden hesaplamasını
+  // tetiklemez, en güvenlisi. Asıl "sayfa ~1200px sıçrıyor, FeatureStrip'in
+  // klavye-Tab odak konumlandırması bozuluyor" hatasının kök nedeni BU KURAL
+  // DEĞİLDİ — act1-scan.js'in `full`'de hâlâ kurduğu eski `pin: true,
+  // end: '+=150%'` ScrollTrigger'ıydı (artık görünmez olan CSS telefonu
+  // pinliyordu). Bkz. act1-scan.js'teki Do-Not-Repeat notu — asıl düzeltme
+  // orada, ölçülerek izole edildi (e2e/keyboard.spec.js 3/3 tutarlı
+  // başarısızdı, pin kaldırılınca 3/3 geçti).
+  #film .act__phone,
+  #film .hero__phone {
+    opacity: 0;
+    pointer-events: none;
+  }
+  // Yalnızca PERDELER (.act__grid) tek ortalanmış sütuna iniyor — hero
+  // kendi iki sütunlu düzenini KORUYOR (bkz. plan Bölüm C: onaylanan hibrit
+  // storyboard'da hero "solda yazı / sağda telefon" kalıyor, kamera ancak
+  // Perde 1'e girişte devralıp tam ekrana açılıyor). Önceki sürüm
+  // `#film .hero__grid` için de tek sütuna zorluyordu — bu, 3B öznenin
+  // (hero'da hâlâ sağ sütunda durması gereken) ekran merkezine oturmasına
+  // ve başlığın TAM ÜSTÜNE binmesine sebep oluyordu (Do-Not-Repeat: ölçüldü
+  // — ikisi de x=720 merkez, viewport 1440px'te tam çakışma).
+  #film .act__grid {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    text-align: center;
+  }
+  // Altyazı GERÇEKTEN sabit (position: fixed) — sahnenin kendisi de sabit
+  // konumlu (StudioScene) olduğu için, metin section'ın akışkan 100vh
+  // yüksekliği içinde HERHANGİ bir yere (padding, align-items) konsa bile
+  // scroll ilerledikçe telefonun ekran-uzayındaki sabit konumunun üzerinden
+  // geçmek zorunda kalıyordu (Do-Not-Repeat: `align-items: end` + padding
+  // denendi, sadece çakışma noktasını kaydırdı, ortadan kaldırmadı — iki
+  // bağımsız konumlandırma sistemi aynı ekran bölgesini asla güvenle
+  // paylaşamıyor). Çözüm: altyazı artık section'ın akışında DEĞİL, ekranın
+  // alt şeridinde GERÇEKTEN sabit duruyor; hangi perdenin aktif olduğu
+  // data-reveal/IntersectionObserver'dan bağımsız olarak yalnızca görünür
+  // metindir — telefon hiçbir zaman bu şeride girmiyor (stage.js kamera
+  // kalibrasyonu telefonu dikey olarak ekranın üst %70'inde tutuyor).
+  #film .act__copy {
+    position: fixed;
+    left: 50%;
+    bottom: clamp(32px, 6vh, 64px);
+    transform: translateX(-50%);
+    max-width: 44ch;
+    z-index: 1;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s var(--ease-standard, ease);
+    // Altyazı sahnenin kendisinin (telefon/objeler) üstüne biniyor —
+    // gerçek sinema altyazısı gibi bir okunabilirlik scrim'i şart, aksi
+    // halde açık renkli metin telefonun kendi açık renkli ekran içeriğiyle
+    // karışıyor (bkz. plan doğrulama #1 ekran görüntüleri).
+    padding: var(--space-md) var(--space-lg);
+    border-radius: var(--radius-card);
+    background: radial-gradient(
+      120% 140% at 50% 50%,
+      color-mix(in oklab, var(--cine-void, #060907) 78%, transparent) 0%,
+      transparent 75%
+    );
+    backdrop-filter: blur(6px);
+  }
+  // Yalnızca AKTİF perdenin altyazısı görünür — .is-active-subtitle
+  // home.js'teki AYRI bir ScrollTrigger'dan geliyor (toggleClass, `full`'e
+  // özel), reveal.js'in [data-reveal] mekanizmasından FARKLI: reveal.js
+  // tek seferlik (`unobserve` sonrası kalıcı), burada perde değişince
+  // ÖNCEKİ altyazının kaybolması gerekiyor — aksi halde birden fazla
+  // sabit-konumlu altyazı aynı anda görünüp üst üste biner (bkz.
+  // Do-Not-Repeat: ilk denemede reveal.js'in is-revealed'ı kullanıldı,
+  // kalıcı olduğu için ikinci perdeye geçince ilkinin altyazısı ekranda
+  // kalmaya devam etti).
+  #film .act__copy.is-active-subtitle {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  #film #hero .hero__text {
+    max-width: 44ch;
+  }
+  // Perde 4 (Para) istisnası — DOM SVG grafiği kalıcı sahnenin geri
+  // çekildiği anda okunabilir iki sütuna döner; kendi .act__copy'si sabit
+  // altyazı DEĞİL, normal akışa dönüyor (yukarıdaki fixed kuralını ezer).
+  #film .act--money .act__grid {
+    grid-template-columns: 1.1fr 0.9fr;
+    justify-items: stretch;
+    text-align: left;
+  }
+  #film .act--money .act__copy {
+    position: static;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    opacity: 1;
+    pointer-events: auto;
+  }
+}

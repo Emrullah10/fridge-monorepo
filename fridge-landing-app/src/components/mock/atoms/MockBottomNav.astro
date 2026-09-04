@@ -1,6 +1,9 @@
 ---
 // fridge-mobil/lib/core/widgets/app_bottom_nav.dart deseni: 5 sekme, sadece
-// "Dolabım" gerçek, diğerleri pasif ("yakında" hissi).
+// "Dolabım" gerçek, diğerleri pasif ("yakında" hissi). İkonlar gerçek
+// uygulamadaki Icons.*_rounded adlarıyla birebir (bkz. cerebrum.md).
+import Icon from '@components/site/Icon.astro';
+
 /**
  * @typedef {Object} Props
  * @property {'areas'|'shopping'|'recipes'|'insights'|'settings'} [active]
@@ -8,17 +11,17 @@
 const { active = 'areas' } = Astro.props;
 
 const tabs = [
-  { key: 'areas', icon: '▦', label: 'Alanlarım' },
-  { key: 'shopping', icon: '🛒', label: 'Alışveriş' },
-  { key: 'recipes', icon: '📖', label: 'Tarifler' },
-  { key: 'insights', icon: '💰', label: 'Para' },
-  { key: 'settings', icon: '⚙︎', label: 'Ayarlar' },
+  { key: 'areas', icon: 'grid_view', label: 'Alanlarım' },
+  { key: 'shopping', icon: 'shopping_cart', label: 'Alışveriş' },
+  { key: 'recipes', icon: 'menu_book', label: 'Tarifler' },
+  { key: 'insights', icon: 'savings', label: 'Para' },
+  { key: 'settings', icon: 'settings', label: 'Ayarlar' },
 ];
 ---
 <nav class="mock-bottomnav">
   {tabs.map((tab) => (
     <div class:list={['mock-bottomnav__tab', { 'is-active': tab.key === active }]}>
-      <span class="mock-bottomnav__icon" aria-hidden="true">{tab.icon}</span>
+      <Icon name={tab.icon} size={20} />
       <span class="mock-bottomnav__label">{tab.label}</span>
     </div>
   ))}
@@ -47,9 +50,6 @@ const tabs = [
   }
   .mock-bottomnav__tab.is-active {
     color: var(--primary);
-  }
-  .mock-bottomnav__icon {
-    font-size: 18px;
   }
   .mock-bottomnav__label {
     font-size: 10px;

@@ -9,6 +9,17 @@ test.describe('klavye ile gezinme — odak görünürlüğü', () => {
     await page.goto('/');
     // full katman zorlanır: masaüstü viewport + reducedMotion olmadan varsayılan.
     await page.setViewportSize({ width: 1280, height: 800 });
+    // Kalıcı 3B sahne (StudioScene/film.js) mont olurken `.cine-offscreen`
+    // (content-visibility:auto) perdelerin gerçek içerik yüksekliği ölçülüp
+    // contain-intrinsic-size tahmininin yerini alıyor — sayfa boyu bu kısa
+    // pencerede birkaç yüz piksel oynayabiliyor (CLS=0 çünkü viewport DIŞINDA
+    // oluyor, gerçek bir görsel kayma değil). Gerçek bir kullanıcı da
+    // sayfa tam yerleşmeden Tab'a hızlıca basmaz — test bunu bekliyor,
+    // aksi halde ölçüm anlık geçiş penceresini yakalayıp yanlış pozitif
+    // veriyordu (bkz. cerebrum.md Do-Not-Repeat).
+    await page
+      .waitForFunction(() => document.documentElement.getAttribute('data-film-ready') === 'true', { timeout: 15000 })
+      .catch(() => {}); // 3B başarısız olursa (nadir) test yine de DOM maketleriyle anlamlı kalır.
 
     const maxTabs = 20;
     for (let i = 0; i < maxTabs; i++) {

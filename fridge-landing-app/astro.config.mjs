@@ -7,7 +7,14 @@ import sitemap from '@astrojs/sitemap';
 export default defineConfig({
   site: 'https://fridge.app',
   trailingSlash: 'never',
-  integrations: [react(), sitemap()],
+  integrations: [
+    react(),
+    sitemap({
+      // capture-tool: WebGL doku üretimi için dahili build aracı, herkese açık
+      // içerik değil — sitemap'ten ve arama motorlarından hariç tutulur.
+      filter: (page) => !page.includes('/capture-tool/'),
+    }),
+  ],
   build: {
     // Küçük sayfa CSS'lerini <style> olarak HTML'e göm — ayrı bir
     // render-blocking istek (bkz. WEB_SITE_SPEC §9 LCP ölçümü, Lighthouse

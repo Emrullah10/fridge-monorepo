@@ -1,0 +1,54 @@
+---
+// Kalıcı 3B sahne kabuğu — Atmosphere.astro ile birebir aynı desen: sabit
+// tam ekran, #smooth-wrapper'ın DIŞINDA kardeş (fixed içeride ölürdü),
+// transition:persist (sayfa geçişinde canvas/WebGL bağlamı korunur, yeniden
+// mount olmaz). Atmosfer sisinin ÖNÜNDE ama metin içeriğin ARKASINDA durması
+// için z-index Atmosphere'ın üstünde, ama #smooth-wrapper'ın normal akış
+// z-index'inin altında (0) — #smooth-wrapper `position: relative` olduğu
+// için kendi yığın bağlamını açıyor ve içeriği otomatik üstte tutuyor.
+// Yalnızca ana sayfa (`/`) bu bileşeni render eder — bkz. plan "Kalıcı sahne
+// kabuğu". `full` katmanı DIŞINDA canvas hiç mount edilmez (film.js kontrolü),
+// bu kabuk yalnızca DOM/CSS yerleşimini sağlar.
+---
+<div class="studio-scene" aria-hidden="true" transition:persist>
+  <canvas class="studio-scene__canvas" data-studio-canvas></canvas>
+  <!-- Vignette — saf CSS, ek render pass maliyeti yok. Kenarlardan hafif
+       karartma odağı merkeze (telefona) topluyor (bkz. plan Bölüm D). -->
+  <div class="studio-scene__vignette"></div>
+</div>
+
+<style>
+  .studio-scene {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .studio-scene__canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    opacity: 0;
+    transition: opacity 0.6s var(--ease-cine, ease);
+  }
+  .studio-scene__canvas[data-ready='true'] {
+    opacity: 1;
+  }
+  /* #film bittikten sonra (FeatureStrip/Marquee/Metrics/FinalCta) sahne
+     geride kaybolur — home.js ScrollTrigger onLeave/onEnterBack ekliyor. */
+  .studio-scene__canvas.is-past-film {
+    opacity: 0;
+  }
+  .studio-scene__vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      120% 90% at 50% 45%,
+      transparent 45%,
+      color-mix(in oklab, var(--cine-void, #060907) 55%, transparent) 100%
+    );
+  }
+</style>
