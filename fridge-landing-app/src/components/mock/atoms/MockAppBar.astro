@@ -1,5 +1,7 @@
 ---
 // DESIGN_SPEC §9.1: sola dayalı başlık, 20px/600.
+import Icon from '@components/site/Icon.astro';
+
 /**
  * @typedef {Object} Props
  * @property {string} title
@@ -8,7 +10,7 @@
 const { title, showBack = false } = Astro.props;
 ---
 <div class="mock-appbar">
-  {showBack && <span class="mock-appbar__back" aria-hidden="true">←</span>}
+  {showBack && <span class="mock-appbar__back"><Icon name="arrow_back" size={20} /></span>}
   <p class="mock-appbar__title" role="heading" aria-level="2">{title}</p>
 </div>
 
@@ -21,8 +23,8 @@ const { title, showBack = false } = Astro.props;
     background: var(--surface);
   }
   .mock-appbar__back {
-    font-size: 20px;
     color: var(--on-surface);
+    display: flex;
   }
   .mock-appbar__title {
     margin: 0;

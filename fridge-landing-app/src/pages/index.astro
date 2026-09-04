@@ -31,14 +31,24 @@ const [scanAct, parseAct, sortAct, moneyAct] = t.acts;
   title="Fridge — Fişi tara, gerisini Fridge halletsin"
   description="Market fişini tara, ürünler envanterine düşsün. Buzdolabı, dondurucu, kiler; ne biriktirdiğini ne israf ettiğini gör."
   locale={locale}
+  studioScene
 >
   <script type="application/ld+json" set:html={JSON.stringify(appJsonLd)} />
 
-  <Hero t={t.hero} locale={locale} />
-  <ActScan t={scanAct} locale={locale} />
-  <ActParse t={parseAct} locale={locale} />
-  <ActSort t={sortAct} locale={locale} />
-  <ActMoney t={moneyAct} locale={locale} />
+  <!--
+    #film: hero + dört perde. Tek scrub'lı zaman çizelgesi (film.js) bu
+    sarmalayıcının yüksekliğini 0->1 ilerlemeye eşler — bkz. plan "Tek
+    scrub'lı ana zaman çizelgesi". Kalıcı 3B sahne (StudioScene, Marketing.astro)
+    bu sarmalayıcının ARKASINDA sabit durur, kamera burada ilerlerken telefon
+    hiç DOM'dan kaybolmaz.
+  -->
+  <div id="film" data-film>
+    <Hero t={t.hero} locale={locale} />
+    <ActScan t={scanAct} locale={locale} />
+    <ActParse t={parseAct} locale={locale} />
+    <ActSort t={sortAct} locale={locale} />
+    <ActMoney t={moneyAct} locale={locale} />
+  </div>
 
   <FeatureStrip features={t.features} locale={locale} />
   <ScreenMarquee locale={locale} />

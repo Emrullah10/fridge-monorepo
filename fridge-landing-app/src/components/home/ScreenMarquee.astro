@@ -41,6 +41,23 @@ const SCREENS = [WelcomeScreen, LoginScreen, HouseholdHomeScreen, InventoryScree
   .screen-marquee {
     padding-block: var(--space-xl);
     overflow: hidden;
+    // Kenar solma maskesi — `full`de xPercent sürüklemesiyle (screenMarquee.js)
+    // şeridin uçları overflow:hidden ile sert kesiliyordu, artık erir
+    // (bkz. plan Bölüm F, FeatureStrip.astro ile aynı kural).
+    mask-image: linear-gradient(
+      90deg,
+      transparent,
+      #000 var(--space-xl),
+      #000 calc(100% - var(--space-xl)),
+      transparent
+    );
+    -webkit-mask-image: linear-gradient(
+      90deg,
+      transparent,
+      #000 var(--space-xl),
+      #000 calc(100% - var(--space-xl)),
+      transparent
+    );
   }
   .screen-marquee__row {
     display: flex;

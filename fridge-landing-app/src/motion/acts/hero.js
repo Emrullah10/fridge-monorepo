@@ -1,6 +1,9 @@
-// Hero entrance + scrubbed wdth compression. Pure factory: buildHero({ root, gsap, tier }).
-// GSAP cannot interpolate the fontVariationSettings string directly - a
-// proxy object + onUpdate is used instead (see plan "Hero").
+// Hero entrance + scrubbed wdth compression. Pure factory: buildHero({ root,
+// gsap, tier }). GSAP cannot interpolate the fontVariationSettings string
+// directly - a proxy object + onUpdate is used instead (see plan "Hero").
+// 3B sahne montajı BURADAN ÇIKTI — artık hero'ya özel değil, home.js'te tek
+// bir kalıcı film sahnesi (film.js) tüm #film boyunca yaşıyor (bkz. plan
+// "Tek süreklilik").
 export function buildHero({ root, gsap, tier }) {
   const titleEl = root.querySelector('[data-hero-title]');
   const lines = Array.from(root.querySelectorAll('[data-line]'));

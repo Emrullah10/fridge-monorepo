@@ -30,6 +30,12 @@ const { t, locale = 'tr' } = Astro.props;
         <a href="/ekranlar" class="btn btn--outlined">{t.ctaSecondary}</a>
       </div>
     </div>
+    <!-- `full` katmanında kalıcı 3B sahne (StudioScene.astro, film.js) bu
+         DOM maketin YERİNE görünür olur — _cinema.scss
+         `html[data-motion='full'] #film .hero__phone { visibility: hidden }`
+         ile saf CSS'te gizler (JS toggle gerekmez, data-motion zaten
+         boyamadan önce Base.astro'da çözülüyor). `lite`/`still` her zaman
+         bu maketi gösterir. -->
     <div class="hero__phone" data-hero-phone data-speed="0.12">
       <HouseholdHomeScreen theme="dark" locale={locale} />
     </div>
@@ -90,9 +96,11 @@ const { t, locale = 'tr' } = Astro.props;
     margin-top: var(--space-md);
   }
   .hero__phone {
+    position: relative;
     max-width: 320px;
     margin-inline: auto;
     width: 100%;
+    aspect-ratio: 390 / 844;
   }
 
   @media (min-width: 900px) {

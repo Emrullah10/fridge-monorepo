@@ -27,11 +27,17 @@ const { title, description, lang = 'tr', ogImage = '/og/default.png' } = Astro.p
     <meta name="twitter:card" content="summary_large_image" />
     <Font cssVariable="--font-display" preload />
     <ClientRouter />
-    <script is:inline>
+    <script is:inline data-astro-rerun>
       // Boyamadan önce çalışması gereken TEK bloklayıcı script: tema (karanlık
       // varsayılan, saklanmış 'light' tercihine izin verilir) + hareket
       // katmanı (`data-motion`) burada birlikte çözülür — plan §"Kod bölme"
       // bunu tek satırlık kapı olarak tanımlıyor.
+      // `data-astro-rerun` ZORUNLU: ClientRouter sayfa geçişinde <html>
+      // niteliklerini (data-theme/data-motion dahil) yeni belgeninkiyle
+      // DEĞİŞTİRİYOR — statik HTML'de bu nitelikler yok, is:inline script bu
+      // öznitelik olmadan yalnızca ilk yüklemede çalışır. Sonuç: /ozellikler
+      // gibi bir sayfaya geçince tema açığa düşüyor, home.js data-motion'ı
+      // null okuyup filmi "still" sanıyordu (bkz. plan Bölüm A kök neden).
       (function () {
         try {
           var stored = localStorage.getItem('fridge-theme');

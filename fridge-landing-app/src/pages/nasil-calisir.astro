@@ -2,16 +2,18 @@
 import Marketing from '@layouts/Marketing.astro';
 import SectionHeading from '@components/marketing/SectionHeading.astro';
 import Cta from '@components/marketing/Cta.astro';
+import Icon from '@components/site/Icon.astro';
 
 const locale = 'tr';
 
+// İkonlar Material Symbols Rounded — bkz. plan Bölüm G.
 const steps = [
-  { n: 1, icon: '🧾', title: 'Fişi tara', body: 'Market fişinin fotoğrafını çek. OCR telefonda çalışır, görüntü hiçbir zaman sunucuya gitmez.' },
-  { n: 2, icon: '✨', title: 'Yapay zekâ ayrıştırır', body: 'Okunan ham metin sunucuya gider; satırlar ürün adı, marka, miktar ve fiyata ayrışır.' },
-  { n: 3, icon: '✅', title: 'Sen onaylarsın', body: 'Düşük güvenli satırlar "Kontrol et" rozetiyle işaretlenir. Tek dokunuşla onaylarsın.' },
-  { n: 4, icon: '🗄️', title: 'Bölümlere düşer', body: 'Her ürün kategori/marka/anahtar kelime öncelik sırasıyla doğru bölüme önerilir.' },
-  { n: 5, icon: '🍽️', title: 'Tüket, azalt', body: 'Ürünü kullandıkça miktarı düşürürsün. Sıfırlanınca "Bitti" olur, silinmez.' },
-  { n: 6, icon: '💰', title: 'Sonucu gör', body: 'Ne kadar biriktirdiğini, ne kadar israf ettiğini ay ay, üye üye görürsün.' },
+  { n: 1, icon: 'receipt_long', title: 'Fişi tara', body: 'Market fişinin fotoğrafını çek. OCR telefonda çalışır, görüntü hiçbir zaman sunucuya gitmez.' },
+  { n: 2, icon: 'psychology', title: 'Yapay zekâ ayrıştırır', body: 'Okunan ham metin sunucuya gider; satırlar ürün adı, marka, miktar ve fiyata ayrışır.' },
+  { n: 3, icon: 'check_circle', title: 'Sen onaylarsın', body: 'Düşük güvenli satırlar "Kontrol et" rozetiyle işaretlenir. Tek dokunuşla onaylarsın.' },
+  { n: 4, icon: 'inventory_2', title: 'Bölümlere düşer', body: 'Her ürün kategori/marka/anahtar kelime öncelik sırasıyla doğru bölüme önerilir.' },
+  { n: 5, icon: 'restaurant', title: 'Tüket, azalt', body: 'Ürünü kullandıkça miktarı düşürürsün. Sıfırlanınca "Bitti" olur, silinmez.' },
+  { n: 6, icon: 'savings', title: 'Sonucu gör', body: 'Ne kadar biriktirdiğini, ne kadar israf ettiğini ay ay, üye üye görürsün.' },
 ];
 ---
 <Marketing title="Nasıl Çalışır — Fridge" description="Fiş tarama, yapay zekâ ayrıştırma, bölümlere düşme ve para takibi — 6 adımda Fridge." locale={locale}>
@@ -25,7 +27,7 @@ const steps = [
       {steps.map((s) => (
         <div class="how-page__step">
           <div class="how-page__step-num">{s.n}</div>
-          <div class="how-page__step-icon" aria-hidden="true">{s.icon}</div>
+          <div class="how-page__step-icon"><Icon name={s.icon} size={30} /></div>
           <h3>{s.title}</h3>
           <p>{s.body}</p>
         </div>
@@ -58,7 +60,7 @@ const steps = [
     font-weight: var(--fw-bold);
   }
   .how-page__step-icon {
-    font-size: 36px;
+    color: var(--primary);
     margin-bottom: var(--space-sm);
   }
   .how-page__step h3 {

@@ -4,6 +4,7 @@ import PhoneFrame from '@components/mock/PhoneFrame.astro';
 import MockAppBar from '@components/mock/atoms/MockAppBar.astro';
 import MockEmptyState from '@components/mock/atoms/MockEmptyState.astro';
 import MockFab from '@components/mock/atoms/MockFab.astro';
+import Icon from '@components/site/Icon.astro';
 import { getSeed } from '@seed/index';
 
 /**
@@ -21,14 +22,14 @@ const households = seed.household.name ? [seed.household] : [];
   <div class="hh-list">
     {households.length === 0 ? (
       <MockEmptyState
-        icon="🏠"
+        icon="home"
         title={locale === 'tr' ? 'Henüz bir alanın yok' : "You don't have a space yet"}
         description={locale === 'tr' ? 'Yeni bir ev oluştur veya davet koduyla katıl.' : 'Create a new household or join with an invite code.'}
       />
     ) : (
       households.map((hh) => (
         <div class="hh-card">
-          <div class="hh-card__icon">🏠</div>
+          <div class="hh-card__icon"><Icon name="home" size={24} /></div>
           <div class="hh-card__body">
             <p class="hh-card__name">{hh.name}</p>
             <p class="hh-card__meta">{hh.members.length} {locale === 'tr' ? 'üye' : 'members'} · {hh.storageLocations.length} {locale === 'tr' ? 'bölüm' : 'sections'}</p>
@@ -37,8 +38,8 @@ const households = seed.household.name ? [seed.household] : [];
       ))
     )}
   </div>
-  <MockFab icon="+" ariaLabel={locale === 'tr' ? 'Yeni Ev' : 'New household'} />
-  <MockFab icon="🔑" secondary ariaLabel={locale === 'tr' ? 'Davet Koduyla Katıl' : 'Join with invite code'} />
+  <MockFab icon="add" ariaLabel={locale === 'tr' ? 'Yeni Ev' : 'New household'} />
+  <MockFab icon="key" secondary ariaLabel={locale === 'tr' ? 'Davet Koduyla Katıl' : 'Join with invite code'} />
 </PhoneFrame>
 
 <style>
@@ -61,10 +62,10 @@ const households = seed.household.name ? [seed.household] : [];
     height: 48px;
     border-radius: var(--radius-storage-icon);
     background: var(--primary-container);
+    color: var(--on-primary-container);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
     flex-shrink: 0;
   }
   .hh-card__name {

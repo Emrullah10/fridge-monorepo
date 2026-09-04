@@ -3,6 +3,7 @@ import Base from '@layouts/Base.astro';
 import Header from '@components/site/Header.astro';
 import Footer from '@components/site/Footer.astro';
 import Atmosphere from '@components/site/Atmosphere.astro';
+import StudioScene from '@components/site/StudioScene.astro';
 
 /**
  * @typedef {Object} Props
@@ -10,12 +11,14 @@ import Atmosphere from '@components/site/Atmosphere.astro';
  * @property {string} description
  * @property {'tr'|'en'} [locale]
  * @property {string} [ogImage]
+ * @property {boolean} [studioScene] Kalıcı 3B sahne kabuğu — yalnızca ana sayfa true geçer.
  */
 
-const { title, description, locale = 'tr', ogImage } = Astro.props;
+const { title, description, locale = 'tr', ogImage, studioScene = false } = Astro.props;
 ---
 <Base title={title} description={description} lang={locale} ogImage={ogImage}>
   <Atmosphere />
+  {studioScene && <StudioScene />}
   <Header locale={locale} />
   <!--
     DOM zorunluluğu (bkz. plan "Kabuk ameliyatı"): <body> → #smooth-wrapper →

@@ -5,6 +5,7 @@
 // sürer, mask-image bunu kullanarak altındaki ayrıştırılmış durumu açar.
 import PhoneFrame from '@components/mock/PhoneFrame.astro';
 import MockAppBar from '@components/mock/atoms/MockAppBar.astro';
+import Icon from '@components/site/Icon.astro';
 import { getSeed } from '@seed/index';
 
 /**
@@ -29,7 +30,7 @@ const stages = locale === 'tr'
       <PhoneFrame theme="dark" label={locale === 'tr' ? 'Fişi Tara' : 'Scan receipt'}>
         <MockAppBar title={locale === 'tr' ? 'Fişi Tara' : 'Scan receipt'} showBack />
         <div class="scan-scene" data-scan-scene>
-          <div class="scan-scene__circle" data-scan-circle>🧾</div>
+          <div class="scan-scene__circle" data-scan-circle><Icon name="receipt_long" size={48} /></div>
           <div class="scan-scene__line" data-scan-line aria-hidden="true"></div>
           <div class="scan-scene__stages">
             {stages.map((s, i) => (
@@ -88,10 +89,10 @@ const stages = locale === 'tr'
     height: 120px;
     border-radius: 50%;
     background: var(--primary-container);
+    color: var(--on-primary-container);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 48px;
     box-shadow: 0 0 0 8px color-mix(in oklab, var(--primary) 15%, transparent);
   }
   .scan-scene__line {

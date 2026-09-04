@@ -18,7 +18,7 @@ const seed = getSeed(seedMode);
   <MockAppBar title={locale === 'tr' ? 'Bildirimler' : 'Notifications'} showBack />
   <div class="notif-screen">
     {seed.notifications.length === 0 ? (
-      <MockEmptyState icon="🔔" title={locale === 'tr' ? 'Bildirim yok' : 'No notifications'} />
+      <MockEmptyState icon="notifications" title={locale === 'tr' ? 'Bildirim yok' : 'No notifications'} />
     ) : (
       seed.notifications.map((n) => (
         <div class:list={['notif-screen__row', { 'is-unread': !n.isRead }]}>

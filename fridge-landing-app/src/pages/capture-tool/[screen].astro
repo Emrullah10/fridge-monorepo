@@ -1,0 +1,111 @@
+---
+// Çerçevesiz (PhoneFrame olmadan) tam ekran maket sayfası — WebGL telefon
+// dokusu üretimi için (bkz. scripts/capture-screens.mjs). 390x844 sabit,
+// build-time getStaticPaths ile 23 ekranın tamamı için üretilir.
+// PUBLİK sitede linklenmez, yalnızca build/test aracı tarafından ziyaret edilir.
+export const prerender = true;
+
+import '@styles/global.scss';
+import { screens } from '@lib/screens';
+
+import WelcomeScreen from '@components/mock/screens/WelcomeScreen.astro';
+import IntroScreen from '@components/mock/screens/IntroScreen.astro';
+import LoginScreen from '@components/mock/screens/LoginScreen.astro';
+import RegisterScreen from '@components/mock/screens/RegisterScreen.astro';
+import UpgradeAccountScreen from '@components/mock/screens/UpgradeAccountScreen.astro';
+import HouseholdListScreen from '@components/mock/screens/HouseholdListScreen.astro';
+import HouseholdHomeScreen from '@components/mock/screens/HouseholdHomeScreen.astro';
+import HouseholdMembersScreen from '@components/mock/screens/HouseholdMembersScreen.astro';
+import InventoryScreen from '@components/mock/screens/InventoryScreen.astro';
+import AddInventoryItemScreen from '@components/mock/screens/AddInventoryItemScreen.astro';
+import BarcodeScanScreen from '@components/mock/screens/BarcodeScanScreen.astro';
+import ReceiptScanScreen from '@components/mock/screens/ReceiptScanScreen.astro';
+import ReceiptReviewScreen from '@components/mock/screens/ReceiptReviewScreen.astro';
+import ReceiptHistoryScreen from '@components/mock/screens/ReceiptHistoryScreen.astro';
+import ShoppingListScreen from '@components/mock/screens/ShoppingListScreen.astro';
+import RecipesScreen from '@components/mock/screens/RecipesScreen.astro';
+import RecipeDetailScreen from '@components/mock/screens/RecipeDetailScreen.astro';
+import RecipeStepScreen from '@components/mock/screens/RecipeStepScreen.astro';
+import ChefChatScreen from '@components/mock/screens/ChefChatScreen.astro';
+import InsightsScreen from '@components/mock/screens/InsightsScreen.astro';
+import NotificationsScreen from '@components/mock/screens/NotificationsScreen.astro';
+import SettingsScreen from '@components/mock/screens/SettingsScreen.astro';
+import DietProfileScreen from '@components/mock/screens/DietProfileScreen.astro';
+
+const componentMap = {
+  welcome: WelcomeScreen,
+  intro: IntroScreen,
+  login: LoginScreen,
+  register: RegisterScreen,
+  'upgrade-account': UpgradeAccountScreen,
+  'household-list': HouseholdListScreen,
+  'household-home': HouseholdHomeScreen,
+  'household-members': HouseholdMembersScreen,
+  inventory: InventoryScreen,
+  'add-inventory-item': AddInventoryItemScreen,
+  'barcode-scan': BarcodeScanScreen,
+  'receipt-scan': ReceiptScanScreen,
+  'receipt-review': ReceiptReviewScreen,
+  'receipt-history': ReceiptHistoryScreen,
+  'shopping-list': ShoppingListScreen,
+  recipes: RecipesScreen,
+  'recipe-detail': RecipeDetailScreen,
+  'recipe-step': RecipeStepScreen,
+  'chef-chat': ChefChatScreen,
+  insights: InsightsScreen,
+  notifications: NotificationsScreen,
+  settings: SettingsScreen,
+  'diet-profile': DietProfileScreen,
+};
+
+export function getStaticPaths() {
+  const themes = ['light', 'dark'];
+  const modes = ['full', 'empty'];
+  const paths = [];
+  for (const s of screens) {
+    for (const theme of themes) {
+      for (const mode of modes) {
+        if (mode === 'empty' && !s.supportsEmptyMode) continue;
+        paths.push({ params: { screen: `${s.key}--${theme}--${mode}` } });
+      }
+    }
+  }
+  return paths;
+}
+
+const { screen } = Astro.params;
+const [key, theme, seedMode] = screen.split('--');
+const Screen = componentMap[key];
+if (!Screen) throw new Error(`Bilinmeyen ekran: ${key}`);
+---
+<!doctype html>
+<html lang="tr" data-theme={theme}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{screen}</title>
+    <meta name="robots" content="noindex, nofollow" />
+  </head>
+  <body>
+    <div class="capture-frame">
+      <Screen theme={theme} locale="tr" seedMode={seedMode} />
+    </div>
+  </body>
+</html>
+
+<style is:global>
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 390px;
+    height: 844px;
+    overflow: hidden;
+    background: var(--surface);
+  }
+  .capture-frame {
+    width: 390px;
+    height: 844px;
+    overflow: hidden;
+    position: relative;
+  }
+</style>

@@ -1,0 +1,45 @@
+---
+// Material Symbols Rounded, satır içi SVG (@material-symbols/svg-400,
+// Apache-2.0). `name` gerçek Flutter ikon adıyla birebir eşleşir
+// (Icons.<name>_rounded) — bkz. cerebrum.md: emoji ikonlar Android arayüzü
+// izlenimini bozuyordu.
+//
+// DEDUP NOTU: Burada <symbol>/<use> ile build-time tekilleştirme
+// DENENDİ ve TERK EDİLDİ — Astro her slot/bileşen ağacını (ör. /ekranlar
+// galerisindeki 23×2×2 varyant) izole bir render bağlamında çalıştırıyor,
+// modül seviyesi Map paylaşılmıyor; sonuç 170 kullanımın hepsi ayrı
+// <symbol> tanımı bastı (170 tekrar, dedup YOK — ölçüldü, dosya boyutu
+// KÜÇÜLECEĞİNE büyüdü). Gerçek dedup artık scripts/dedupe-icons.mjs'te,
+// `npm run build` sonrası dist/ HTML'lerini post-process eden ayrı bir
+// adım (bkz. plan doğrulama #8 — LCP regresyonu bulgusu).
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
+/**
+ * @typedef {Object} Props
+ * @property {string} name
+ * @property {number} [size]
+ */
+const { name, size = 24 } = Astro.props;
+
+const svgUrl = await import.meta.resolve(`@material-symbols/svg-400/rounded/${name}.svg`);
+const raw = fs.readFileSync(fileURLToPath(svgUrl), 'utf-8');
+const inner = raw.replace(/^<svg[^>]*>/, '').replace(/<\/svg>$/, '');
+---
+<svg
+  class="mock-icon"
+  data-icon-name={name}
+  width={size}
+  height={size}
+  viewBox="0 -960 960 960"
+  fill="currentColor"
+  aria-hidden="true"
+  set:html={inner}
+/>
+
+<style>
+  .mock-icon {
+    display: block;
+    flex-shrink: 0;
+  }
+</style>

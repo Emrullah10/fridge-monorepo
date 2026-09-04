@@ -49,6 +49,14 @@ const SCREEN_BY_KEY = {
       );
     })}
   </div>
+  <!-- `full` katmanında pinlenmiş şerit boyunca ilerlemeyi gösteren ince
+       çubuk — featureStrip.js kendi ScrollTrigger'ının progress'inden
+       besler, yeni tetikleyici gerekmez. `lite`/`still`'de CSS ile gizli
+       (track zaten normal scroll-snap konteyneri, ilerleme çubuğuna gerek
+       yok — bkz. plan Bölüm F). -->
+  <div class="feature-strip__progress" data-feature-progress aria-hidden="true">
+    <div class="feature-strip__progress-fill" data-feature-progress-fill></div>
+  </div>
 </section>
 
 <style>
@@ -66,6 +74,25 @@ const SCREEN_BY_KEY = {
     padding-inline: var(--space-md);
     padding-bottom: var(--space-md);
     scrollbar-width: thin;
+    // Kenar solma maskesi — öğeler viewport dışına taştığında sert
+    // kesilmek yerine erir, "devam ediyor" ipucu verir (bkz. plan Bölüm F:
+    // "componentler ekrana tam oturmamış" — taşma zaten kasıtlıydı, eksik
+    // olan görsel süreklilik ipucuydu). `full` pinli halde de aynı track
+    // kullanıldığı için tek kural her katmanı kapsıyor.
+    mask-image: linear-gradient(
+      90deg,
+      transparent,
+      #000 var(--space-xl),
+      #000 calc(100% - var(--space-xl)),
+      transparent
+    );
+    -webkit-mask-image: linear-gradient(
+      90deg,
+      transparent,
+      #000 var(--space-xl),
+      #000 calc(100% - var(--space-xl)),
+      transparent
+    );
   }
   .feature-strip__item {
     flex: 0 0 260px;
@@ -87,5 +114,26 @@ const SCREEN_BY_KEY = {
     margin: 0;
     color: var(--on-surface-variant);
     font-size: var(--fs-body);
+  }
+  .feature-strip__progress {
+    display: none;
+    height: 3px;
+    margin-inline: var(--space-md);
+    margin-top: var(--space-md);
+    border-radius: 999px;
+    background: var(--outline-variant);
+    overflow: hidden;
+  }
+  .feature-strip__progress-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--primary);
+    border-radius: inherit;
+  }
+  // Yalnızca `full` katmanında görünür — featureStrip.js pin/scrub'ı
+  // yalnızca full'de kuruyor, diğer katmanlarda track zaten normal scroll
+  // konteyneri (dokunmatikte kaydırma zaten sezgisel, çubuğa gerek yok).
+  html[data-motion='full'] .feature-strip__progress {
+    display: block;
   }
 </style>

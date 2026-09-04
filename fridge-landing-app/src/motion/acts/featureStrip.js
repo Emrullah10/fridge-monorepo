@@ -7,6 +7,7 @@ export function buildFeatureStrip({ root, gsap, ScrollTrigger, tier }) {
 
   const track = root.querySelector('[data-feature-track]');
   if (!track) return () => {};
+  const progressFill = root.querySelector('[data-feature-progress-fill]');
 
   // Horizontal pin is set up ONLY in full so the Lighthouse
   // documentElement.scrollWidth check stays clean; the track's native
@@ -25,6 +26,13 @@ export function buildFeatureStrip({ root, gsap, ScrollTrigger, tier }) {
     scrub: 1,
     invalidateOnRefresh: true,
     animation: gsap.to(track, { x: () => -scrollAmount(), ease: 'none' }),
+    // Kenarda erime maskesi taşan öğelerin "devam ediyor" hissini verse de,
+    // pinlenmiş yatay kaydırmanın toplam ilerlemesini gösteren ayrı bir
+    // ipucu (bkz. plan Bölüm F) — mevcut ScrollTrigger'ın kendi progress'i
+    // üzerinden, yeni tetikleyici gerekmeden.
+    onUpdate: (self) => {
+      if (progressFill) progressFill.style.width = `${self.progress * 100}%`;
+    },
   });
 
   return () => {

@@ -1,7 +1,9 @@
 ---
+import Icon from '@components/site/Icon.astro';
+
 /**
  * @typedef {Object} Props
- * @property {string} icon
+ * @property {string} icon Material Symbols adı (bkz. cerebrum.md — emoji artık kullanılmıyor)
  * @property {string} title
  * @property {string} body
  * @property {string} [href]
@@ -10,7 +12,7 @@
 const { icon, title, body, href, linkText } = Astro.props;
 ---
 <div class="feature-row">
-  <div class="feature-row__icon" aria-hidden="true">{icon}</div>
+  <div class="feature-row__icon"><Icon name={icon} size={28} /></div>
   <div class="feature-row__body">
     <h3 class="feature-row__title">{title}</h3>
     <p class="feature-row__text">{body}</p>
@@ -28,13 +30,13 @@ const { icon, title, body, href, linkText } = Astro.props;
     padding: var(--space-lg);
   }
   .feature-row__icon {
-    font-size: 32px;
     width: 56px;
     height: 56px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: var(--primary-container);
+    color: var(--on-primary-container);
     border-radius: var(--radius-storage-icon);
     flex-shrink: 0;
   }

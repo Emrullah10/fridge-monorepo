@@ -2,3 +2,5 @@ User-agent: *
 Allow: /
 
 Sitemap: https://fridge.app/sitemap-index.xml
+
+Disallow: /capture-tool/

@@ -2,6 +2,7 @@
 // Kaynak: fridge-mobil/lib/features/receipt/presentation/receipt_scan_screen.dart
 import PhoneFrame from '@components/mock/PhoneFrame.astro';
 import MockAppBar from '@components/mock/atoms/MockAppBar.astro';
+import Icon from '@components/site/Icon.astro';
 
 /**
  * @typedef {Object} Props
@@ -19,11 +20,11 @@ const stages = locale === 'tr' ? stagesTr : stagesEn;
   <MockAppBar title={locale === 'tr' ? 'Fişi Tara' : 'Scan receipt'} showBack />
   <div class="receipt-scan-screen">
     {state === 'idle' && (
-      <div class="receipt-scan-screen__circle">🧾</div>
+      <div class="receipt-scan-screen__circle"><Icon name="receipt_long" size={40} /></div>
     )}
     {state === 'processing' && (
       <>
-        <div class="receipt-scan-screen__circle receipt-scan-screen__circle--active">🧾</div>
+        <div class="receipt-scan-screen__circle receipt-scan-screen__circle--active"><Icon name="receipt_long" size={40} /></div>
         <div class="receipt-scan-screen__stages">
           {stages.map((s, i) => (
             <div class:list={['receipt-scan-screen__stage', { 'is-done': i < 2, 'is-active': i === 2 }]}>
@@ -42,7 +43,7 @@ const stages = locale === 'tr' ? stagesTr : stagesEn;
     )}
     {state === 'success' && (
       <div class="receipt-scan-screen__success">
-        <span class="receipt-scan-screen__success-icon">✅</span>
+        <span class="receipt-scan-screen__success-icon"><Icon name="check_circle" size={40} /></span>
         <p>{locale === 'tr' ? '6 ürün bulundu, onay bekliyor' : '6 items found, awaiting review'}</p>
       </div>
     )}
@@ -116,6 +117,7 @@ const stages = locale === 'tr' ? stagesTr : stagesEn;
     color: var(--on-surface);
   }
   .receipt-scan-screen__success-icon {
-    font-size: 48px;
+    display: flex;
+    color: var(--primary);
   }
 </style>
