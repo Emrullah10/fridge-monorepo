@@ -62,6 +62,18 @@ class AiTimeoutError extends DomainError {
   }
 }
 
+// Plan/kota yetersizliği — misafir bir AI özelliğine dokunduğunda ya da
+// kota/yapısal limit (üye/bölüm/alan sayısı) dolduğunda. 402 Payment
+// Required: 401 KULLANILMAZ çünkü auth_interceptor.dart 401'de refresh+
+// retry yapıyor, 402 bu sonsuz döngüyü engeller (bkz. plan §Faz 1).
+// code varsayılan PLAN_LIMIT_REACHED ama SIGNUP_REQUIRED / PLAN_FEATURE_LOCKED
+// için de kullanılır — çağıran override eder.
+class PaymentRequiredError extends DomainError {
+  constructor(message = 'Bu işlem için plan sınırına ulaşıldı.', { code = 'PLAN_LIMIT_REACHED' } = {}) {
+    super(message, { code, httpStatus: 402 });
+  }
+}
+
 const translateDomainError = (error) => {
   if (error instanceof DomainError) {
     return {
@@ -86,5 +98,6 @@ export {
   AiQuotaError,
   AiBusyError,
   AiTimeoutError,
+  PaymentRequiredError,
   translateDomainError,
 };

@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { asyncHandler } from '@fridge/helper';
-import { requireAuth, requireHouseholdRole, rateLimiter } from '@fridge/middlewares';
+import { requireAuth, requireHouseholdRole, requireCapability, rateLimiter } from '@fridge/middlewares';
 import { ValidationError } from '@fridge/errors';
+import { canUseAiFeature } from '@fridge/core/src/domain/entitlements.js';
 
 const buildShoppingRouter = ({ container }) => {
   const router = Router({ mergeParams: true });
@@ -28,28 +29,62 @@ const buildShoppingRouter = ({ container }) => {
 
   // Açık kullanıcı jesti — otomatik çağrılmaz, her istek Gemini'ye para
   // harcıyor. Mevcut GET /suggestions (ücretsiz, otomatik yüklenen) aynen
-  // kalır, bu AI yolu ayrı ve isteğe bağlı.
-  router.post('/suggestions/ai', rateLimiter({ windowMs: 60_000, maxRequests: 3, keyFn: (req) => req.user.id, limitName: 'shopping-ai' }), asyncHandler(async (req, res) => {
-    if (!useCases.suggestAiShoppingItems) {
-      return res.status(503).json({ error: { code: 'AI_DISABLED', message: 'Akıllı öneriler şu anda kapalı' } });
-    }
-    const result = await useCases.suggestAiShoppingItems({
-      householdId: req.params.householdId,
-      userId: req.user.id,
-    });
-    res.json(result);
-  }));
+  // kalır, bu AI yolu ayrı ve isteğe bağlı. Plan/kota kontrolü + rezervasyon
+  // (misafir burada SIGNUP_REQUIRED alır — demo mod mobil tarafta).
+  router.post(
+    '/suggestions/ai',
+    requireCapability('shopping', {
+      getEntitlements: useCases.getEntitlements,
+      reserveAiUsage: useCases.reserveAiUsage,
+      canUseAiFeature,
+    }),
+    rateLimiter({ windowMs: 60_000, maxRequests: 3, keyFn: (req) => req.user.id, limitName: 'shopping-ai' }),
+    asyncHandler(async (req, res) => {
+      if (!useCases.suggestAiShoppingItems) {
+        await useCases.releaseAiUsage({ refId: req.aiUsageRefId });
+        return res.status(503).json({ error: { code: 'AI_DISABLED', message: 'Akıllı öneriler şu anda kapalı' } });
+      }
+      try {
+        const result = await useCases.suggestAiShoppingItems({
+          householdId: req.params.householdId,
+          userId: req.user.id,
+          isGuest: req.user.isGuest ?? false,
+        });
+        res.json(result);
+      } catch (error) {
+        await useCases.releaseAiUsage({ refId: req.aiUsageRefId });
+        throw error;
+      }
+    }),
+  );
 
-  router.post('/from-text', rateLimiter({ windowMs: 60_000, maxRequests: 3, keyFn: (req) => req.user.id, limitName: 'shopping-from-text' }), asyncHandler(async (req, res) => {
-    if (!useCases.addShoppingItemsFromText) {
-      return res.status(503).json({ error: { code: 'AI_DISABLED', message: 'Akıllı öneriler şu anda kapalı' } });
-    }
-    const result = await useCases.addShoppingItemsFromText({
-      householdId: req.params.householdId,
-      text: req.body?.text,
-    });
-    res.json(result);
-  }));
+  router.post(
+    '/from-text',
+    requireCapability('shopping', {
+      getEntitlements: useCases.getEntitlements,
+      reserveAiUsage: useCases.reserveAiUsage,
+      canUseAiFeature,
+    }),
+    rateLimiter({ windowMs: 60_000, maxRequests: 3, keyFn: (req) => req.user.id, limitName: 'shopping-from-text' }),
+    asyncHandler(async (req, res) => {
+      if (!useCases.addShoppingItemsFromText) {
+        await useCases.releaseAiUsage({ refId: req.aiUsageRefId });
+        return res.status(503).json({ error: { code: 'AI_DISABLED', message: 'Akıllı öneriler şu anda kapalı' } });
+      }
+      try {
+        const result = await useCases.addShoppingItemsFromText({
+          householdId: req.params.householdId,
+          text: req.body?.text,
+          userId: req.user.id,
+          isGuest: req.user.isGuest ?? false,
+        });
+        res.json(result);
+      } catch (error) {
+        await useCases.releaseAiUsage({ refId: req.aiUsageRefId });
+        throw error;
+      }
+    }),
+  );
 
   // /items/reorder mutlaka /items/:itemId'den ÖNCE tanımlanmalı, yoksa
   // "reorder" bir itemId sanılır (tarif tarafında /suggestions'ın

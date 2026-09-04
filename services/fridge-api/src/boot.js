@@ -12,6 +12,7 @@ const publicDir = join(__dirname, '..', 'public');
 
 import { makeAuthMiddleware } from '../middlewares/auth.middleware.js';
 import { buildRouter } from '../routes/index.js';
+import { buildBillingWebhookHandler } from '../routes/billing.routes.js';
 
 // origin: true her origin'i yansıtır — credentials: true ile birleşince
 // tehlikeli bir kombinasyon. Prod'da CORS_ALLOWED_ORIGINS zorunlu
@@ -68,6 +69,9 @@ const boot = (container) => {
   // servis ediliyor.
   app.get('/privacy', (req, res) => res.sendFile(join(publicDir, 'privacy.html')));
   app.get('/delete-account', (req, res) => res.sendFile(join(publicDir, 'delete-account.html')));
+  // Abonelik şartları — fiyat/yenileme/iptal/iade politikası (plan §Faz 6,
+  // paywall_screen.dart ve settings_screen.dart buradan link verir).
+  app.get('/terms', (req, res) => res.sendFile(join(publicDir, 'terms.html')));
 
   // Android App Links doğrulaması: /join/KOD linkinin tıklanınca tarayıcı
   // yerine doğrudan uygulamayı açması için Android bu dosyayı HTTPS
@@ -80,6 +84,13 @@ const boot = (container) => {
   // masaüstü tarayıcı) tıklanan link burada açılır — kod gösterilir,
   // Play Store'a yönlendirme sunulur.
   app.get('/join/:code', (req, res) => res.sendFile(join(publicDir, 'join.html')));
+
+  // RevenueCat webhook — authenticate'ten ÖNCE (RC bizim JWT'mizi bilmez),
+  // kendi Authorization-header doğrulamasını yapıyor (bkz.
+  // buildBillingWebhookHandler). Play Console'da /api altında değil, kök
+  // seviyede tutuluyor ki mobil API prefix'iyle karışmasın ve RC
+  // dashboard'unda tek, sabit bir URL olsun.
+  app.post('/billing/webhook', buildBillingWebhookHandler({ container }));
 
   app.use('/api', buildRouter({ container, authenticate }));
 
