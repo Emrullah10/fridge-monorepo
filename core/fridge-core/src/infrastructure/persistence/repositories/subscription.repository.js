@@ -15,6 +15,10 @@ const mapRow = (row) => row && ({
   raw: row.raw,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
+  // 25. migration — RC ürününün 'individual'/'family' kademesi + koltuk
+  // sayısı (bkz. plans.js resolveProductTier). seats sadece family'de dolu.
+  planTier: row.plan_tier,
+  seats: row.seats,
 });
 
 // user_id UNIQUE olduğu için her kullanıcının en fazla bir abonelik satırı
@@ -47,16 +51,26 @@ const makeSubscriptionRepository = ({ rawQuery }) => {
     // zaman anlamlı bir değerle gelir (apply-billing-event.use-case.js zaten
     // status'u resolveStatusForEventType ile hesaplıyor), o yüzden onlar
     // koşulsuz EXCLUDED'dan alınır.
+    // planTier/seats — 25. migration, apply-billing-event.use-case.js
+    // resolveProductTier() ile productId'den çözüp geçirir. product_id gibi
+    // COALESCE ile korunur: bazı RC event'lerinde productId boş geliyor
+    // (24. migration'ın gerekçesi) — boş geldiğinde plans.js resolveProductTier
+    // varsayılan olarak INDIVIDUAL/null döner, bu ÜZERİNE YAZARSA bir
+    // CANCELLATION/EXPIRATION event'i aile aboneliğini sessizce bireysele
+    // düşürür. COALESCE(EXCLUDED.x, subscription.x) ile sadece productId
+    // dolu geldiğinde (dolayısıyla kademe güvenilir şekilde çözüldüğünde)
+    // güncellenir.
     upsert: async ({
       userId, store, productId, purchaseToken, rcAppUserId, status,
       autoRenewing, currentPeriodEnd, canceledAt, cancelReason, environment, raw,
+      planTier = null, seats = null,
     }) => {
       const { rows } = await rawQuery(
         `INSERT INTO subscription
            (user_id, store, product_id, purchase_token, rc_app_user_id, status,
             auto_renewing, current_period_end, canceled_at, cancel_reason, environment,
-            last_event_at, raw, updated_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11, now(), $12, now())
+            last_event_at, raw, plan_tier, seats, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11, now(), $12, COALESCE($13, 'individual'), $14, now())
          ON CONFLICT (user_id) DO UPDATE SET
            store = EXCLUDED.store,
            product_id = COALESCE(EXCLUDED.product_id, subscription.product_id),
@@ -70,10 +84,17 @@ const makeSubscriptionRepository = ({ rawQuery }) => {
            environment = EXCLUDED.environment,
            last_event_at = now(),
            raw = EXCLUDED.raw,
+           plan_tier = CASE WHEN EXCLUDED.product_id IS NOT NULL
+                             THEN COALESCE(EXCLUDED.plan_tier, 'individual')
+                             ELSE subscription.plan_tier END,
+           seats = CASE WHEN EXCLUDED.product_id IS NOT NULL
+                         THEN EXCLUDED.seats
+                         ELSE subscription.seats END,
            updated_at = now()
          RETURNING *`,
         [userId, store, productId, purchaseToken, rcAppUserId, status,
-          autoRenewing, currentPeriodEnd, canceledAt, cancelReason, environment, raw],
+          autoRenewing, currentPeriodEnd, canceledAt, cancelReason, environment, raw,
+          planTier, seats],
       );
       return mapRow(rows[0]);
     },

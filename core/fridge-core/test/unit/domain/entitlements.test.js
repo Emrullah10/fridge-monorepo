@@ -293,3 +293,104 @@ describe('isTrialActive / isSubscriptionCurrentlyActive — sınır durumları',
     assert.equal(isSubscriptionCurrentlyActive({ status: 'pending', currentPeriodEnd: days(30) }, NOW), false);
   });
 });
+
+describe('aile koltuğu — resolvePlan sıralaması ve resolveEntitlements çıktısı', () => {
+  test('aktif koltuk -> PREMIUM, source family', () => {
+    const result = resolveEntitlements({
+      user: { isGuest: false, trialEndsAt: null },
+      subscription: null,
+      familySeat: { active: true, sponsorUserId: 'sponsor-1', sponsorName: 'Ayşe', householdId: 'h1' },
+      planLimitsByPlan,
+      now: NOW,
+    });
+    assert.equal(result.plan, PLAN.PREMIUM);
+    assert.equal(result.source, 'family');
+    assert.deepEqual(result.familySeat, { sponsorUserId: 'sponsor-1', sponsorName: 'Ayşe', householdId: 'h1' });
+  });
+
+  test('koltuk taşması (rank > seats) -> familySeat.active=false çağırana bırakılır, resolvePlan FREE\'ye düşer', () => {
+    // Bu senaryo pratikte get-entitlements.use-case.js'te hesaplanır (rank<=seats
+    // orada kontrol edilir) — burada sadece familySeat.active=false geldiğinde
+    // domain'in doğru davrandığını doğruluyoruz.
+    const result = resolveEntitlements({
+      user: { isGuest: false, trialEndsAt: null },
+      subscription: null,
+      familySeat: { active: false, sponsorUserId: 'sponsor-1', sponsorName: 'Ayşe', householdId: 'h1' },
+      planLimitsByPlan,
+      now: NOW,
+    });
+    assert.equal(result.plan, PLAN.FREE);
+    assert.equal(result.familySeat, null);
+  });
+
+  test('kendi aktif aboneliği aile koltuğunu yener', () => {
+    const result = resolveEntitlements({
+      user: { isGuest: false, trialEndsAt: null },
+      subscription: { status: 'active', currentPeriodEnd: days(30), store: 'play' },
+      familySeat: { active: true, sponsorUserId: 'sponsor-1', sponsorName: 'Ayşe', householdId: 'h1' },
+      planLimitsByPlan,
+      now: NOW,
+    });
+    assert.equal(result.plan, PLAN.PREMIUM);
+    assert.equal(result.source, 'play'); // family değil — kendi aboneliği kazandı
+  });
+
+  test('aile koltuğu kendi denemesini yener (kafa karıştırıcı düşüş olmasın)', () => {
+    const result = resolveEntitlements({
+      user: { isGuest: false, trialEndsAt: days(5) },
+      subscription: null,
+      familySeat: { active: true, sponsorUserId: 'sponsor-1', sponsorName: 'Ayşe', householdId: 'h1' },
+      planLimitsByPlan,
+      now: NOW,
+    });
+    assert.equal(result.plan, PLAN.PREMIUM);
+    assert.equal(result.source, 'family');
+  });
+
+  test('misafir aile koltuğunda olsa bile GUEST kalır', () => {
+    const result = resolveEntitlements({
+      user: { isGuest: true, trialEndsAt: null },
+      subscription: null,
+      familySeat: { active: true, sponsorUserId: 'sponsor-1', sponsorName: 'Ayşe', householdId: 'h1' },
+      planLimitsByPlan,
+      now: NOW,
+    });
+    assert.equal(result.plan, PLAN.GUEST);
+  });
+
+  test('familySeat verilmezse (null) mevcut davranış değişmez', () => {
+    const result = resolveEntitlements({
+      user: { isGuest: false, trialEndsAt: null },
+      subscription: null,
+      planLimitsByPlan,
+      now: NOW,
+    });
+    assert.equal(result.plan, PLAN.FREE);
+    assert.equal(result.familySeat, null);
+  });
+
+  test('familyRoster sadece geçirildiğinde çıktıda görünür', () => {
+    const roster = { seats: 5, used: 3, members: [{ userId: 'u1', active: true }] };
+    const result = resolveEntitlements({
+      user: { isGuest: false, trialEndsAt: null },
+      subscription: { status: 'active', currentPeriodEnd: days(30), store: 'play' },
+      familyRoster: roster,
+      planLimitsByPlan,
+      now: NOW,
+    });
+    assert.deepEqual(result.family, roster);
+  });
+
+  test('koltuklu üye 2x çarpandan etkilenmez (zaten PREMIUM, tam kota)', () => {
+    const result = resolveEntitlements({
+      user: { isGuest: false, trialEndsAt: null },
+      subscription: null,
+      familySeat: { active: true, sponsorUserId: 'sponsor-1', sponsorName: 'Ayşe', householdId: 'h1' },
+      usageByFeature: { receipt: { used: 0, resetsAt: null } },
+      planLimitsByPlan,
+      now: NOW,
+    });
+    assert.equal(result.quotas.receipt.limit, planLimitsByPlan[PLAN.PREMIUM].ai.receipt);
+    assert.equal(result.quotas.receipt.boosted, false);
+  });
+});

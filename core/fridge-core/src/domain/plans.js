@@ -23,6 +23,13 @@ const AI_FEATURES = Object.freeze(['receipt', 'recipe', 'chef', 'shopping']);
 // households.<id>.ownerPlan üzerinden AYRI çözülür (bkz. entitlements.js).
 const HOUSEHOLD_BOOST_MULTIPLIER = 2;
 
+// NOT (bkz. plan §Faz B "teyit edilecek nokta"): expiryNotify şu an sadece
+// GUEST'te false, FREE/TRIAL/PREMIUM'un hepsinde true — yani "premium'da var"
+// diye satılan bir avantaj değil, sadece misafirde kapalı bir demo-mod
+// kısıtı. Gerçek SKT bildirim işi/zamanlayıcısı henüz yok; bu alan bugün
+// hiçbir kapı gerektirmiyor. features.export ise PREMIUM/TRIAL'da satılan
+// gerçek bir avantaj — export-inventory-csv.use-case.js + requirePlanFeature
+// ile karşılığı var (bkz. inventory.routes.js).
 const BASE_LIMITS = Object.freeze({
   [PLAN.GUEST]: {
     ai: { receipt: 0, recipe: 0, chef: 0, shopping: 0 }, // demo mod — Gemini hiç çağrılmaz
@@ -62,6 +69,35 @@ const BASE_LIMITS = Object.freeze({
   },
 });
 
+// Platform bazlı limitler (bkz. plan §Faz D) — BASE_LIMITS ANDROID kabul
+// edilir (mobilin çoğunluğu, henüz iOS sürümü yok). PLATFORM_OVERRIDES.ios
+// SADECE değişecek alanları taşır, deep-merge ile BASE_LIMITS'in üstüne
+// biner — "iOS'ta Android'den daha cömert olamaz" kuralı burada, sayılar
+// PLATFORM_LIMITS_JSON env'i ile PLAN_LIMITS_JSON'la BİREBİR AYNI desende
+// ezilebilir. Şimdilik boş: ilk iOS sürümü çıkarken buraya gerçek kısıtlar
+// eklenecek (bkz. plan §Faz D — "Android'in iOS'tan daha cömert olması").
+const PLATFORM_OVERRIDES = Object.freeze({
+  ios: {},
+});
+
+// Aile paketi (YouTube Family tarzı) — RC ürün kimliğinden kademe/koltuk
+// sayısını çözer. Tek entitlement ("premium") üzerinden çalışıyoruz; kademe
+// SADECE bizim tarafımızda anlamlı, RC'ye hiç bildirilmez (bkz.
+// billing-event-mapping.js). Koltuk sayısını AAB yüklemeden değiştirebilmek
+// için PRODUCT_TIERS_JSON env'i ile PLAN_LIMITS_JSON'la BİREBİR AYNI desende
+// ezilebilir tutulur.
+const PLAN_TIER = Object.freeze({
+  INDIVIDUAL: 'individual',
+  FAMILY: 'family',
+});
+
+const PRODUCT_TIERS = Object.freeze({
+  fridge_premium_monthly: { tier: PLAN_TIER.INDIVIDUAL, seats: null },
+  fridge_premium_annual: { tier: PLAN_TIER.INDIVIDUAL, seats: null },
+  fridge_premium_family_monthly: { tier: PLAN_TIER.FAMILY, seats: 5 },
+  fridge_premium_family_annual: { tier: PLAN_TIER.FAMILY, seats: 5 },
+});
+
 // PLAN_LIMITS_JSON="{\"free\":{\"ai\":{\"receipt\":5}}}" gibi kısmi bir obje
 // ile tek tek alan ezilebilir — deep merge, tüm ağacı yeniden yazmaya gerek
 // yok. Bozuk JSON sessizce yok sayılır (yanlış env boot'u asla çökertmemeli,
@@ -90,13 +126,52 @@ const loadLimitOverrides = (rawJson) => {
 // Test edilebilirlik için env okuması dışa açık bırakılıyor — çağıran
 // (container.js) process.env.PLAN_LIMITS_JSON'ı geçirir, bu modül process'e
 // hiç dokunmaz (hexagonal kısıt: domain katmanı I/O yapmaz).
-const buildPlanLimits = (rawOverridesJson = null) => {
+//
+// platform: 'android' | 'ios' — android'de PLATFORM_OVERRIDES hiç
+// uygulanmaz (BASE_LIMITS zaten Android kabul edilir), ios'ta önce
+// PLATFORM_OVERRIDES.ios sonra platformLimitsJsonOverrides (PLATFORM_
+// LIMITS_JSON env'i, sadece o platforma özel ek ezme) sırayla biner.
+const buildPlanLimits = (rawOverridesJson = null, platform = 'android', rawPlatformOverridesJson = null) => {
   const overrides = loadLimitOverrides(rawOverridesJson);
+  const platformOverrides = platform === 'ios' ? PLATFORM_OVERRIDES.ios : {};
+  const platformJsonOverrides = loadLimitOverrides(rawPlatformOverridesJson)?.[platform] ?? {};
   const merged = {};
   for (const plan of Object.values(PLAN)) {
-    merged[plan] = deepMerge(BASE_LIMITS[plan], overrides[plan]);
+    let planLimits = deepMerge(BASE_LIMITS[plan], overrides[plan]);
+    planLimits = deepMerge(planLimits, platformOverrides[plan]);
+    planLimits = deepMerge(planLimits, platformJsonOverrides[plan]);
+    merged[plan] = planLimits;
   }
   return Object.freeze(merged);
 };
 
-export { PLAN, AI_FEATURES, HOUSEHOLD_BOOST_MULTIPLIER, BASE_LIMITS, buildPlanLimits };
+// PRODUCT_TIERS_JSON="{\"fridge_premium_family_monthly\":{\"seats\":6}}" ile
+// tek bir ürünün koltuk sayısı bile tek başına ezilebilir — buildPlanLimits
+// ile aynı deep-merge deseni, aynı "bozuk JSON'da sessizce base'e düş" ilkesi.
+const buildProductTiers = (rawOverridesJson = null) => {
+  const overrides = loadLimitOverrides(rawOverridesJson);
+  const merged = {};
+  for (const productId of Object.keys(PRODUCT_TIERS)) {
+    merged[productId] = deepMerge(PRODUCT_TIERS[productId], overrides[productId]);
+  }
+  return Object.freeze(merged);
+};
+
+// Bilinmeyen bir product_id (RC'de test/deneme ürünü, ya da henüz haritaya
+// eklenmemiş yeni bir SKU) INDIVIDUAL'a güvenli tarafta düşer — aile
+// koltuğu sessizce herkese açılmasın diye "tanımadığım ürün = tek koltuk".
+const resolveProductTier = (productId, productTiersByProductId) =>
+  productTiersByProductId[productId] ?? { tier: PLAN_TIER.INDIVIDUAL, seats: null };
+
+export {
+  PLAN,
+  AI_FEATURES,
+  HOUSEHOLD_BOOST_MULTIPLIER,
+  BASE_LIMITS,
+  PLATFORM_OVERRIDES,
+  buildPlanLimits,
+  PLAN_TIER,
+  PRODUCT_TIERS,
+  buildProductTiers,
+  resolveProductTier,
+};
