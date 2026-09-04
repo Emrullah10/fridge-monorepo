@@ -69,6 +69,9 @@ const boot = (container) => {
   // servis ediliyor.
   app.get('/privacy', (req, res) => res.sendFile(join(publicDir, 'privacy.html')));
   app.get('/delete-account', (req, res) => res.sendFile(join(publicDir, 'delete-account.html')));
+  // Abonelik şartları — fiyat/yenileme/iptal/iade politikası (plan §Faz 6,
+  // paywall_screen.dart ve settings_screen.dart buradan link verir).
+  app.get('/terms', (req, res) => res.sendFile(join(publicDir, 'terms.html')));
 
   // Android App Links doğrulaması: /join/KOD linkinin tıklanınca tarayıcı
   // yerine doğrudan uygulamayı açması için Android bu dosyayı HTTPS
