@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import { asyncHandler } from '@fridge/helper';
-import { requireAuth, requireHouseholdRole, requireHouseholdFeature, requireGuestQuota, rateLimiter } from '@fridge/middlewares';
+import { requireAuth, requireHouseholdRole, requireHouseholdFeature, requireCapability, rateLimiter } from '@fridge/middlewares';
 import { ValidationError } from '@fridge/errors';
 import { resolveFeatures } from '@fridge/core/src/domain/household-profile.js';
+import { canUseAiFeature } from '@fridge/core/src/domain/entitlements.js';
 
 const buildRecipeRouter = ({ container }) => {
   const router = Router({ mergeParams: true });
@@ -62,23 +63,36 @@ const buildRecipeRouter = ({ container }) => {
     res.json({ recipeIds });
   }));
 
-  // Her istek Gemini'ye para harcıyor — dakikada 3 istekle sınırla.
-  // Misafir hesap bedava açıldığı için ayrıca günlük kota (bkz.
-  // requireGuestQuota) — kayıtlı kullanıcılar bu ek sınıra takılmaz.
+  // Plan/kota kontrolü + rezervasyon (misafir burada SIGNUP_REQUIRED alır —
+  // demo mod mobil tarafta, bkz. plan §Faz 2). requireHouseholdFeature'dan
+  // SONRA, rateLimiter'dan ÖNCE (402, 429'dan önce dönmeli).
   router.post(
     '/generate',
-    requireGuestQuota({ windowMs: 24 * 60 * 60 * 1000, maxRequests: 5, limitName: 'guest-recipe' }),
+    requireCapability('recipe', {
+      getEntitlements: useCases.getEntitlements,
+      reserveAiUsage: useCases.reserveAiUsage,
+      canUseAiFeature,
+    }),
     rateLimiter({ windowMs: 60_000, maxRequests: 3, keyFn: (req) => req.user.id, limitName: 'recipe-generate' }),
     asyncHandler(async (req, res) => {
     if (!useCases.generateAiRecipes) {
+      await useCases.releaseAiUsage({ refId: req.aiUsageRefId });
       return res.status(503).json({ error: { code: 'AI_DISABLED', message: 'Tarif üretimi şu anda kapalı' } });
     }
-    const result = await useCases.generateAiRecipes({
-      householdId: req.params.householdId,
-      createdBy: req.user.id,
-      preferences: req.body?.preferences ?? {},
-    });
-    res.status(201).json(result);
+    try {
+      const result = await useCases.generateAiRecipes({
+        householdId: req.params.householdId,
+        createdBy: req.user.id,
+        preferences: req.body?.preferences ?? {},
+        isGuest: req.user.isGuest ?? false,
+      });
+      res.status(201).json(result);
+    } catch (error) {
+      // AiQuotaError/AiBusyError/AiTimeoutError dahil her hata kotayı iade
+      // eder — kullanıcı bir değer almadıysa ödemez (plan §Faz 3).
+      await useCases.releaseAiUsage({ refId: req.aiUsageRefId });
+      throw error;
+    }
   }));
 
   router.get('/:recipeId', asyncHandler(async (req, res) => {

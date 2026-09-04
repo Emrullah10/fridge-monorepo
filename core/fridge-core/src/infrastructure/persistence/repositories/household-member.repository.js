@@ -83,6 +83,44 @@ const makeHouseholdMemberRepository = ({ rawQuery }) => {
         [householdId, userId, role],
       );
     },
+
+    // entitlements.js'in householdOwnerPlans girdisini besler — kullanıcının
+    // üye olduğu HER alan için o alanın SAHİBİNİN (role='owner') abonelik
+    // planını döner. subscription satırı yoksa (hiç abone olmamış sahip)
+    // planı 'free' varsayılır — LEFT JOIN + COALESCE, subscription tablosuna
+    // bağımlı bir INNER JOIN sahipsiz/free alanları listeden düşürmesin.
+    // "premium" değeri sadece subscription.status ERİŞİM VEREN bir durumda
+    // (active/in_grace/canceled-ama-dönem-bitmemiş) ise yazılır — canlı karar
+    // burada değil entitlements.js'te merkezi kalsın diye ham status +
+    // current_period_end döndürülür, çağıran (get-entitlements use-case)
+    // resolvePlan ile aynı mantığı her sahip için ayrı ayrı çalıştırır.
+    listOwnerSubscriptionsForUser: async (userId) => {
+      const { rows } = await rawQuery(
+        `SELECT hm.household_id,
+                owner_sub.status AS owner_subscription_status,
+                owner_sub.current_period_end AS owner_current_period_end,
+                owner_user.is_guest AS owner_is_guest,
+                owner_user.trial_ends_at AS owner_trial_ends_at
+         FROM household_member hm
+         JOIN household_member owner_hm
+           ON owner_hm.household_id = hm.household_id AND owner_hm.role = 'owner'
+         JOIN app_user owner_user ON owner_user.id = owner_hm.user_id
+         LEFT JOIN subscription owner_sub ON owner_sub.user_id = owner_hm.user_id
+         WHERE hm.user_id = $1`,
+        [userId],
+      );
+      return rows.map((row) => ({
+        householdId: row.household_id,
+        ownerSubscriptionStatus: row.owner_subscription_status ?? null,
+        ownerCurrentPeriodEnd: row.owner_current_period_end ?? null,
+        // Sahip misafirse (kendi kendine sahip olduğu ilk alan) GUEST
+        // planı uygulanmalı, FREE değil — aksi halde misafir kendi alanına
+        // "free" limitleri (6 bölüm) uygulayıp GUEST'in 3'lük sınırını
+        // aşabiliyordu (bkz. buglog).
+        ownerIsGuest: row.owner_is_guest ?? false,
+        ownerTrialEndsAt: row.owner_trial_ends_at ?? null,
+      }));
+    },
   };
 };
 

@@ -40,6 +40,11 @@ const makeProcessReceiptScan = ({
   ocrPort,
   receiptParserPort,
   notifyHousehold,
+  // Kota rezervasyonu route katmanında scanId oluşur oluşmaz yapılır (bkz.
+  // receipt.routes.js). Terminal hata VEYA 0-ürün sonucunda burada iade
+  // edilir — kullanıcı bir değer almadıysa ödemez (plan §Faz 3). Opsiyonel:
+  // enjekte edilmezse eski davranış (iade yok) korunur, testler kırılmaz.
+  releaseAiUsage,
 }) => {
   // Kademe 3: alias/trigram bulamazsa, AI parser'ın zaten ürettiği parsedName
   // ile household'a özel bir ürün otomatik açılır. Böylece matchedProductId
@@ -243,8 +248,16 @@ const makeProcessReceiptScan = ({
         });
       }
 
+      // 0 ürün bulunduysa kullanıcı hiçbir değer almadı — kota iade edilir.
+      if (lineItemsWithMatches.length === 0 && releaseAiUsage) {
+        await releaseAiUsage({ refId: scanId });
+      }
+
       return result;
     } catch (error) {
+      if (releaseAiUsage) {
+        await releaseAiUsage({ refId: scanId });
+      }
       return receiptScanRepo.markFailed(scanId, error.message);
     }
   };
