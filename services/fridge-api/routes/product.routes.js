@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { asyncHandler } from '@fridge/helper';
-import { requireAuth, requireHouseholdRole } from '@fridge/middlewares';
+import { requireAuth, requireHouseholdRole, requirePlanFeature } from '@fridge/middlewares';
 
 const buildProductRouter = ({ container }) => {
   const router = Router({ mergeParams: true });
@@ -11,10 +11,15 @@ const buildProductRouter = ({ container }) => {
 
   // Barkod -> ürün. Katalogda yoksa Open Food Facts'ten çekip yaratır.
   // found:false ise mobil manuel ekleme ekranını barkodla önden doldurur.
-  router.get('/barcode/:code', asyncHandler(async (req, res) => {
-    const result = await useCases.lookupBarcode({ barcode: req.params.code });
-    res.json(result);
-  }));
+  // GUEST'te kapalı (bkz. plans.js features.barcode) — misafir demo modda.
+  router.get(
+    '/barcode/:code',
+    requirePlanFeature('barcode', { getEntitlements: useCases.getEntitlements }),
+    asyncHandler(async (req, res) => {
+      const result = await useCases.lookupBarcode({ barcode: req.params.code });
+      res.json(result);
+    }),
+  );
 
   // Ürün seçici (fiş düzeltme, manuel envanter ekleme) burayı kullanır.
   // Boş q ile en yeni/global ürünler listelenir.

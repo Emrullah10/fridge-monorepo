@@ -12,7 +12,7 @@ const buildBillingRouter = ({ container }) => {
   const { useCases } = container;
 
   router.get('/me/entitlements', requireAuth(), asyncHandler(async (req, res) => {
-    const entitlements = await useCases.getEntitlements({ userId: req.user.id });
+    const entitlements = await useCases.getEntitlements({ userId: req.user.id, platform: req.clientPlatform });
     res.json(entitlements);
   }));
 
@@ -20,7 +20,7 @@ const buildBillingRouter = ({ container }) => {
   // (plan §Faz 5). Deep link üretimi tek satır — mağaza tarafında hiçbir
   // ek entegrasyon gerektirmiyor.
   router.get('/me/subscription/manage-url', requireAuth(), asyncHandler(async (req, res) => {
-    const entitlements = await useCases.getEntitlements({ userId: req.user.id });
+    const entitlements = await useCases.getEntitlements({ userId: req.user.id, platform: req.clientPlatform });
     const productId = entitlements.plan === 'premium' ? (req.query.productId ?? null) : null;
     const url = productId
       ? `https://play.google.com/store/account/subscriptions?sku=${encodeURIComponent(productId)}&package=com.fridge.fridge_mobil`
