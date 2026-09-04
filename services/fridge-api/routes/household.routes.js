@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import { asyncHandler } from '@fridge/helper';
-import { requireAuth, requireHouseholdRole, requireStructuralLimit } from '@fridge/middlewares';
+import { requireAuth, requireHouseholdRole, requireStructuralLimit, requireUnlockedHousehold } from '@fridge/middlewares';
 import { translateDomainError } from '@fridge/errors';
 import { LocationNotEmptyError } from '@fridge/core/src/domain/errors/index.js';
+import { resolveLockedHouseholdIds, resolveLockedLocationIds } from '@fridge/core/src/domain/access-lock.js';
 
 const buildHouseholdRouter = ({ container }) => {
   const router = Router();
@@ -34,14 +35,33 @@ const buildHouseholdRouter = ({ container }) => {
     }),
   );
 
+  // Kilitli alanları GİZLEMEZ, işaretler — kullanıcı verisinin kaybolduğunu
+  // sanmasın, blurlu görüp "Premium ile aç" diyebilsin (bkz. plan §Faz C2).
   router.get('/', asyncHandler(async (req, res) => {
-    const households = await repos.householdRepo.findByUserId(req.user.id);
-    res.json({ households });
+    const [households, entitlements] = await Promise.all([
+      repos.householdRepo.findByUserId(req.user.id),
+      useCases.getEntitlements({ userId: req.user.id, platform: req.clientPlatform }),
+    ]);
+    const memberships = await repos.householdRepo.findMembershipsWithJoinedAtByUserId(req.user.id);
+    const lockedIds = resolveLockedHouseholdIds({ memberships, limit: entitlements.householdCountLimit });
+    res.json({ households: households.map((h) => ({ ...h, locked: lockedIds.has(h.id) })) });
   }));
+
+  // household.routes.js'in KENDİ /:householdId/* alt yolları — routes/
+  // index.js'teki unlockedHouseholdGate BU router'ı sarmıyor (o sadece
+  // /households/:householdId/inventory vb. ayrı mount'ları sarıyor), bu
+  // yüzden içerik değiştiren uçlar burada AYRICA kilitlenir (bkz. plan
+  // §Faz C2 "household.routes.js'in kendi alt yolları için ikinci nokta").
+  const unlockedGate = requireUnlockedHousehold({
+    getEntitlements: useCases.getEntitlements,
+    listMembershipsWithJoinedAt: (userId) => repos.householdRepo.findMembershipsWithJoinedAtByUserId(userId),
+    resolveLockedIds: resolveLockedHouseholdIds,
+  });
 
   router.patch(
     '/:householdId/features',
     requireHouseholdRole({ householdMemberRepo: repos.householdMemberRepo, minRole: 'admin' }),
+    unlockedGate,
     asyncHandler(async (req, res) => {
       const household = await useCases.updateHouseholdFeatures({
         householdId: req.params.householdId,
@@ -51,18 +71,25 @@ const buildHouseholdRouter = ({ container }) => {
     }),
   );
 
+  // Kilitli bölümleri GİZLEMEZ, işaretler — alan listesindeki aynı ilke.
   router.get(
     '/:householdId/locations',
     requireHouseholdRole({ householdMemberRepo: repos.householdMemberRepo, minRole: 'viewer' }),
     asyncHandler(async (req, res) => {
-      const locations = await repos.storageLocationRepo.listByHousehold(req.params.householdId);
-      res.json({ locations });
+      const [locations, entitlements] = await Promise.all([
+        repos.storageLocationRepo.listByHousehold(req.params.householdId),
+        useCases.getEntitlements({ userId: req.user.id, platform: req.clientPlatform }),
+      ]);
+      const limit = entitlements.households[req.params.householdId]?.maxLocations ?? null;
+      const lockedIds = resolveLockedLocationIds({ locations, limit });
+      res.json({ locations: locations.map((l) => ({ ...l, locked: lockedIds.has(l.id) })) });
     }),
   );
 
   router.post(
     '/:householdId/locations',
     requireHouseholdRole({ householdMemberRepo: repos.householdMemberRepo, minRole: 'member' }),
+    unlockedGate,
     requireStructuralLimit('location.perHousehold', {
       getEntitlements: useCases.getEntitlements,
       countCurrent: async (req) => {
@@ -85,6 +112,7 @@ const buildHouseholdRouter = ({ container }) => {
   router.patch(
     '/:householdId/locations/:locationId',
     requireHouseholdRole({ householdMemberRepo: repos.householdMemberRepo, minRole: 'member' }),
+    unlockedGate,
     asyncHandler(async (req, res) => {
       const { location, warnings } = await useCases.updateStorageLocation({
         locationId: req.params.locationId,

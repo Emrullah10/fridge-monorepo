@@ -53,7 +53,7 @@ import { makeReserveAiUsage } from '@fridge/core/src/application/use-cases/billi
 import { makeReleaseAiUsage } from '@fridge/core/src/application/use-cases/billing/release-ai-usage.use-case.js';
 import { makeApplyBillingEvent } from '@fridge/core/src/application/use-cases/billing/apply-billing-event.use-case.js';
 import { makeReconcileSubscriptions } from '@fridge/core/src/application/use-cases/billing/reconcile-subscriptions.use-case.js';
-import { buildPlanLimits } from '@fridge/core/src/domain/plans.js';
+import { buildPlanLimits, buildProductTiers } from '@fridge/core/src/domain/plans.js';
 import { canUseAiFeature } from '@fridge/core/src/domain/entitlements.js';
 import { makeRefreshSession } from '@fridge/core/src/application/use-cases/auth/refresh-session.use-case.js';
 import { makeLogoutUser } from '@fridge/core/src/application/use-cases/auth/logout-user.use-case.js';
@@ -82,6 +82,7 @@ import { makeConsumeInventoryItem } from '@fridge/core/src/application/use-cases
 import { makeUpdateInventoryItem } from '@fridge/core/src/application/use-cases/inventory/update-inventory-item.use-case.js';
 import { makeDeleteInventoryItem } from '@fridge/core/src/application/use-cases/inventory/delete-inventory-item.use-case.js';
 import { makeListInventoryItems } from '@fridge/core/src/application/use-cases/inventory/list-inventory-items.use-case.js';
+import { makeExportInventoryCsv } from '@fridge/core/src/application/use-cases/inventory/export-inventory-csv.use-case.js';
 import { makeListExpiringItems } from '@fridge/core/src/application/use-cases/inventory/list-expiring-items.use-case.js';
 
 import { makeUploadReceiptScan, makeUploadReceiptScanText } from '@fridge/core/src/application/use-cases/receipt/upload-receipt-scan.use-case.js';
@@ -227,7 +228,21 @@ const buildContainer = (config) => {
   // Plan/kota limit tablosu — env PLAN_LIMITS_JSON ile ezilebilir (bkz.
   // domain/plans.js). Bir kez hesaplanır, tüm entitlement use-case'leri
   // aynı referansı paylaşır.
-  const planLimitsByPlan = buildPlanLimits(config.planLimitsJson);
+  // Platform bazlı limitler (bkz. plan §Faz D) — sadece 2 platform olduğu
+  // için ikisi de boot'ta önceden hesaplanıp cache'lenir, her istekte
+  // yeniden hesaplama yapılmaz. planLimitsFor(platform) tüm entitlement
+  // use-case'lerinin kullandığı tek giriş noktası.
+  const planLimitsByPlatform = {
+    android: buildPlanLimits(config.planLimitsJson, 'android', config.platformLimitsJson),
+    ios: buildPlanLimits(config.planLimitsJson, 'ios', config.platformLimitsJson),
+  };
+  const planLimitsFor = (platform) => planLimitsByPlatform[platform] ?? planLimitsByPlatform.android;
+  // Geriye dönük uyumluluk: platform bilinmeyen çağıranlar (henüz
+  // güncellenmemiş bir yer varsa) varsayılan olarak Android limitlerini alır.
+  const planLimitsByPlan = planLimitsByPlatform.android;
+  // Aile paketi ürün→kademe/koltuk haritası — env PRODUCT_TIERS_JSON ile
+  // ezilebilir (bkz. domain/plans.js).
+  const productTiersByProductId = buildProductTiers(config.productTiersJson);
 
   const notifyHousehold = makeNotifyHousehold({
     householdMemberRepo: repos.householdMemberRepo,
@@ -268,7 +283,7 @@ const buildContainer = (config) => {
       subscriptionRepo: repos.subscriptionRepo,
       usageCounterRepo: repos.usageCounterRepo,
       householdMemberRepo: repos.householdMemberRepo,
-      planLimitsByPlan,
+      planLimitsFor,
       clock,
     }),
     startReverseTrial: makeStartReverseTrial({ userRepo: repos.userRepo, clock }),
@@ -278,6 +293,7 @@ const buildContainer = (config) => {
       billingEventRepo: repos.billingEventRepo,
       subscriptionRepo: repos.subscriptionRepo,
       userRepo: repos.userRepo,
+      productTiersByProductId,
     }),
     reconcileSubscriptions: makeReconcileSubscriptions({
       subscriptionRepo: repos.subscriptionRepo,
@@ -353,6 +369,7 @@ const buildContainer = (config) => {
       stockMovementRepo: repos.stockMovementRepo,
     }),
     listInventoryItems: makeListInventoryItems({ inventoryItemRepo: repos.inventoryItemRepo }),
+    exportInventoryCsv: makeExportInventoryCsv({ inventoryItemRepo: repos.inventoryItemRepo }),
     listExpiringItems: makeListExpiringItems({ inventoryItemRepo: repos.inventoryItemRepo, clock }),
 
     uploadReceiptScan: makeUploadReceiptScan({ receiptScanRepo: repos.receiptScanRepo, storagePort }),

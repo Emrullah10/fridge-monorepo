@@ -33,6 +33,22 @@ const makeHouseholdRepository = ({ rawQuery }) => {
       return rows.map(mapRow);
     },
 
+    // access-lock.js resolveLockedHouseholdIds'in "en eski açık kalır"
+    // sırası household.count limitinin kendisiyle (household.routes.js:19,
+    // ÜYELİKLERİ sayar) tutarlı olsun diye household_member.joined_at'e göre
+    // sıralanır — household.created_at DEĞİL (bkz. plan §Faz C1 notu).
+    findMembershipsWithJoinedAtByUserId: async (userId) => {
+      const { rows } = await rawQuery(
+        `SELECT h.*, hm.joined_at
+         FROM household h
+         JOIN household_member hm ON hm.household_id = h.id
+         WHERE hm.user_id = $1
+         ORDER BY hm.joined_at`,
+        [userId],
+      );
+      return rows.map((row) => ({ ...mapRow(row), joinedAt: row.joined_at }));
+    },
+
     findByCreatedBy: async (userId) => {
       const { rows } = await rawQuery('SELECT * FROM household WHERE created_by = $1', [userId]);
       return rows.map(mapRow);

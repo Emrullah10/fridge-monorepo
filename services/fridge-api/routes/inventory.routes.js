@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { asyncHandler } from '@fridge/helper';
-import { requireAuth, requireHouseholdRole } from '@fridge/middlewares';
+import { requireAuth, requireHouseholdRole, requireStructuralLimit, requirePlanFeature } from '@fridge/middlewares';
 
 const buildInventoryRouter = ({ container }) => {
   const router = Router({ mergeParams: true });
@@ -17,6 +17,18 @@ const buildInventoryRouter = ({ container }) => {
     res.json({ items });
   }));
 
+  // Premium/deneme özelliği (bkz. plans.js features.export) — CSV dökümü.
+  router.get(
+    '/export.csv',
+    requirePlanFeature('export', { getEntitlements: useCases.getEntitlements }),
+    asyncHandler(async (req, res) => {
+      const csv = await useCases.exportInventoryCsv({ householdId: req.params.householdId });
+      res.set('Content-Type', 'text/csv; charset=utf-8');
+      res.set('Content-Disposition', 'attachment; filename="envanter.csv"');
+      res.send(csv);
+    }),
+  );
+
   router.get('/expiring', asyncHandler(async (req, res) => {
     const items = await useCases.listExpiringItems({
       householdId: req.params.householdId,
@@ -25,19 +37,32 @@ const buildInventoryRouter = ({ container }) => {
     res.json({ items });
   }));
 
-  router.post('/', asyncHandler(async (req, res) => {
-    const item = await useCases.addInventoryItem({
-      householdId: req.params.householdId,
-      storageLocationId: req.body.storageLocationId,
-      productId: req.body.productId,
-      unit: req.body.unit,
-      quantity: req.body.quantity,
-      expiresAt: req.body.expiresAt ?? null,
-      unitPrice: req.body.unitPrice,
-      actorUserId: req.user.id,
-    });
-    res.status(201).json({ item });
-  }));
+  // Sadece GUEST'te sayısal (30), diğer planlarda null/sınırsız (bkz.
+  // plans.js). Misafirin zaten en fazla 1 alanı olabildiği için (household.
+  // count=1) bu alandaki satır sayısı = kullanıcının toplam envanteri.
+  router.post(
+    '/',
+    requireStructuralLimit('inventory.itemsTotal', {
+      getEntitlements: useCases.getEntitlements,
+      countCurrent: async (req) => {
+        const items = await useCases.listInventoryItems({ householdId: req.params.householdId });
+        return items.length;
+      },
+    }),
+    asyncHandler(async (req, res) => {
+      const item = await useCases.addInventoryItem({
+        householdId: req.params.householdId,
+        storageLocationId: req.body.storageLocationId,
+        productId: req.body.productId,
+        unit: req.body.unit,
+        quantity: req.body.quantity,
+        expiresAt: req.body.expiresAt ?? null,
+        unitPrice: req.body.unitPrice,
+        actorUserId: req.user.id,
+      });
+      res.status(201).json({ item });
+    }),
+  );
 
   // reason: 'consumed' (kullanıldı, para tasarrufu sayılır) | 'expired' |
   // 'discarded' (bozuldu/atıldı, israf sayılır). Geçersiz/eksik → 'consumed'.

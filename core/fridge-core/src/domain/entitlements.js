@@ -34,15 +34,24 @@ const isTrialActive = (user, now) => {
   return new Date(user.trialEndsAt).getTime() > now.getTime();
 };
 
-// Misafir > aktif abonelik > aktif deneme > ücretsiz. Sıra önemli: bir
-// kullanıcı hem eski bir deneme kaydına hem aktif aboneliğe sahip olabilir,
-// abonelik her zaman kazanır (ör. deneme bittikten sonra abone oldu).
-const resolvePlan = ({ user, subscription, now }) => {
+// Misafir > kendi aktif aboneliği > AİLE KOLTUĞU > kendi denemesi > ücretsiz.
+// Aile koltuğu kendi denemeyi yener — deneme kalıcı değil (14 gün), koltuk
+// sponsor abone kaldığı sürece kalıcıdır; deneme bitince kafa karıştırıcı bir
+// düşüş yaşanmasın diye koltuk önce kontrol edilir. Kendi aktif aboneliği
+// HER ZAMAN koltuktan önce gelir — bir kullanıcı hem kendi cebinden ödüyor
+// hem de başka birinin ailesindeyse, kendi ödemesi kazanır (koltuk boşa
+// gitmesin, başka bir üyeye kalsın — bkz. household-member.repository.js
+// findFamilySeatForUser rank hesaplaması, bu kullanıcı adaylar arasından
+// hiç çıkmaz çünkü zaten kendi başına premium).
+const resolvePlan = ({ user, subscription, now, familySeat = null }) => {
   if (user?.isGuest) {
     return { plan: PLAN.GUEST, source: 'guest', status: 'active' };
   }
   if (isSubscriptionCurrentlyActive(subscription, now)) {
     return { plan: PLAN.PREMIUM, source: subscription.store, status: subscription.status };
+  }
+  if (familySeat?.active) {
+    return { plan: PLAN.PREMIUM, source: 'family', status: 'active' };
   }
   // Abonelik kaydı var ama artık erişim vermiyor (on_hold/paused/expired/
   // revoked/dönem bitmiş) — durumu olduğu gibi yansıt, mobil buna göre
@@ -113,8 +122,21 @@ const attachUsage = (quotaLimits, usageByFeature) => {
 // householdOwnerPlans: { [householdId]: PLAN } — çağıran, kullanıcının üye
 // olduğu her alanın SAHİBİNİN planını önceden çözüp geçirir.
 // usageByFeature: { [feature]: { used, resetsAt } } — usage_counter'dan.
-const resolveEntitlements = ({ user, subscription, householdOwnerPlans = {}, usageByFeature = {}, planLimitsByPlan, now = new Date() }) => {
-  const { plan, source, status } = resolvePlan({ user, subscription, now });
+// familySeat: { active, sponsorUserId, sponsorName, householdId } | null —
+// çağıran household-member.repository.js findFamilySeatForUser'dan hazırlar.
+// familyRoster: sadece aile abonesi SAHİP için { seats, members: [...] } —
+// çağıran listFamilySeats'ten hazırlar, başkası için hiç geçirilmez.
+const resolveEntitlements = ({
+  user,
+  subscription,
+  householdOwnerPlans = {},
+  usageByFeature = {},
+  planLimitsByPlan,
+  now = new Date(),
+  familySeat = null,
+  familyRoster = null,
+}) => {
+  const { plan, source, status } = resolvePlan({ user, subscription, now, familySeat });
   const baseLimits = planLimitsByPlan[plan];
 
   const quotaLimits = resolveAiQuotaLimits({ plan, baseLimits, householdOwnerPlans });
@@ -137,6 +159,19 @@ const resolveEntitlements = ({ user, subscription, householdOwnerPlans = {}, usa
     // Envanter satırı toplam limiti (şu an sadece GUEST'te sayısal, diğer
     // planlarda null/sınırsız) — inventory ekleme ucunun kapısı için.
     inventoryItemsLimit: baseLimits.inventory.itemsTotal,
+    // Kullanıcı bir aile koltuğundaysa mobil "X'in aile paketindesin" rozeti
+    // gösterir — source zaten 'family' ama sponsor adı/alanı UI metni için
+    // ayrıca taşınır.
+    familySeat: familySeat?.active
+      ? {
+          sponsorUserId: familySeat.sponsorUserId,
+          sponsorName: familySeat.sponsorName ?? null,
+          householdId: familySeat.householdId,
+        }
+      : null,
+    // Sadece aile abonesi SAHİP için dolu gelir — abonelik ekranındaki
+    // koltuk roster'ı ("Aile üyeleri 3/5").
+    family: familyRoster,
   };
 };
 

@@ -5,6 +5,9 @@ const mapRow = (row) => row && ({
   kind: row.kind,
   icon: row.icon,
   sortOrder: row.sort_order,
+  // access-lock.js resolveLockedLocationIds'in "en eski açık kalır" sırası
+  // için (bkz. plan §Faz C).
+  createdAt: row.created_at,
 });
 
 const makeStorageLocationRepository = ({ rawQuery }) => {
