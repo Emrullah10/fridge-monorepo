@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { asyncHandler } from '@fridge/helper';
+import { asyncHandler, log } from '@fridge/helper';
 import { requireAuth, requireHouseholdRole, requireStructuralLimit, requireUnlockedHousehold } from '@fridge/middlewares';
 import { translateDomainError } from '@fridge/errors';
 import { LocationNotEmptyError } from '@fridge/core/src/domain/errors/index.js';
@@ -37,13 +37,20 @@ const buildHouseholdRouter = ({ container }) => {
 
   // Kilitli alanları GİZLEMEZ, işaretler — kullanıcı verisinin kaybolduğunu
   // sanmasın, blurlu görüp "Premium ile aç" diyebilsin (bkz. plan §Faz C2).
+  // entitlements hesaplaması ikincil/kozmetik bir bilgi (sadece kilit
+  // işaretlemesi için) — bozulursa (bkz. bug-382) tüm alan listesini 500'e
+  // düşürmemeli. Hata olursa limit=null geçilir, resolveLockedHouseholdIds
+  // bunu "sınırsız" sayıp hiçbir alanı kilitlemez (fail-open).
   router.get('/', asyncHandler(async (req, res) => {
     const [households, entitlements] = await Promise.all([
       repos.householdRepo.findByUserId(req.user.id),
-      useCases.getEntitlements({ userId: req.user.id, platform: req.clientPlatform }),
+      useCases.getEntitlements({ userId: req.user.id, platform: req.clientPlatform }).catch((error) => {
+        log.error('entitlements_fetch_failed', { userId: req.user.id, message: error.message });
+        return null;
+      }),
     ]);
     const memberships = await repos.householdRepo.findMembershipsWithJoinedAtByUserId(req.user.id);
-    const lockedIds = resolveLockedHouseholdIds({ memberships, limit: entitlements.householdCountLimit });
+    const lockedIds = resolveLockedHouseholdIds({ memberships, limit: entitlements?.householdCountLimit ?? null });
     res.json({ households: households.map((h) => ({ ...h, locked: lockedIds.has(h.id) })) });
   }));
 
