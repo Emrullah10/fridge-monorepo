@@ -16,6 +16,14 @@ const buildBillingRouter = ({ container }) => {
     res.json(entitlements);
   }));
 
+  // GET /api/plans — auth GEREKMEZ (kasıtlı): paywall ve onboarding tanıtım
+  // kartı henüz hesabı olmayan/oturum açmamış kullanıcıya da "Ücretsiz vs
+  // Premium" karşılaştırmasını gösterebilmeli.
+  router.get('/plans', asyncHandler(async (req, res) => {
+    const catalog = useCases.getPlanCatalog({ platform: req.clientPlatform });
+    res.json(catalog);
+  }));
+
   // Play'in 2026 zorunluluğu: uygulama içinden en fazla 2 dokunuşta iptal
   // (plan §Faz 5). Deep link üretimi tek satır — mağaza tarafında hiçbir
   // ek entegrasyon gerektirmiyor.

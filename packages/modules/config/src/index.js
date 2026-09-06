@@ -72,10 +72,19 @@ const readEnv = (env = process.env) => {
     passwordResetTtlMinutes: Number(env.PASSWORD_RESET_TTL_MINUTES || 15),
     // Mobil açılışta GET /app-config ile karşılaştırır — buradan kapatılabilir
     // banner ("yeni sürüm var") ya da kapatılamaz zorunlu güncelleme ekranı
-    // tetiklenir. Sadece env değişikliği yeterli, yeniden yayın gerekmez.
+    // tetiklenir. APP_LATEST_VERSION artık sadece FALLBACK: playServiceAccount
+    // ayarlıysa gerçek değer doğrudan Play Store'dan (production track) okunur,
+    // bu env hiç elle güncellenmez. Play API'ye hiç ulaşılamazsa (kimlik bilgisi
+    // yok/hata) bu değere düşülür.
     appLatestVersion: env.APP_LATEST_VERSION || '1.0.0',
     appMinSupportedVersion: env.APP_MIN_SUPPORTED_VERSION || '1.0.0',
     appStoreUrl: env.APP_STORE_URL || 'https://play.google.com/store/apps/details?id=com.fridge.fridge_mobil',
+    // Play Console > Setup > API access'te "View app information (read-only)"
+    // izniyle davet edilmiş bir service account gerekir (bkz. fcmServiceAccount*
+    // ile aynı ikili desen — base64 prod'da, path local'de).
+    playServiceAccountPath: env.PLAY_SERVICE_ACCOUNT_PATH,
+    playServiceAccountBase64: env.PLAY_SERVICE_ACCOUNT_BASE64,
+    playPackageName: env.PLAY_PACKAGE_NAME || 'com.fridge.fridge_mobil',
     // Plan/kota limitlerini uygulama sürümü çıkarmadan ayarlamak için —
     // bkz. domain/plans.js buildPlanLimits(). Kısmi bir JSON objesi
     // (yalnızca değişecek alanlar) yeterli, deep merge edilir. Bozuk JSON

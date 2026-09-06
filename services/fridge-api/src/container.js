@@ -12,6 +12,8 @@ import { makeGeminiChefChat } from '@fridge/core/src/infrastructure/chef/gemini-
 import { makeOpenFoodFactsLookup } from '@fridge/core/src/infrastructure/barcode/openfoodfacts.adapter.js';
 import { makeFcmNotifier } from '@fridge/core/src/infrastructure/notification/fcm.adapter.js';
 import { makeNoopNotifier } from '@fridge/core/src/infrastructure/notification/noop.adapter.js';
+import { makePlayVersionAdapter } from '@fridge/core/src/infrastructure/play-store/play-version.adapter.js';
+import { makeCachedPlayVersion } from '@fridge/core/src/infrastructure/play-store/cached-play-version.js';
 import { makeResendMailer } from '@fridge/core/src/infrastructure/mail/resend.adapter.js';
 import { makeNoopMailer } from '@fridge/core/src/infrastructure/mail/noop-mailer.adapter.js';
 import { makePasswordResetRepository } from '@fridge/core/src/infrastructure/persistence/repositories/password-reset.repository.js';
@@ -48,6 +50,7 @@ import { makeLoginUser } from '@fridge/core/src/application/use-cases/auth/login
 import { makeCreateGuestUser } from '@fridge/core/src/application/use-cases/auth/create-guest-user.use-case.js';
 import { makeUpgradeGuestUser } from '@fridge/core/src/application/use-cases/auth/upgrade-guest-user.use-case.js';
 import { makeGetEntitlements } from '@fridge/core/src/application/use-cases/billing/get-entitlements.use-case.js';
+import { makeGetPlanCatalog } from '@fridge/core/src/application/use-cases/billing/get-plan-catalog.use-case.js';
 import { makeStartReverseTrial } from '@fridge/core/src/application/use-cases/billing/start-reverse-trial.use-case.js';
 import { makeReserveAiUsage } from '@fridge/core/src/application/use-cases/billing/reserve-ai-usage.use-case.js';
 import { makeReleaseAiUsage } from '@fridge/core/src/application/use-cases/billing/release-ai-usage.use-case.js';
@@ -189,6 +192,26 @@ const buildContainer = (config) => {
     notificationPort = makeNoopNotifier();
   }
 
+  // Kimlik bilgisi eksikse (henüz kurulmadı/hata) cachedPlayVersion.getLatestVersion()
+  // hep config.appLatestVersion (env fallback) döner — aynı "yokluk asla 500
+  // üretmez" ilkesi FCM'deki gibi burada da geçerli.
+  let cachedPlayVersion;
+  try {
+    let serviceAccount;
+    if (config.playServiceAccountBase64) {
+      serviceAccount = JSON.parse(Buffer.from(config.playServiceAccountBase64, 'base64').toString('utf8'));
+    } else if (config.playServiceAccountPath) {
+      serviceAccount = JSON.parse(readFileSync(config.playServiceAccountPath, 'utf8'));
+    }
+    if (!serviceAccount) throw new Error('Play service account not configured');
+    const playVersionAdapter = makePlayVersionAdapter({ serviceAccount, packageName: config.playPackageName });
+    cachedPlayVersion = makeCachedPlayVersion({ adapter: playVersionAdapter, fallbackVersion: config.appLatestVersion });
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('play_version_init_failed', error.message);
+    cachedPlayVersion = { getLatestVersion: async () => config.appLatestVersion };
+  }
+
   // Aynı ilke: RESEND_API_KEY yoksa boot patlamaz, no-op mailer'a düşer —
   // dev'de kod konsola basılır, forgot-password akışı yine 204 döner.
   const mailer = config.resendApiKey
@@ -286,6 +309,7 @@ const buildContainer = (config) => {
       planLimitsFor,
       clock,
     }),
+    getPlanCatalog: makeGetPlanCatalog({ planLimitsFor, productTiersByProductId }),
     startReverseTrial: makeStartReverseTrial({ userRepo: repos.userRepo, clock }),
     reserveAiUsage: makeReserveAiUsage({ usageCounterRepo: repos.usageCounterRepo }),
     releaseAiUsage,
@@ -469,7 +493,7 @@ const buildContainer = (config) => {
       : null,
   };
 
-  return { config, datasource, tokenService, storagePort, notificationPort, repos, useCases, planLimitsByPlan, canUseAiFeature };
+  return { config, datasource, tokenService, storagePort, notificationPort, cachedPlayVersion, repos, useCases, planLimitsByPlan, canUseAiFeature };
 };
 
 export { buildContainer };

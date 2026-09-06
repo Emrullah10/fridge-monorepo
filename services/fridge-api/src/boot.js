@@ -57,12 +57,22 @@ const boot = (container) => {
   // Giriş yapmamış kullanıcı da açılışta görebilmeli — authenticate'ten
   // önce mount edilir. Mobil bunu her açılışta karşılaştırıp minSupported'ın
   // altındaysa kapatılamaz güncelleme ekranı, latest'in altındaysa
-  // kapatılabilir banner gösterir.
-  app.get('/app-config', (req, res) => res.json({
-    latestVersion: container.config.appLatestVersion,
+  // kapatılabilir banner gösterir. latestVersion artık Play Store'dan
+  // (production track) okunuyor — cachedPlayVersion, service account
+  // kuruluysa gerçek sürümü döner, kurulu değilse/hata varsa appLatestVersion
+  // env fallback'ine düşer (bkz. container.js).
+  const appConfigHandler = async (req, res) => res.json({
+    latestVersion: await container.cachedPlayVersion.getLatestVersion(),
     minSupportedVersion: container.config.appMinSupportedVersion,
     storeUrl: container.config.appStoreUrl,
-  }));
+  });
+  // Mobilin ApiConfig.baseUrl'i zaten /api ile bitiyor (bkz.
+  // fridge-mobil/lib/core/api/api_config.dart) — istek hep /api/app-config'e
+  // gidiyordu, kökteki mount hiç tetiklenmiyordu (404, bkz. bug: sürüm
+  // kontrolü hiç çalışmamıştı). İki yolda da aynı handler mount edilir; kök
+  // mount eski/farklı client'lar için korunur.
+  app.get('/app-config', appConfigHandler);
+  app.get('/api/app-config', appConfigHandler);
 
   // Play Store store listing'in istediği halka açık gizlilik politikası
   // ve hesap silme sayfaları — ayrı hosting gerektirmesin diye API'den
