@@ -14,6 +14,7 @@ import { makeFcmNotifier } from '@fridge/core/src/infrastructure/notification/fc
 import { makeNoopNotifier } from '@fridge/core/src/infrastructure/notification/noop.adapter.js';
 import { makePlayVersionAdapter } from '@fridge/core/src/infrastructure/play-store/play-version.adapter.js';
 import { makeCachedPlayVersion } from '@fridge/core/src/infrastructure/play-store/cached-play-version.js';
+import { makeAppStoreVersionAdapter } from '@fridge/core/src/infrastructure/app-store/app-store-version.adapter.js';
 import { makeResendMailer } from '@fridge/core/src/infrastructure/mail/resend.adapter.js';
 import { makeNoopMailer } from '@fridge/core/src/infrastructure/mail/noop-mailer.adapter.js';
 import { makePasswordResetRepository } from '@fridge/core/src/infrastructure/persistence/repositories/password-reset.repository.js';
@@ -210,6 +211,21 @@ const buildContainer = (config) => {
     // eslint-disable-next-line no-console
     console.error('play_version_init_failed', error.message);
     cachedPlayVersion = { getLatestVersion: async () => config.appLatestVersion };
+  }
+
+  // iOS eşdeğeri — iTunes Lookup kimlik bilgisi gerektirmediği için kurulumu
+  // hiç patlamaz, yine de aynı "asla boot'u çökertme" ilkesi için try/catch
+  // korunuyor (bundleId boşsa vs.). makeCachedPlayVersion adaptör-agnostik,
+  // aynı cache/TTL/hata davranışını burada da değişmeden kullanıyoruz.
+  let cachedAppStoreVersion;
+  try {
+    if (!config.iosBundleId) throw new Error('iOS bundle id not configured');
+    const appStoreVersionAdapter = makeAppStoreVersionAdapter({ bundleId: config.iosBundleId });
+    cachedAppStoreVersion = makeCachedPlayVersion({ adapter: appStoreVersionAdapter, fallbackVersion: config.appLatestVersionIos });
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('app_store_version_init_failed', error.message);
+    cachedAppStoreVersion = { getLatestVersion: async () => config.appLatestVersionIos };
   }
 
   // Aynı ilke: RESEND_API_KEY yoksa boot patlamaz, no-op mailer'a düşer —
@@ -493,7 +509,7 @@ const buildContainer = (config) => {
       : null,
   };
 
-  return { config, datasource, tokenService, storagePort, notificationPort, cachedPlayVersion, repos, useCases, planLimitsByPlan, canUseAiFeature };
+  return { config, datasource, tokenService, storagePort, notificationPort, cachedPlayVersion, cachedAppStoreVersion, repos, useCases, planLimitsByPlan, canUseAiFeature };
 };
 
 export { buildContainer };

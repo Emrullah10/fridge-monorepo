@@ -85,6 +85,17 @@ const readEnv = (env = process.env) => {
     playServiceAccountPath: env.PLAY_SERVICE_ACCOUNT_PATH,
     playServiceAccountBase64: env.PLAY_SERVICE_ACCOUNT_BASE64,
     playPackageName: env.PLAY_PACKAGE_NAME || 'com.fridge.fridge_mobil',
+    // iOS tarafı: Play Developer API'nin karşılığı yok, iTunes Lookup
+    // public endpoint'i kullanılıyor (bkz. app-store-version.adapter.js) —
+    // kimlik bilgisi gerekmez, bu yüzden playServiceAccount* gibi bir
+    // ikili desen yok. App Store'da henüz yayın yoksa (TestFlight-only)
+    // adaptör null döner, appLatestVersion'a (aynı zincirin Android
+    // fallback'i) değil AYRICA kendi appLatestVersionIos fallback'ine düşülür.
+    appStoreUrlIos: env.APP_STORE_URL_IOS || 'https://apps.apple.com/app/id0000000000',
+    appLatestVersionIos: env.APP_LATEST_VERSION_IOS || env.APP_LATEST_VERSION || '1.0.0',
+    appMinSupportedVersionIos: env.APP_MIN_SUPPORTED_VERSION_IOS || env.APP_MIN_SUPPORTED_VERSION || '1.0.0',
+    // ios/Runner.xcodeproj/project.pbxproj > PRODUCT_BUNDLE_IDENTIFIER ile aynı olmalı.
+    iosBundleId: env.IOS_BUNDLE_ID || 'com.fridge.fridgeMobil',
     // Plan/kota limitlerini uygulama sürümü çıkarmadan ayarlamak için —
     // bkz. domain/plans.js buildPlanLimits(). Kısmi bir JSON objesi
     // (yalnızca değişecek alanlar) yeterli, deep merge edilir. Bozuk JSON
