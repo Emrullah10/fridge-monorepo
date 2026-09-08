@@ -10,22 +10,12 @@ const readEnv = (env = process.env) => {
   const missing = REQUIRED_KEYS.filter((key) => !env[key]);
   if (isProduction) {
     missing.push(...REQUIRED_IN_PRODUCTION_KEYS.filter((key) => !env[key]));
-    // gemini-text sağlayıcısı key'siz sessizce boot ediyordu, her tarama
-    // runtime'da 400 ile patlıyordu. rule-based fallback key gerektirmiyor,
-    // bu yüzden sadece gemini-text seçiliyken zorunlu kılınıyor.
-    const parserProvider = env.PARSER_PROVIDER || 'gemini-text';
-    // recipeAiEnabled varsayılan true — bu koşulu unutmak tam olarak
-    // parserProvider'da daha önce yaşanan sorunu (key'siz sessiz boot,
-    // runtime'da 400) tarif üretiminde de tekrarlardı.
+    // Tüm AI özellikleri (fiş, tarif, alışveriş, şef) Groq kullanır.
+    // Herhangi bir AI özelliği devredeyse GROQ_API_KEY zorunludur.
     const recipeAiEnabled = env.RECIPE_AI_ENABLED !== 'false';
     const shoppingAiEnabled = env.SHOPPING_AI_ENABLED !== 'false';
     const chefAiEnabled = env.CHEF_AI_ENABLED !== 'false';
-    if ((parserProvider === 'gemini-text' || recipeAiEnabled || shoppingAiEnabled || chefAiEnabled) && !env.GEMINI_API_KEY) {
-      missing.push('GEMINI_API_KEY');
-    }
-    // groq sağlayıcısı seçiliyken aynı sessiz-boot riski GROQ_API_KEY için de
-    // geçerli — aynı gerekçe, aynı desen.
-    if (parserProvider === 'groq' && !env.GROQ_API_KEY) {
+    if ((recipeAiEnabled || shoppingAiEnabled || chefAiEnabled) && !env.GROQ_API_KEY) {
       missing.push('GROQ_API_KEY');
     }
   }
@@ -40,22 +30,15 @@ const readEnv = (env = process.env) => {
     jwtAccessSecret: env.JWT_ACCESS_SECRET || 'dev-access-secret',
     jwtRefreshSecret: env.JWT_REFRESH_SECRET || 'dev-refresh-secret',
     uploadsDir: env.UPLOADS_DIR || 'uploads',
-    parserProvider: env.PARSER_PROVIDER || 'gemini-text',
-    geminiApiKey: env.GEMINI_API_KEY,
-    geminiModel: env.GEMINI_MODEL || 'gemini-2.5-flash',
-    // 2026-08-29 ölçümü: Groq'un ücretsiz katmanı openai/gpt-oss-120b için
-    // 1000 istek/gün veriyor (Gemini 2.5 Flash'ın ücretsiz 20/gün'ünün 50
-    // katı), kredi kartsız. PARSER_PROVIDER=groq ile fiş ayrıştırma buna
-    // yönlendirilebilir — gemini-text ile aynı SYSTEM_PROMPT/finalizeItem
-    // zincirini kullanır (bkz. groq-text.adapter.js).
+    // Tüm AI özellikleri Groq üzerinden çalışır (ücretsiz katmanda 1000 istek/gün).
     groqApiKey: env.GROQ_API_KEY,
     groqModel: env.GROQ_MODEL || 'openai/gpt-oss-120b',
     recipeAiEnabled: env.RECIPE_AI_ENABLED !== 'false',
-    geminiRecipeModel: env.GEMINI_RECIPE_MODEL || 'gemini-2.5-flash',
+    groqRecipeModel: env.GROQ_RECIPE_MODEL || env.GROQ_MODEL || 'openai/gpt-oss-120b',
     shoppingAiEnabled: env.SHOPPING_AI_ENABLED !== 'false',
-    geminiShoppingModel: env.GEMINI_SHOPPING_MODEL || 'gemini-2.5-flash',
+    groqShoppingModel: env.GROQ_SHOPPING_MODEL || env.GROQ_MODEL || 'openai/gpt-oss-120b',
     chefAiEnabled: env.CHEF_AI_ENABLED !== 'false',
-    geminiChefModel: env.GEMINI_CHEF_MODEL || 'gemini-2.5-flash',
+    groqChefModel: env.GROQ_CHEF_MODEL || env.GROQ_MODEL || 'openai/gpt-oss-120b',
     scanWorkerIntervalMs: Number(env.SCAN_WORKER_INTERVAL_MS || 5000),
     retentionCleanupIntervalMs: Number(env.RETENTION_CLEANUP_INTERVAL_MS || 24 * 60 * 60 * 1000),
     // FCM_ENABLED=true olsa bile kimlik bilgisi eksikse container no-op
