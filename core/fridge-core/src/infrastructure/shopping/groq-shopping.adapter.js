@@ -1,4 +1,3 @@
-import { toGeminiSchema } from '../gemini/gemini-schema.js';
 import {
   SHOPPING_RESPONSE_SCHEMA,
   RHYTHM_SYSTEM_PROMPT,
@@ -6,26 +5,21 @@ import {
   TEXT_SYSTEM_PROMPT,
   buildTextUserPrompt,
 } from './shopping-prompt.js';
-import { callGemini, extractJson } from '../gemini/gemini-client.js';
+import { callGroq, extractJson } from '../groq/groq-client.js';
 
-const GEMINI_SHOPPING_SCHEMA = toGeminiSchema(SHOPPING_RESPONSE_SCHEMA);
-
-// shopping-suggester-port.js sözleşmesini uygular. gemini-recipe.adapter.js
-// ile aynı REST çağrı şekli — temperature düşük (veriden çıkarım, yaratıcılık
-// değil), timeout kısa (çıktı küçük, en fazla 8-10 öneri).
-// HTTP/hata/retry/kullanım ölçümü artık gemini-client.js'de paylaşılıyor.
+// shopping-suggester-port.js sözleşmesini uygular.
+// Groq'un OpenAI uyumlu /chat/completions ucu üzerinden alışveriş önerileri üretir.
 const callAndParse = async ({ apiKey, model, fetchFn, onUsage, systemPrompt, userPrompt, timeoutMs, context }) => {
-  const body = await callGemini({
+  const promptWithSchema = `${userPrompt}\n\nJSON şemasına uygun cevap ver: ${JSON.stringify(SHOPPING_RESPONSE_SCHEMA)}`;
+
+  const body = await callGroq({
     apiKey,
     model,
     feature: 'shopping',
     systemPrompt,
-    contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-    generationConfig: {
-      temperature: 0.3,
-      responseMimeType: 'application/json',
-      responseSchema: GEMINI_SHOPPING_SCHEMA,
-    },
+    userPrompt: promptWithSchema,
+    temperature: 0.3,
+    maxCompletionTokens: 2048,
     timeoutMs,
     fetchFn,
     onUsage,
@@ -36,7 +30,7 @@ const callAndParse = async ({ apiKey, model, fetchFn, onUsage, systemPrompt, use
   return parsed.suggestions ?? [];
 };
 
-const makeGeminiShoppingSuggester = ({ apiKey, model, fetchFn = fetch, onUsage }) => {
+const makeGroqShoppingSuggester = ({ apiKey, model = 'openai/gpt-oss-120b', fetchFn = fetch, onUsage }) => {
   return {
     suggest: async ({ profile, context }) => {
       const suggestions = await callAndParse({
@@ -68,4 +62,4 @@ const makeGeminiShoppingSuggester = ({ apiKey, model, fetchFn = fetch, onUsage }
   };
 };
 
-export { makeGeminiShoppingSuggester, GEMINI_SHOPPING_SCHEMA };
+export { makeGroqShoppingSuggester };
