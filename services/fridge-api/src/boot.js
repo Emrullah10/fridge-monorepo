@@ -13,6 +13,7 @@ const publicDir = join(__dirname, '..', 'public');
 import { makeAuthMiddleware } from '../middlewares/auth.middleware.js';
 import { buildRouter } from '../routes/index.js';
 import { buildBillingWebhookHandler } from '../routes/billing.routes.js';
+import { buildAppConfigHandler } from './app-config.handler.js';
 
 // origin: true her origin'i yansıtır — credentials: true ile birleşince
 // tehlikeli bir kombinasyon. Prod'da CORS_ALLOWED_ORIGINS zorunlu
@@ -61,11 +62,10 @@ const boot = (container) => {
   // (production track) okunuyor — cachedPlayVersion, service account
   // kuruluysa gerçek sürümü döner, kurulu değilse/hata varsa appLatestVersion
   // env fallback'ine düşer (bkz. container.js).
-  const appConfigHandler = async (req, res) => res.json({
-    latestVersion: await container.cachedPlayVersion.getLatestVersion(),
-    minSupportedVersion: container.config.appMinSupportedVersion,
-    storeUrl: container.config.appStoreUrl,
-  });
+  //
+  // ?platform=ios davranışı ve handler mantığı app-config.handler.js'te —
+  // orada Express'ten bağımsız test edilir.
+  const appConfigHandler = buildAppConfigHandler(container);
   // Mobilin ApiConfig.baseUrl'i zaten /api ile bitiyor (bkz.
   // fridge-mobil/lib/core/api/api_config.dart) — istek hep /api/app-config'e
   // gidiyordu, kökteki mount hiç tetiklenmiyordu (404, bkz. bug: sürüm

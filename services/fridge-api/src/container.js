@@ -3,17 +3,17 @@ import { makeDatasource } from '@fridge/core/src/infrastructure/persistence/data
 import { makeTokenService } from '@fridge/core/src/infrastructure/token-service.js';
 import { makeLocalDiskStorage } from '@fridge/core/src/infrastructure/storage/local-disk.adapter.js';
 import { makeTesseractOcr } from '@fridge/core/src/infrastructure/ocr/tesseract.adapter.js';
-import { makeGeminiTextParser } from '@fridge/core/src/infrastructure/parser/gemini-text.adapter.js';
 import { makeGroqTextParser } from '@fridge/core/src/infrastructure/parser/groq-text.adapter.js';
 import { makeRuleBasedParser } from '@fridge/core/src/infrastructure/parser/rule-based.adapter.js';
-import { makeGeminiRecipeGenerator } from '@fridge/core/src/infrastructure/recipe/gemini-recipe.adapter.js';
-import { makeGeminiShoppingSuggester } from '@fridge/core/src/infrastructure/shopping/gemini-shopping.adapter.js';
-import { makeGeminiChefChat } from '@fridge/core/src/infrastructure/chef/gemini-chef.adapter.js';
+import { makeGroqRecipeGenerator } from '@fridge/core/src/infrastructure/recipe/groq-recipe.adapter.js';
+import { makeGroqShoppingSuggester } from '@fridge/core/src/infrastructure/shopping/groq-shopping.adapter.js';
+import { makeGroqChefChat } from '@fridge/core/src/infrastructure/chef/groq-chef.adapter.js';
 import { makeOpenFoodFactsLookup } from '@fridge/core/src/infrastructure/barcode/openfoodfacts.adapter.js';
 import { makeFcmNotifier } from '@fridge/core/src/infrastructure/notification/fcm.adapter.js';
 import { makeNoopNotifier } from '@fridge/core/src/infrastructure/notification/noop.adapter.js';
 import { makePlayVersionAdapter } from '@fridge/core/src/infrastructure/play-store/play-version.adapter.js';
 import { makeCachedPlayVersion } from '@fridge/core/src/infrastructure/play-store/cached-play-version.js';
+import { makeAppStoreVersionAdapter } from '@fridge/core/src/infrastructure/app-store/app-store-version.adapter.js';
 import { makeResendMailer } from '@fridge/core/src/infrastructure/mail/resend.adapter.js';
 import { makeNoopMailer } from '@fridge/core/src/infrastructure/mail/noop-mailer.adapter.js';
 import { makePasswordResetRepository } from '@fridge/core/src/infrastructure/persistence/repositories/password-reset.repository.js';
@@ -135,39 +135,30 @@ const buildContainer = (config) => {
   // olması kafa karıştırıcı ve imza uyumsuzluğuna (imagePath vs rawText) açıktı.
   const ocrPort = makeTesseractOcr({ storagePort });
 
-  // Her Gemini çağrısının (özellik, model, token, gecikme, hata kodu) kaydı —
-  // bu olmadan "hangi özellik ne kadar harcıyor / hangi limit vuruyor" hiçbir
-  // veriyle cevaplanamıyordu. record() kendi try/catch'ini yönetir, asla
-  // reject etmez — onUsage burada await edilmeden ateşlenir (fire-and-forget),
-  // bir log yazımı asla kullanıcının AI yanıtını geciktirmemeli.
+  // Her AI çağrısının (özellik, model, token, gecikme, hata kodu) kaydı —
+  // record() kendi try/catch'ini yönetir, asla reject etmez —
+  // onUsage burada await edilmeden ateşlenir (fire-and-forget).
   const aiUsageLogRepo = makeAiUsageLogRepository({ rawQuery });
   const onUsage = (entry) => { aiUsageLogRepo.record(entry); };
 
-  // groq: 1000 istek/gün ücretsiz (2026-08-29 ölçümü) — Gemini'nin 20/gün
-  // ücretsiz kotasına sıkışıldığında env değişikliğiyle (PARSER_PROVIDER=groq)
-  // devreye alınabilir, kod değişikliği gerekmez.
-  const receiptParserPort = config.parserProvider === 'rule-based'
-    ? makeRuleBasedParser()
-    : config.parserProvider === 'groq'
+  // Fiş ayrıştırma: Groq API anahtarı varsa Groq, yoksa kural tabanlı fallback.
+  const receiptParserPort = config.groqApiKey
     ? makeGroqTextParser({ apiKey: config.groqApiKey, model: config.groqModel, onUsage })
-    : makeGeminiTextParser({ apiKey: config.geminiApiKey, model: config.geminiModel, onUsage });
+    : makeRuleBasedParser();
 
-  // recipeAiEnabled=false ise null kalır — recipe.routes.js bunu görüp 503
-  // döner, key eksikken sessizce boot edip runtime'da patlamak yerine.
-  const recipeGeneratorPort = config.recipeAiEnabled
-    ? makeGeminiRecipeGenerator({ apiKey: config.geminiApiKey, model: config.geminiRecipeModel, onUsage })
+  // recipeAiEnabled=false veya groqApiKey yoksa null kalır — recipe.routes.js bunu görüp 503 döner.
+  const recipeGeneratorPort = config.recipeAiEnabled && config.groqApiKey
+    ? makeGroqRecipeGenerator({ apiKey: config.groqApiKey, model: config.groqRecipeModel, onUsage })
     : null;
 
-  // shoppingAiEnabled=false ise null kalır — shopping.routes.js bunu görüp
-  // 503 döner, recipeGeneratorPort ile aynı desen.
-  const shoppingSuggesterPort = config.shoppingAiEnabled
-    ? makeGeminiShoppingSuggester({ apiKey: config.geminiApiKey, model: config.geminiShoppingModel, onUsage })
+  // shoppingAiEnabled=false veya groqApiKey yoksa null kalır — shopping.routes.js bunu görüp 503 döner.
+  const shoppingSuggesterPort = config.shoppingAiEnabled && config.groqApiKey
+    ? makeGroqShoppingSuggester({ apiKey: config.groqApiKey, model: config.groqShoppingModel, onUsage })
     : null;
 
-  // chefAiEnabled=false ise null kalır — chef.routes.js bunu görüp 503 döner,
-  // recipeGeneratorPort ile aynı desen.
-  const chefChatPort = config.chefAiEnabled
-    ? makeGeminiChefChat({ apiKey: config.geminiApiKey, model: config.geminiChefModel, onUsage })
+  // chefAiEnabled=false veya groqApiKey yoksa null kalır — chef.routes.js bunu görüp 503 döner.
+  const chefChatPort = config.chefAiEnabled && config.groqApiKey
+    ? makeGroqChefChat({ apiKey: config.groqApiKey, model: config.groqChefModel, onUsage })
     : null;
 
   // Kimlik bilgisi eksikse (dosya yok/okunamıyor) no-op'a düş — push'un
@@ -210,6 +201,21 @@ const buildContainer = (config) => {
     // eslint-disable-next-line no-console
     console.error('play_version_init_failed', error.message);
     cachedPlayVersion = { getLatestVersion: async () => config.appLatestVersion };
+  }
+
+  // iOS eşdeğeri — iTunes Lookup kimlik bilgisi gerektirmediği için kurulumu
+  // hiç patlamaz, yine de aynı "asla boot'u çökertme" ilkesi için try/catch
+  // korunuyor (bundleId boşsa vs.). makeCachedPlayVersion adaptör-agnostik,
+  // aynı cache/TTL/hata davranışını burada da değişmeden kullanıyoruz.
+  let cachedAppStoreVersion;
+  try {
+    if (!config.iosBundleId) throw new Error('iOS bundle id not configured');
+    const appStoreVersionAdapter = makeAppStoreVersionAdapter({ bundleId: config.iosBundleId });
+    cachedAppStoreVersion = makeCachedPlayVersion({ adapter: appStoreVersionAdapter, fallbackVersion: config.appLatestVersionIos });
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('app_store_version_init_failed', error.message);
+    cachedAppStoreVersion = { getLatestVersion: async () => config.appLatestVersionIos };
   }
 
   // Aynı ilke: RESEND_API_KEY yoksa boot patlamaz, no-op mailer'a düşer —
@@ -493,7 +499,7 @@ const buildContainer = (config) => {
       : null,
   };
 
-  return { config, datasource, tokenService, storagePort, notificationPort, cachedPlayVersion, repos, useCases, planLimitsByPlan, canUseAiFeature };
+  return { config, datasource, tokenService, storagePort, notificationPort, cachedPlayVersion, cachedAppStoreVersion, repos, useCases, planLimitsByPlan, canUseAiFeature };
 };
 
 export { buildContainer };
