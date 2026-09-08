@@ -3,12 +3,11 @@ import { makeDatasource } from '@fridge/core/src/infrastructure/persistence/data
 import { makeTokenService } from '@fridge/core/src/infrastructure/token-service.js';
 import { makeLocalDiskStorage } from '@fridge/core/src/infrastructure/storage/local-disk.adapter.js';
 import { makeTesseractOcr } from '@fridge/core/src/infrastructure/ocr/tesseract.adapter.js';
-import { makeGeminiTextParser } from '@fridge/core/src/infrastructure/parser/gemini-text.adapter.js';
 import { makeGroqTextParser } from '@fridge/core/src/infrastructure/parser/groq-text.adapter.js';
 import { makeRuleBasedParser } from '@fridge/core/src/infrastructure/parser/rule-based.adapter.js';
-import { makeGeminiRecipeGenerator } from '@fridge/core/src/infrastructure/recipe/gemini-recipe.adapter.js';
-import { makeGeminiShoppingSuggester } from '@fridge/core/src/infrastructure/shopping/gemini-shopping.adapter.js';
-import { makeGeminiChefChat } from '@fridge/core/src/infrastructure/chef/gemini-chef.adapter.js';
+import { makeGroqRecipeGenerator } from '@fridge/core/src/infrastructure/recipe/groq-recipe.adapter.js';
+import { makeGroqShoppingSuggester } from '@fridge/core/src/infrastructure/shopping/groq-shopping.adapter.js';
+import { makeGroqChefChat } from '@fridge/core/src/infrastructure/chef/groq-chef.adapter.js';
 import { makeOpenFoodFactsLookup } from '@fridge/core/src/infrastructure/barcode/openfoodfacts.adapter.js';
 import { makeFcmNotifier } from '@fridge/core/src/infrastructure/notification/fcm.adapter.js';
 import { makeNoopNotifier } from '@fridge/core/src/infrastructure/notification/noop.adapter.js';
@@ -136,39 +135,30 @@ const buildContainer = (config) => {
   // olması kafa karıştırıcı ve imza uyumsuzluğuna (imagePath vs rawText) açıktı.
   const ocrPort = makeTesseractOcr({ storagePort });
 
-  // Her Gemini çağrısının (özellik, model, token, gecikme, hata kodu) kaydı —
-  // bu olmadan "hangi özellik ne kadar harcıyor / hangi limit vuruyor" hiçbir
-  // veriyle cevaplanamıyordu. record() kendi try/catch'ini yönetir, asla
-  // reject etmez — onUsage burada await edilmeden ateşlenir (fire-and-forget),
-  // bir log yazımı asla kullanıcının AI yanıtını geciktirmemeli.
+  // Her AI çağrısının (özellik, model, token, gecikme, hata kodu) kaydı —
+  // record() kendi try/catch'ini yönetir, asla reject etmez —
+  // onUsage burada await edilmeden ateşlenir (fire-and-forget).
   const aiUsageLogRepo = makeAiUsageLogRepository({ rawQuery });
   const onUsage = (entry) => { aiUsageLogRepo.record(entry); };
 
-  // groq: 1000 istek/gün ücretsiz (2026-08-29 ölçümü) — Gemini'nin 20/gün
-  // ücretsiz kotasına sıkışıldığında env değişikliğiyle (PARSER_PROVIDER=groq)
-  // devreye alınabilir, kod değişikliği gerekmez.
-  const receiptParserPort = config.parserProvider === 'rule-based'
-    ? makeRuleBasedParser()
-    : config.parserProvider === 'groq'
+  // Fiş ayrıştırma: Groq API anahtarı varsa Groq, yoksa kural tabanlı fallback.
+  const receiptParserPort = config.groqApiKey
     ? makeGroqTextParser({ apiKey: config.groqApiKey, model: config.groqModel, onUsage })
-    : makeGeminiTextParser({ apiKey: config.geminiApiKey, model: config.geminiModel, onUsage });
+    : makeRuleBasedParser();
 
-  // recipeAiEnabled=false ise null kalır — recipe.routes.js bunu görüp 503
-  // döner, key eksikken sessizce boot edip runtime'da patlamak yerine.
-  const recipeGeneratorPort = config.recipeAiEnabled
-    ? makeGeminiRecipeGenerator({ apiKey: config.geminiApiKey, model: config.geminiRecipeModel, onUsage })
+  // recipeAiEnabled=false veya groqApiKey yoksa null kalır — recipe.routes.js bunu görüp 503 döner.
+  const recipeGeneratorPort = config.recipeAiEnabled && config.groqApiKey
+    ? makeGroqRecipeGenerator({ apiKey: config.groqApiKey, model: config.groqRecipeModel, onUsage })
     : null;
 
-  // shoppingAiEnabled=false ise null kalır — shopping.routes.js bunu görüp
-  // 503 döner, recipeGeneratorPort ile aynı desen.
-  const shoppingSuggesterPort = config.shoppingAiEnabled
-    ? makeGeminiShoppingSuggester({ apiKey: config.geminiApiKey, model: config.geminiShoppingModel, onUsage })
+  // shoppingAiEnabled=false veya groqApiKey yoksa null kalır — shopping.routes.js bunu görüp 503 döner.
+  const shoppingSuggesterPort = config.shoppingAiEnabled && config.groqApiKey
+    ? makeGroqShoppingSuggester({ apiKey: config.groqApiKey, model: config.groqShoppingModel, onUsage })
     : null;
 
-  // chefAiEnabled=false ise null kalır — chef.routes.js bunu görüp 503 döner,
-  // recipeGeneratorPort ile aynı desen.
-  const chefChatPort = config.chefAiEnabled
-    ? makeGeminiChefChat({ apiKey: config.geminiApiKey, model: config.geminiChefModel, onUsage })
+  // chefAiEnabled=false veya groqApiKey yoksa null kalır — chef.routes.js bunu görüp 503 döner.
+  const chefChatPort = config.chefAiEnabled && config.groqApiKey
+    ? makeGroqChefChat({ apiKey: config.groqApiKey, model: config.groqChefModel, onUsage })
     : null;
 
   // Kimlik bilgisi eksikse (dosya yok/okunamıyor) no-op'a düş — push'un

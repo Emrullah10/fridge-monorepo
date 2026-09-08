@@ -28,13 +28,22 @@ const callGroq = async ({
   feature,
   systemPrompt,
   userPrompt,
+  messages,
   temperature = 0.1,
   maxCompletionTokens = 4096,
   timeoutMs,
   fetchFn = fetch,
   onUsage,
+  context = {},
 }) => {
   const startedAt = Date.now();
+
+  const requestMessages = messages
+    ? (systemPrompt ? [{ role: 'system', content: systemPrompt }, ...messages] : messages)
+    : [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ];
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt += 1) {
     const controller = new AbortController();
@@ -54,17 +63,14 @@ const callGroq = async ({
           temperature,
           max_completion_tokens: maxCompletionTokens,
           response_format: { type: 'json_object' },
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt },
-          ],
+          messages: requestMessages,
         }),
       });
     } catch (error) {
       clearTimeout(timeout);
       const isAbort = error?.name === 'AbortError';
       const latencyMs = Date.now() - startedAt;
-      onUsage?.({ feature, model, ok: false, httpStatus: null, errorCode: isAbort ? 'AI_TIMEOUT' : 'NETWORK_ERROR', latencyMs, retryCount: attempt });
+      onUsage?.({ ...context, feature, model, ok: false, httpStatus: null, errorCode: isAbort ? 'AI_TIMEOUT' : 'NETWORK_ERROR', latencyMs, retryCount: attempt });
       if (isAbort) throw new AiTimeoutError();
       throw error;
     }
@@ -75,6 +81,7 @@ const callGroq = async ({
       const usage = body.usage ?? {};
       const latencyMs = Date.now() - startedAt;
       onUsage?.({
+        ...context,
         feature,
         model,
         ok: true,
@@ -93,7 +100,7 @@ const callGroq = async ({
     // için retry etmiyoruz, doğrudan AiQuotaError.
     if (response.status === 429) {
       const latencyMs = Date.now() - startedAt;
-      onUsage?.({ feature, model, ok: false, httpStatus: 429, errorCode: 'AI_QUOTA_EXCEEDED', latencyMs, retryCount: attempt });
+      onUsage?.({ ...context, feature, model, ok: false, httpStatus: 429, errorCode: 'AI_QUOTA_EXCEEDED', latencyMs, retryCount: attempt });
       throw new AiQuotaError();
     }
 
@@ -111,11 +118,11 @@ const callGroq = async ({
     const latencyMs = Date.now() - startedAt;
 
     if ([500, 502, 503].includes(response.status)) {
-      onUsage?.({ feature, model, ok: false, httpStatus: response.status, errorCode: 'AI_BUSY', latencyMs, retryCount: attempt });
+      onUsage?.({ ...context, feature, model, ok: false, httpStatus: response.status, errorCode: 'AI_BUSY', latencyMs, retryCount: attempt });
       throw new AiBusyError();
     }
 
-    onUsage?.({ feature, model, ok: false, httpStatus: response.status, errorCode: 'GROQ_ERROR', latencyMs, retryCount: attempt });
+    onUsage?.({ ...context, feature, model, ok: false, httpStatus: response.status, errorCode: 'GROQ_ERROR', latencyMs, retryCount: attempt });
     throw new Error(`Groq ${feature} request failed: ${response.status} ${errorBody?.error?.message ?? response.statusText}`);
   }
 };
