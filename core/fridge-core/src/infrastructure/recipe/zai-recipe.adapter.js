@@ -1,22 +1,22 @@
 import { RECIPE_RESPONSE_SCHEMA, SYSTEM_PROMPT, buildUserPrompt } from './recipe-prompt.js';
-import { callGroq, extractJson } from '../groq/groq-client.js';
+import { callZai, extractJson, DEFAULT_MODEL } from '../ai/zai.js';
 
 // recipe-generator-port.js sözleşmesini uygular.
-// Groq'un OpenAI uyumlu /chat/completions ucu üzerinden tarifleri üretir.
-const makeGroqRecipeGenerator = ({ apiKey, model = 'openai/gpt-oss-120b', fetchFn = fetch, onUsage }) => {
+// Z.ai'nin OpenAI uyumlu /chat/completions ucu üzerinden tarifleri üretir.
+const makeZaiRecipeGenerator = ({ apiKey, model = DEFAULT_MODEL, fetchFn = fetch, onUsage }) => {
   return {
     generate: async ({ ingredients, beverages = [], preferences, context }) => {
       const prompt = buildUserPrompt({ ingredients, beverages, preferences });
       const userPrompt = `${prompt}\n\nJSON şemasına uygun cevap ver: ${JSON.stringify(RECIPE_RESPONSE_SCHEMA)}`;
 
-      const body = await callGroq({
+      const body = await callZai({
         apiKey,
         model,
         feature: 'recipe',
         systemPrompt: SYSTEM_PROMPT,
         userPrompt,
         temperature: 0.7,
-        maxCompletionTokens: 4096,
+        maxTokens: 4096,
         timeoutMs: 45_000,
         fetchFn,
         onUsage,
@@ -47,4 +47,4 @@ const makeGroqRecipeGenerator = ({ apiKey, model = 'openai/gpt-oss-120b', fetchF
   };
 };
 
-export { makeGroqRecipeGenerator };
+export { makeZaiRecipeGenerator };
