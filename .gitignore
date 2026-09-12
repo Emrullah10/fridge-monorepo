@@ -1,9 +1,44 @@
+# Dependencies
 node_modules/
+
+# Uploads
 uploads/*
 !uploads/.gitkeep
+
+# Environment
 .env
+.env.*
+!.env.example
+
+# Logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build outputs
 dist/
+build/
+.turbo/
+.astro/
+
+# Testing & Coverage
 coverage/
+playwright-report/
+test-results/
+
+# Secrets & Credentials
 secrets/
 *.serviceaccount.json
+*.pem
+*.key
+
+# Editor & OS files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+.idea/
+*.iml
+.vscode/
