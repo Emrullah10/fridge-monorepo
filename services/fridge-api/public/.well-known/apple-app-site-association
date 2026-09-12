@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TGD69378DX.com.fridge.fridgeMobil",
+        "paths": ["/join/*"]
+      }
+    ]
+  }
+}

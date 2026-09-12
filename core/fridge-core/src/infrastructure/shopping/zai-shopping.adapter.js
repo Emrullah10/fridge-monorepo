@@ -5,21 +5,21 @@ import {
   TEXT_SYSTEM_PROMPT,
   buildTextUserPrompt,
 } from './shopping-prompt.js';
-import { callGroq, extractJson } from '../groq/groq-client.js';
+import { callZai, extractJson, DEFAULT_MODEL } from '../ai/zai.js';
 
 // shopping-suggester-port.js sözleşmesini uygular.
-// Groq'un OpenAI uyumlu /chat/completions ucu üzerinden alışveriş önerileri üretir.
+// Z.ai'nin OpenAI uyumlu /chat/completions ucu üzerinden alışveriş önerileri üretir.
 const callAndParse = async ({ apiKey, model, fetchFn, onUsage, systemPrompt, userPrompt, timeoutMs, context }) => {
   const promptWithSchema = `${userPrompt}\n\nJSON şemasına uygun cevap ver: ${JSON.stringify(SHOPPING_RESPONSE_SCHEMA)}`;
 
-  const body = await callGroq({
+  const body = await callZai({
     apiKey,
     model,
     feature: 'shopping',
     systemPrompt,
     userPrompt: promptWithSchema,
     temperature: 0.3,
-    maxCompletionTokens: 2048,
+    maxTokens: 2048,
     timeoutMs,
     fetchFn,
     onUsage,
@@ -30,7 +30,7 @@ const callAndParse = async ({ apiKey, model, fetchFn, onUsage, systemPrompt, use
   return parsed.suggestions ?? [];
 };
 
-const makeGroqShoppingSuggester = ({ apiKey, model = 'openai/gpt-oss-120b', fetchFn = fetch, onUsage }) => {
+const makeZaiShoppingSuggester = ({ apiKey, model = DEFAULT_MODEL, fetchFn = fetch, onUsage }) => {
   return {
     suggest: async ({ profile, context }) => {
       const suggestions = await callAndParse({
@@ -62,4 +62,4 @@ const makeGroqShoppingSuggester = ({ apiKey, model = 'openai/gpt-oss-120b', fetc
   };
 };
 
-export { makeGroqShoppingSuggester };
+export { makeZaiShoppingSuggester };

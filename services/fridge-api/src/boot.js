@@ -90,6 +90,16 @@ const boot = (container) => {
   app.get('/.well-known/assetlinks.json', (req, res) =>
     res.sendFile(join(publicDir, '.well-known', 'assetlinks.json')));
 
+  // iOS Universal Links doğrulaması — Android'in assetlinks.json'ına karşılık
+  // gelir. Uzantısız dosya, Apple `Content-Type: application/json` bekliyor
+  // (sendFile varsayılanı uzantısız dosyada application/octet-stream verir,
+  // bazı Apple doğrulayıcıları bunu reddediyor). ios/Runner/Runner.entitlements
+  // içindeki `applinks:api-fridge.emrullahbozkurt.com` girdisi bu dosya
+  // yayınlanmadan işe yaramaz.
+  app.get('/.well-known/apple-app-site-association', (req, res) =>
+    res.type('application/json').sendFile(
+      join(publicDir, '.well-known', 'apple-app-site-association')));
+
   // Uygulama yüklü değilse veya doğrulama başarısız olursa (örn. iOS,
   // masaüstü tarayıcı) tıklanan link burada açılır — kod gösterilir,
   // Play Store'a yönlendirme sunulur.

@@ -1,10 +1,10 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { makeGroqChefChat } from '../../../src/infrastructure/chef/groq-chef.adapter.js';
+import { makeZaiChefChat } from '../../../src/infrastructure/chef/zai-chef.adapter.js';
 import { AiQuotaError, AiBusyError } from '@fridge/errors';
 
-const fakeGroqResponse = (parsed, usage) => ({
+const fakeZaiResponse = (parsed, usage) => ({
   ok: true,
   status: 200,
   json: async () => ({
@@ -20,20 +20,22 @@ const fakeErrorResponse = (status, statusText, errorBody = null) => ({
   json: async () => errorBody ?? { error: { message: statusText } },
 });
 
-describe('makeGroqChefChat', () => {
+describe('makeZaiChefChat', () => {
   test('mutfak bağlamı ve sohbet geçmişini mesajlar olarak iletir ve cevabı parse eder', async () => {
     const fetchFn = async (url, options) => {
-      assert.equal(url, 'https://api.groq.com/openai/v1/chat/completions');
+      assert.equal(url, 'https://api.z.ai/api/paas/v4/chat/completions');
       const body = JSON.parse(options.body);
       assert.equal(body.response_format.type, 'json_object');
       assert.equal(body.temperature, 0.6);
+      assert.equal(body.max_tokens, 4096);
+      assert.equal(body.thinking.type, 'disabled');
       assert.ok(body.messages.length >= 3);
       assert.equal(body.messages[0].role, 'system');
       assert.equal(body.messages[1].role, 'user');
       assert.ok(body.messages[1].content.includes('MUTFAK DURUMU:'));
       assert.equal(body.messages[2].role, 'assistant');
 
-      return fakeGroqResponse({
+      return fakeZaiResponse({
         reply: 'Bu malzemelerle güzel bir menemen yapabilirsin!',
         suggestedShoppingItems: [
           { name: 'Ekmek', quantity: 1, unit: 'piece', reasonText: 'Menemen yanına' },
@@ -41,7 +43,7 @@ describe('makeGroqChefChat', () => {
       });
     };
 
-    const chef = makeGroqChefChat({ apiKey: 'test-key', fetchFn });
+    const chef = makeZaiChefChat({ apiKey: 'test-key', fetchFn });
     const result = await chef.reply({
       kitchen: { ingredients: [{ name: 'Yumurta' }, { name: 'Domates' }], preferences: [] },
       history: [{ role: 'user', content: 'Ne pişirsem?' }],
@@ -55,13 +57,13 @@ describe('makeGroqChefChat', () => {
 
   test('context onUsage callback ile geçirilir', async () => {
     const fetchFn = async () =>
-      fakeGroqResponse(
+      fakeZaiResponse(
         { reply: 'Tamam', suggestedShoppingItems: [] },
         { prompt_tokens: 50, completion_tokens: 20, total_tokens: 70 },
       );
 
     const usageCalls = [];
-    const chef = makeGroqChefChat({
+    const chef = makeZaiChefChat({
       apiKey: 'test-key',
       fetchFn,
       onUsage: (entry) => usageCalls.push(entry),
@@ -83,7 +85,7 @@ describe('makeGroqChefChat', () => {
 
   test('429 durumunda AiQuotaError fırlatır', async () => {
     const fetchFn = async () => fakeErrorResponse(429, 'Too Many Requests');
-    const chef = makeGroqChefChat({ apiKey: 'test-key', fetchFn });
+    const chef = makeZaiChefChat({ apiKey: 'test-key', fetchFn });
 
     await assert.rejects(
       () => chef.reply({ kitchen: { ingredients: [] }, history: [] }),

@@ -18,9 +18,15 @@ if (existsSync(envPath) && typeof process.loadEnvFile === 'function') {
 
 const { Pool } = pg;
 
-// Ağustos 2026 fiyatları (ai.google.dev/gemini-api/docs/pricing), $/1M token.
-// Karşılaştırma amaçlı — gerçek fatura Google Cloud Console'dan doğrulanmalı.
+// Eylül 2026 fiyatları (docs.z.ai/guides/overview/pricing), $/1M token.
+// Karşılaştırma amaçlı — gerçek fatura Z.ai konsolundan doğrulanmalı.
+// Gemini satırları geçmiş kayıtlar (provider Gemini/Groq'tan Z.ai'ye geçmeden
+// önce) için maliyet hesaplanabilsin diye korunuyor, artık yeni çağrı üretmiyor.
 const MODEL_PRICING = {
+  'glm-4.7-flash': { input: 0, output: 0 },
+  'glm-5.3-flash': { input: 0.15, output: 0.50 },
+  'glm-4.7': { input: 0.60, output: 2.20 },
+  'glm-4.6': { input: 0.60, output: 2.20 },
   'gemini-2.5-flash': { input: 0.30, output: 2.50 },
   'gemini-2.5-flash-lite': { input: 0.10, output: 0.40 },
   'gemini-3.6-flash': { input: 0.75, output: 3.75 },
@@ -102,11 +108,14 @@ const run = async () => {
       const sumPrompt = Number(row.sum_prompt ?? 0);
       const sumOutput = Number(row.sum_output ?? 0);
       const currentCost = estimateCost(row.model, sumPrompt, sumOutput);
-      const liteCost = estimateCost('gemini-2.5-flash-lite', sumPrompt, sumOutput);
+      // Karşılaştırma: daha ucuz glm-5.3-flash'a geçilse maliyet ne olurdu?
+      // (Kalite/hız karşılaştırması ayrı — glm-5.3-flash'ta thinking
+      // kapatılamıyor, bkz. docs/ZAI_MIGRATION_PLAN.md.)
+      const cheaperAltCost = estimateCost('glm-5.3-flash', sumPrompt, sumOutput);
       console.log(
         `  ${row.feature.padEnd(10)} model=${row.model.padEnd(22)} çağrı=${row.calls} ` +
         `ort.girdi=${Math.round(row.avg_prompt ?? 0)} ort.çıktı=${Math.round(row.avg_output ?? 0)} ` +
-        `maliyet(mevcut)=${fmtUsd(currentCost)} maliyet(flash-lite ile)=${fmtUsd(liteCost)}`,
+        `maliyet(mevcut)=${fmtUsd(currentCost)} maliyet(glm-5.3-flash ile)=${fmtUsd(cheaperAltCost)}`,
       );
     }
     console.log('');
@@ -133,10 +142,10 @@ const run = async () => {
       `p95=${Number(u.p95_daily ?? 0).toFixed(1)} maks=${u.max_daily ?? 0}\n`,
     );
 
-    // 5) Ölçülen tepe RPM ve günlük toplam RPD — ücretsiz katman limitine
-    // ne kadar yaklaşıldığını göstermek için (Google artık bu sayıları
-    // dokümanda yayınlamıyor, AI Studio dashboard'undaki gerçek limitle
-    // karşılaştırılmalı).
+    // 5) Ölçülen tepe RPM ve günlük toplam RPD — Z.ai rate limit'lerine ne
+    // kadar yaklaşıldığını göstermek için. Groq'ta bu tavan (TPD 200K,
+    // ~63 kullanıcı) geç fark edildiği için (bkz. docs/AI_PROVIDER_SPEC.md)
+    // Z.ai'de erken izlenmeli — konsoldan okunan gerçek limitle karşılaştırın.
     const { rows: peakMinute } = await client.query(
       `SELECT date_trunc('minute', created_at) AS minute, count(*) AS n
        FROM ai_usage_log
@@ -155,7 +164,7 @@ const run = async () => {
     console.log(`  en yoğun dakika: ${peakMinute[0]?.n ?? 0} istek (${peakMinute[0]?.minute ?? '-'})`);
     console.log(`  en yoğun gün: ${peakDay[0]?.n ?? 0} istek (${peakDay[0]?.day ?? '-'})\n`);
 
-    console.log('Not: Gerçek RPM/RPD kotanızı Google AI Studio > API key > Rate limits sayfasından doğrulayın — Google bu sayıları artık dokümanında yayınlamıyor.');
+    console.log('Not: Gerçek RPM/TPM/TPD kotanızı Z.ai konsolu > API key sayfasından doğrulayın — Z.ai bu sayıları dokümanında yayınlamıyor.');
   } finally {
     client.release();
     await pool.end();

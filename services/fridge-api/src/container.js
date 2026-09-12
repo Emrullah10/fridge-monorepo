@@ -3,11 +3,11 @@ import { makeDatasource } from '@fridge/core/src/infrastructure/persistence/data
 import { makeTokenService } from '@fridge/core/src/infrastructure/token-service.js';
 import { makeLocalDiskStorage } from '@fridge/core/src/infrastructure/storage/local-disk.adapter.js';
 import { makeTesseractOcr } from '@fridge/core/src/infrastructure/ocr/tesseract.adapter.js';
-import { makeGroqTextParser } from '@fridge/core/src/infrastructure/parser/groq-text.adapter.js';
+import { makeZaiTextParser } from '@fridge/core/src/infrastructure/parser/zai-text.adapter.js';
 import { makeRuleBasedParser } from '@fridge/core/src/infrastructure/parser/rule-based.adapter.js';
-import { makeGroqRecipeGenerator } from '@fridge/core/src/infrastructure/recipe/groq-recipe.adapter.js';
-import { makeGroqShoppingSuggester } from '@fridge/core/src/infrastructure/shopping/groq-shopping.adapter.js';
-import { makeGroqChefChat } from '@fridge/core/src/infrastructure/chef/groq-chef.adapter.js';
+import { makeZaiRecipeGenerator } from '@fridge/core/src/infrastructure/recipe/zai-recipe.adapter.js';
+import { makeZaiShoppingSuggester } from '@fridge/core/src/infrastructure/shopping/zai-shopping.adapter.js';
+import { makeZaiChefChat } from '@fridge/core/src/infrastructure/chef/zai-chef.adapter.js';
 import { makeOpenFoodFactsLookup } from '@fridge/core/src/infrastructure/barcode/openfoodfacts.adapter.js';
 import { makeFcmNotifier } from '@fridge/core/src/infrastructure/notification/fcm.adapter.js';
 import { makeNoopNotifier } from '@fridge/core/src/infrastructure/notification/noop.adapter.js';
@@ -141,24 +141,24 @@ const buildContainer = (config) => {
   const aiUsageLogRepo = makeAiUsageLogRepository({ rawQuery });
   const onUsage = (entry) => { aiUsageLogRepo.record(entry); };
 
-  // Fiş ayrıştırma: Groq API anahtarı varsa Groq, yoksa kural tabanlı fallback.
-  const receiptParserPort = config.groqApiKey
-    ? makeGroqTextParser({ apiKey: config.groqApiKey, model: config.groqModel, onUsage })
+  // Fiş ayrıştırma: Z.ai API anahtarı varsa Z.ai, yoksa kural tabanlı fallback.
+  const receiptParserPort = config.zaiApiKey
+    ? makeZaiTextParser({ apiKey: config.zaiApiKey, model: config.zaiModel, onUsage })
     : makeRuleBasedParser();
 
-  // recipeAiEnabled=false veya groqApiKey yoksa null kalır — recipe.routes.js bunu görüp 503 döner.
-  const recipeGeneratorPort = config.recipeAiEnabled && config.groqApiKey
-    ? makeGroqRecipeGenerator({ apiKey: config.groqApiKey, model: config.groqRecipeModel, onUsage })
+  // recipeAiEnabled=false veya zaiApiKey yoksa null kalır — recipe.routes.js bunu görüp 503 döner.
+  const recipeGeneratorPort = config.recipeAiEnabled && config.zaiApiKey
+    ? makeZaiRecipeGenerator({ apiKey: config.zaiApiKey, model: config.zaiRecipeModel, onUsage })
     : null;
 
-  // shoppingAiEnabled=false veya groqApiKey yoksa null kalır — shopping.routes.js bunu görüp 503 döner.
-  const shoppingSuggesterPort = config.shoppingAiEnabled && config.groqApiKey
-    ? makeGroqShoppingSuggester({ apiKey: config.groqApiKey, model: config.groqShoppingModel, onUsage })
+  // shoppingAiEnabled=false veya zaiApiKey yoksa null kalır — shopping.routes.js bunu görüp 503 döner.
+  const shoppingSuggesterPort = config.shoppingAiEnabled && config.zaiApiKey
+    ? makeZaiShoppingSuggester({ apiKey: config.zaiApiKey, model: config.zaiShoppingModel, onUsage })
     : null;
 
-  // chefAiEnabled=false veya groqApiKey yoksa null kalır — chef.routes.js bunu görüp 503 döner.
-  const chefChatPort = config.chefAiEnabled && config.groqApiKey
-    ? makeGroqChefChat({ apiKey: config.groqApiKey, model: config.groqChefModel, onUsage })
+  // chefAiEnabled=false veya zaiApiKey yoksa null kalır — chef.routes.js bunu görüp 503 döner.
+  const chefChatPort = config.chefAiEnabled && config.zaiApiKey
+    ? makeZaiChefChat({ apiKey: config.zaiApiKey, model: config.zaiChefModel, onUsage })
     : null;
 
   // Kimlik bilgisi eksikse (dosya yok/okunamıyor) no-op'a düş — push'un

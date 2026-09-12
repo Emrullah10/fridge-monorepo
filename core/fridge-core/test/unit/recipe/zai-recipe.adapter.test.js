@@ -1,10 +1,10 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { makeGroqRecipeGenerator } from '../../../src/infrastructure/recipe/groq-recipe.adapter.js';
+import { makeZaiRecipeGenerator } from '../../../src/infrastructure/recipe/zai-recipe.adapter.js';
 import { AiQuotaError, AiBusyError } from '@fridge/errors';
 
-const fakeGroqResponse = (parsed, usage) => ({
+const fakeZaiResponse = (parsed, usage) => ({
   ok: true,
   status: 200,
   json: async () => ({
@@ -20,15 +20,17 @@ const fakeErrorResponse = (status, statusText, errorBody = null) => ({
   json: async () => errorBody ?? { error: { message: statusText } },
 });
 
-describe('makeGroqRecipeGenerator', () => {
+describe('makeZaiRecipeGenerator', () => {
   test('malzemelerden tarif üretir ve doğru formatta döner', async () => {
     const fetchFn = async (url, options) => {
-      assert.equal(url, 'https://api.groq.com/openai/v1/chat/completions');
+      assert.equal(url, 'https://api.z.ai/api/paas/v4/chat/completions');
       const body = JSON.parse(options.body);
       assert.equal(body.response_format.type, 'json_object');
       assert.equal(body.temperature, 0.7);
+      assert.equal(body.max_tokens, 4096);
+      assert.equal(body.thinking.type, 'disabled');
 
-      return fakeGroqResponse({
+      return fakeZaiResponse({
         recipes: [
           {
             title: 'Fırında Tavuk',
@@ -46,7 +48,7 @@ describe('makeGroqRecipeGenerator', () => {
       });
     };
 
-    const generator = makeGroqRecipeGenerator({ apiKey: 'test-key', fetchFn });
+    const generator = makeZaiRecipeGenerator({ apiKey: 'test-key', fetchFn });
     const result = await generator.generate({
       ingredients: [{ name: 'Tavuk' }, { name: 'Patates' }],
       beverages: [],
@@ -61,13 +63,13 @@ describe('makeGroqRecipeGenerator', () => {
 
   test('context onUsage callback ile geçirilir', async () => {
     const fetchFn = async () =>
-      fakeGroqResponse(
+      fakeZaiResponse(
         { recipes: [] },
         { prompt_tokens: 100, completion_tokens: 50, total_tokens: 150 },
       );
 
     const usageCalls = [];
-    const generator = makeGroqRecipeGenerator({
+    const generator = makeZaiRecipeGenerator({
       apiKey: 'test-key',
       fetchFn,
       onUsage: (entry) => usageCalls.push(entry),
@@ -86,7 +88,7 @@ describe('makeGroqRecipeGenerator', () => {
 
   test('429 durumunda AiQuotaError fırlatır', async () => {
     const fetchFn = async () => fakeErrorResponse(429, 'Too Many Requests');
-    const generator = makeGroqRecipeGenerator({ apiKey: 'test-key', fetchFn });
+    const generator = makeZaiRecipeGenerator({ apiKey: 'test-key', fetchFn });
 
     await assert.rejects(
       () => generator.generate({ ingredients: [], preferences: [] }),

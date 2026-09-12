@@ -1,10 +1,10 @@
 import { CHEF_RESPONSE_SCHEMA, SYSTEM_PROMPT, buildKitchenContext } from './chef-prompt.js';
-import { callGroq, extractJson } from '../groq/groq-client.js';
+import { callZai, extractJson, DEFAULT_MODEL } from '../ai/zai.js';
 
 // chef-chat-port.js sözleşmesini uygular.
-// Groq'un OpenAI uyumlu /chat/completions ucu üzerinden çalışır.
+// Z.ai'nin OpenAI uyumlu /chat/completions ucu üzerinden çalışır.
 // Çok turlu sohbet geçmişi ve mutfak bağlamı mesajlar dizisi olarak geçirilir.
-const makeGroqChefChat = ({ apiKey, model = 'openai/gpt-oss-120b', fetchFn = fetch, onUsage }) => {
+const makeZaiChefChat = ({ apiKey, model = DEFAULT_MODEL, fetchFn = fetch, onUsage }) => {
   return {
     reply: async ({ history, kitchen, context }) => {
       const systemPromptWithSchema = `${SYSTEM_PROMPT}\n\nCevabını JSON şemasına uygun geçerli bir JSON nesnesi olarak ver:\n${JSON.stringify(CHEF_RESPONSE_SCHEMA)}`;
@@ -18,14 +18,14 @@ const makeGroqChefChat = ({ apiKey, model = 'openai/gpt-oss-120b', fetchFn = fet
         })),
       ];
 
-      const body = await callGroq({
+      const body = await callZai({
         apiKey,
         model,
         feature: 'chef',
         systemPrompt: systemPromptWithSchema,
         messages,
         temperature: 0.6,
-        maxCompletionTokens: 4096,
+        maxTokens: 4096,
         timeoutMs: 45_000,
         fetchFn,
         onUsage,
@@ -47,4 +47,4 @@ const makeGroqChefChat = ({ apiKey, model = 'openai/gpt-oss-120b', fetchFn = fet
   };
 };
 
-export { makeGroqChefChat };
+export { makeZaiChefChat };

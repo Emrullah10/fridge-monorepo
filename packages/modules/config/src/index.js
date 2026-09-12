@@ -10,13 +10,13 @@ const readEnv = (env = process.env) => {
   const missing = REQUIRED_KEYS.filter((key) => !env[key]);
   if (isProduction) {
     missing.push(...REQUIRED_IN_PRODUCTION_KEYS.filter((key) => !env[key]));
-    // Tüm AI özellikleri (fiş, tarif, alışveriş, şef) Groq kullanır.
-    // Herhangi bir AI özelliği devredeyse GROQ_API_KEY zorunludur.
+    // Tüm AI özellikleri (fiş, tarif, alışveriş, şef) Z.ai kullanır.
+    // Herhangi bir AI özelliği devredeyse ZAI_API_KEY zorunludur.
     const recipeAiEnabled = env.RECIPE_AI_ENABLED !== 'false';
     const shoppingAiEnabled = env.SHOPPING_AI_ENABLED !== 'false';
     const chefAiEnabled = env.CHEF_AI_ENABLED !== 'false';
-    if ((recipeAiEnabled || shoppingAiEnabled || chefAiEnabled) && !env.GROQ_API_KEY) {
-      missing.push('GROQ_API_KEY');
+    if ((recipeAiEnabled || shoppingAiEnabled || chefAiEnabled) && !env.ZAI_API_KEY) {
+      missing.push('ZAI_API_KEY');
     }
   }
   if (missing.length > 0) {
@@ -30,15 +30,21 @@ const readEnv = (env = process.env) => {
     jwtAccessSecret: env.JWT_ACCESS_SECRET || 'dev-access-secret',
     jwtRefreshSecret: env.JWT_REFRESH_SECRET || 'dev-refresh-secret',
     uploadsDir: env.UPLOADS_DIR || 'uploads',
-    // Tüm AI özellikleri Groq üzerinden çalışır (ücretsiz katmanda 1000 istek/gün).
-    groqApiKey: env.GROQ_API_KEY,
-    groqModel: env.GROQ_MODEL || 'openai/gpt-oss-120b',
+    // Tüm AI özellikleri Z.ai üzerinden çalışır — glm-4.6 (ücretli, $0.60/$2.20
+    // per 1M token), thinking kapalı (bkz. infrastructure/ai/zai.js). Ücretsiz
+    // glm-4.7-flash/glm-4.5-flash canlıda denendi (2026-09-12): biri sürekli
+    // aşırı yük hatası verdi, diğeri yavaş+hatalıydı — üretim için glm-4.6'ya
+    // geçildi. Groq'un ücretli katmanı kapandığı ve free tier'ı (~63 kullanıcıda
+    // TPD tavanı) yetersiz kaldığı için Z.ai'ye değiştirildi, bkz.
+    // docs/AI_PROVIDER_SPEC.md ve docs/ZAI_MIGRATION_PLAN.md.
+    zaiApiKey: env.ZAI_API_KEY,
+    zaiModel: env.ZAI_MODEL || 'glm-4.6',
     recipeAiEnabled: env.RECIPE_AI_ENABLED !== 'false',
-    groqRecipeModel: env.GROQ_RECIPE_MODEL || env.GROQ_MODEL || 'openai/gpt-oss-120b',
+    zaiRecipeModel: env.ZAI_RECIPE_MODEL || env.ZAI_MODEL || 'glm-4.6',
     shoppingAiEnabled: env.SHOPPING_AI_ENABLED !== 'false',
-    groqShoppingModel: env.GROQ_SHOPPING_MODEL || env.GROQ_MODEL || 'openai/gpt-oss-120b',
+    zaiShoppingModel: env.ZAI_SHOPPING_MODEL || env.ZAI_MODEL || 'glm-4.6',
     chefAiEnabled: env.CHEF_AI_ENABLED !== 'false',
-    groqChefModel: env.GROQ_CHEF_MODEL || env.GROQ_MODEL || 'openai/gpt-oss-120b',
+    zaiChefModel: env.ZAI_CHEF_MODEL || env.ZAI_MODEL || 'glm-4.6',
     scanWorkerIntervalMs: Number(env.SCAN_WORKER_INTERVAL_MS || 5000),
     retentionCleanupIntervalMs: Number(env.RETENTION_CLEANUP_INTERVAL_MS || 24 * 60 * 60 * 1000),
     // FCM_ENABLED=true olsa bile kimlik bilgisi eksikse container no-op

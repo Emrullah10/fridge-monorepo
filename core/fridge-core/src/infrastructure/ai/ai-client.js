@@ -1,28 +1,21 @@
 import { AiQuotaError, AiBusyError, AiTimeoutError } from '@fridge/errors';
 
-// Groq'un OpenAI-uyumlu chat/completions ucu için ortak istemci —
+// Z.ai'nin OpenAI-uyumlu chat/completions ucu için ortak istemci —
 // gemini-client.js ile aynı sözleşme (onUsage, retry/backoff, hata
-// sınıflandırması) ama Groq'un kendi hata/rate-limit gövdesine göre.
-// Groq'ta günlük istek kotası HTTP başlıklarında dönüyor
-// (x-ratelimit-remaining-requests) — Gemini'nin aksine 429 gövdesinde
-// retryDelay yok, bunun yerine x-ratelimit-reset-requests header'ı var.
+// sınıflandırması). Sağlayıcıya özgü sabitler (base URL, hata etiketi)
+// bkz. ai/zai.js — bu dosya sağlayıcıdan bağımsız kalır ki ileride tekrar
+// sağlayıcı değiştirmek gerekirse acı yalnızca zai.js'te yaşansın.
+//
+// ÖNEMLİ: Z.ai token limiti parametresi OpenAI'nin eski adı `max_tokens`'tır,
+// yeni `max_completion_tokens` DEĞİL (docs.z.ai/api-reference/llm/chat-completion).
 const MAX_RETRIES = 2;
 const BASE_BACKOFF_MS = 500;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// "1m26.4s" / "577ms" gibi Groq'a özgü süre formatını ms'e çevirir.
-const parseGroqDuration = (raw) => {
-  if (!raw) return null;
-  const match = /^(?:(\d+)m)?(\d+(?:\.\d+)?)s$|^(\d+)ms$/.exec(raw);
-  if (!match) return null;
-  if (match[3]) return Number(match[3]);
-  const minutes = Number(match[1] ?? 0);
-  const seconds = Number(match[2] ?? 0);
-  return (minutes * 60 + seconds) * 1000;
-};
-
-const callGroq = async ({
+const callAiModel = async ({
+  baseUrl,
+  providerLabel = 'ai',
   apiKey,
   model,
   feature,
@@ -30,7 +23,8 @@ const callGroq = async ({
   userPrompt,
   messages,
   temperature = 0.1,
-  maxCompletionTokens = 4096,
+  maxTokens = 4096,
+  thinking,
   timeoutMs,
   fetchFn = fetch,
   onUsage,
@@ -51,7 +45,7 @@ const callGroq = async ({
 
     let response;
     try {
-      response = await fetchFn('https://api.groq.com/openai/v1/chat/completions', {
+      response = await fetchFn(baseUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -61,8 +55,9 @@ const callGroq = async ({
         body: JSON.stringify({
           model,
           temperature,
-          max_completion_tokens: maxCompletionTokens,
+          max_tokens: maxTokens,
           response_format: { type: 'json_object' },
+          ...(thinking ? { thinking } : {}),
           messages: requestMessages,
         }),
       });
@@ -95,13 +90,33 @@ const callGroq = async ({
       return body;
     }
 
-    // 429: günlük/dakikalık kota — reset-requests header'ından ne kadar
-    // beklenmesi gerektiğini oku, ama günlük pencere saatler sürebileceği
-    // için retry etmiyoruz, doğrudan AiQuotaError.
+    // 429: Groq'ta bu HER ZAMAN günlük/dakikalık kotaydı (pencere saatler
+    // sürebileceği için retry edilmezdi). Z.ai'de 429 İKİ FARKLI ŞEYİ ifade
+    // ediyor — gövdedeki error.code ayırt ediyor:
+    //   - "1305" "temporarily overloaded": sunucu tarafı geçici yoğunluk,
+    //     KOTA DEĞİL — kısa retry ile genelde geçiyor (canlı doğrulandı,
+    //     bkz. docs/ZAI_MIGRATION_PLAN.md). Bunu kota sanıp key'i
+    //     tükenmiş işaretlemek yaygın bir entegrasyon hatası.
+    //   - diğer her şey: gerçek kota/limit, retry etmeden AiQuotaError.
     if (response.status === 429) {
+      let errorBody = null;
+      try {
+        errorBody = await response.json();
+      } catch {
+        // gövde JSON değilse yok say
+      }
+      const isTransientOverload = errorBody?.error?.code === '1305';
       const latencyMs = Date.now() - startedAt;
-      onUsage?.({ ...context, feature, model, ok: false, httpStatus: 429, errorCode: 'AI_QUOTA_EXCEEDED', latencyMs, retryCount: attempt });
-      throw new AiQuotaError();
+
+      if (isTransientOverload && attempt < MAX_RETRIES) {
+        onUsage?.({ ...context, feature, model, ok: false, httpStatus: 429, errorCode: 'AI_BUSY', latencyMs, retryCount: attempt });
+        await sleep(BASE_BACKOFF_MS * 2 ** attempt);
+        continue;
+      }
+
+      const errorCode = isTransientOverload ? 'AI_BUSY' : 'AI_QUOTA_EXCEEDED';
+      onUsage?.({ ...context, feature, model, ok: false, httpStatus: 429, errorCode, latencyMs, retryCount: attempt });
+      throw isTransientOverload ? new AiBusyError() : new AiQuotaError();
     }
 
     if ([500, 502, 503].includes(response.status) && attempt < MAX_RETRIES) {
@@ -122,11 +137,12 @@ const callGroq = async ({
       throw new AiBusyError();
     }
 
-    onUsage?.({ ...context, feature, model, ok: false, httpStatus: response.status, errorCode: 'GROQ_ERROR', latencyMs, retryCount: attempt });
-    throw new Error(`Groq ${feature} request failed: ${response.status} ${errorBody?.error?.message ?? response.statusText}`);
+    const errorCode = `${providerLabel.toUpperCase()}_ERROR`;
+    onUsage?.({ ...context, feature, model, ok: false, httpStatus: response.status, errorCode, latencyMs, retryCount: attempt });
+    throw new Error(`${providerLabel} ${feature} request failed: ${response.status} ${errorBody?.error?.message ?? response.statusText}`);
   }
 };
 
 const extractJson = (body) => JSON.parse(body.choices[0].message.content);
 
-export { callGroq, extractJson, parseGroqDuration };
+export { callAiModel, extractJson };
