@@ -5,7 +5,14 @@ const makeGetHouseholdInsights = ({ insightsRepo, clock }) => {
     let fromDate = from;
     let toDate = to;
 
-    if (!fromDate || !toDate) {
+    // BUG (2026-09-12 düzeltildi): `from` dolu + `to` boşken (mobil "son N
+    // gün" seçimlerinin eski davranışı) bu blok ikisini de "içinde
+    // bulunulan ay"a göre dolduruyordu — `toDate` şimdi DEĞİL, ayın 1'i +
+    // 1 ay oluyordu. "Son 90 gün" etiketiyle gerçekte sorgulanan aralık
+    // uyuşmuyordu. Artık `from` tek başına doluysa `to` = şimdi.
+    if (fromDate && !toDate) {
+      toDate = clock.now().toISOString();
+    } else if (!fromDate || !toDate) {
       const now = clock.now();
       const y = now.getUTCFullYear();
       const m = now.getUTCMonth();
