@@ -19,6 +19,7 @@ const makeAddShoppingItemsFromText = ({ inventoryItemRepo, shoppingSuggesterPort
       text: text.trim(),
       inventorySummary,
       context: { userId, householdId, isGuest },
+      householdId,
     });
 
     return {

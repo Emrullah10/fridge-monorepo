@@ -7,7 +7,7 @@ const locale = 'tr';
 
 const faqs = [
   { q: 'Fiş fotoğrafı sunucuya gidiyor mu?', a: 'Hayır. OCR (metin okuma) tamamen telefonda çalışır. Sunucuya yalnızca okunan ham metin gönderilir, görüntünün kendisi hiçbir zaman cihazından çıkmaz.' },
-  { q: 'Fridge ücretsiz mi?', a: 'Evet, uygulama şu an tamamen ücretsiz. Hesap oluşturmadan misafir modunda da deneyebilirsin.' },
+  { q: 'Elde ücretsiz mi?', a: 'Evet, uygulama şu an tamamen ücretsiz. Hesap oluşturmadan misafir modunda da deneyebilirsin.' },
   { q: 'Verilerimi kimler görebilir?', a: 'Yalnızca davet ettiğin ev üyeleri paylaşılan envanteri görür. Detaylar için gizlilik sayfamıza bakabilirsin.' },
   { q: 'Birden fazla ev oluşturabilir miyim?', a: 'Evet, istediğin kadar ev (alan) oluşturabilir veya davet koduyla var olan bir eve katılabilirsin.' },
   { q: 'Fiş ayrıştırma ne kadar doğru?', a: 'Yapay zekâ ayrıştırma çoğu fişte yüksek doğrulukla çalışır; emin olunamayan satırlar "Kontrol et" rozetiyle işaretlenir ve onaylamadan eklenmez.' },
@@ -36,7 +36,7 @@ const faqJsonLd = {
   })),
 };
 ---
-<Marketing title="Sıkça Sorulan Sorular — Fridge" description="Fridge hakkında en çok sorulan 18 soru — gizlilik, ücretlendirme, fiş ayrıştırma doğruluğu ve daha fazlası." locale={locale}>
+<Marketing title="Sıkça Sorulan Sorular — Elde" description="Elde hakkında en çok sorulan 18 soru — gizlilik, ücretlendirme, fiş ayrıştırma doğruluğu ve daha fazlası." locale={locale}>
   <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
   <section class="container--narrow faq-page">
     <SectionHeading eyebrow="SSS" title="Sıkça sorulan sorular" />

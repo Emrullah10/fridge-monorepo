@@ -1,3 +1,5 @@
+import { NotFoundError } from '@fridge/errors';
+
 // Kullanıcı bir satırı düzeltirse product_alias'a yazılır — bir daha aynı
 // market kısaltması modele hiç gitmeden sözlükten çözülür. Marka düzeltmesi
 // de aynı mantıkla kalıcılaşır: kullanıcının girdiği marka product.brand'e
@@ -13,6 +15,15 @@ const makeCorrectLineItem = ({ receiptLineItemRepo, productAliasRepo, productRep
     lineItemId, householdId, parsedName, parsedBrand, parsedQuantity, parsedUnit,
     parsedPackSize, parsedPackUnit, parsedPrice, matchedProductId, categoryKey,
   }) => {
+    // Savunma derinliği: route katmanı zaten scan+lineItem sahipliğini
+    // doğruluyor (receipt.routes.js), ama bu kontrol yalnızca orada yaşıyordu
+    // — yeni bir çağıran (ör. gelecekte bir admin ucu ya da worker) bu
+    // korumayı devralmazdı. Use-case kendi sahiplik doğrulamasını yapar.
+    const existing = await receiptLineItemRepo.findById(lineItemId);
+    if (!existing || existing.householdId !== householdId) {
+      throw new NotFoundError('Line item not found');
+    }
+
     const updated = await receiptLineItemRepo.update(lineItemId, {
       parsedName,
       parsedBrand,

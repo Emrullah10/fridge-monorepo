@@ -287,8 +287,12 @@ describe('processReceiptScan — kademe 3: AI otomatik ürün oluşturma', () =>
         findExactMatch: async ({ rawText }) => (rawText === 'BILINEN URUN' ? { productId: 'existing-product' } : null),
       },
       receiptParserPort: {
-        parse: async ({ rawText }) => {
+        // householdId regresyon testi: Faz 2 AI cache'inin key'ine giriyor
+        // (bkz. zai-text.adapter.js) — parse() çağrısına scan.householdId
+        // AKTARILMALI, aksi halde cache household izolasyonu sessizce bozulur.
+        parse: async ({ rawText, householdId }) => {
           assert.equal(rawText, 'BILINMEYEN URUN'); // sadece eşleşmeyen satır gitmeli
+          assert.equal(householdId, 'hh-1');
           return {
             lineItems: [
               { lineNo: 1, rawText: 'BILINMEYEN URUN', parsedName: 'Yeni Ürün', parsedQuantity: 1, parsedUnit: 'piece' },

@@ -4,7 +4,9 @@
 
 :root {
   --font-system: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --font-display: 'Inter', var(--font-system);
+  // --font-inter, Astro Fonts API tarafından Base.astro'daki <link>/<style> ile enjekte edilir
+  // (astro.config.mjs experimental.fonts). Yüklenemezse --font-system'e düşer.
+  --font-display: var(--font-inter, 'Inter'), var(--font-system);
 
   // Maket ölçeği — DESIGN_SPEC §2 birebir
   --fs-appbar-title: 20px;

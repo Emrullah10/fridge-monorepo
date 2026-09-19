@@ -1,3 +1,5 @@
+import { NotFoundError } from '@fridge/errors';
+
 // Tarif pişirildiğinde malzemeler stock_movement'a 'recipe_used' sebebiyle
 // düşülür. Sadece mevcut stoktaki miktar kadar düşülür — eksik malzeme
 // varsa o kalem atlanır, kullanıcı zaten dolapta olmayanı kullanamaz.
@@ -9,6 +11,15 @@ const makeCookRecipe = ({
   makeRecipeCookLogRepo,
 }) => {
   return async ({ recipeId, householdId, cookedBy }) => {
+    // IDOR koruması: recipeRepo.listIngredients recipeId'yi household'a göre
+    // kapsamlamıyor. deleteRecipe/updateRecipe'deki aynı deseni burada da
+    // uygula — başka bir evin özel tarifi "pişirilerek" malzeme listesi
+    // consumed/insufficient üzerinden sızdırılmasın.
+    const recipe = await recipeRepo.findById(recipeId);
+    if (!recipe || recipe.householdId !== householdId) {
+      throw new NotFoundError('Recipe not found');
+    }
+
     const ingredients = await recipeRepo.listIngredients(recipeId);
 
     const { consumed, insufficient } = await datasource.withTransaction(async ({ query }) => {

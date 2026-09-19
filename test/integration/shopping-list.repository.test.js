@@ -113,3 +113,77 @@ describe('shopping-list.repository — consumptionProfile', () => {
     assert.equal(profile[0].productId, productId);
   });
 });
+
+describe('shopping-list.repository — updateItem / removeItem IDOR koruması', () => {
+  test('updateItem başka evin kalemini güncelleyemez (yanlış householdId -> null)', async () => {
+    const victimUserId = await createTestUser('idor-victim-update');
+    const victimHouseholdId = await createTestHousehold(victimUserId);
+    const productId = await createTestProduct(victimHouseholdId, 'Kurban Ürün', 'piece');
+
+    const victimList = await shoppingListRepo.getOrCreateActiveList({ householdId: victimHouseholdId, userId: victimUserId });
+    const item = await shoppingListRepo.addItem({
+      shoppingListId: victimList.id, productId, quantity: 1, unit: 'piece', addedBy: victimUserId,
+    });
+
+    const attackerUserId = await createTestUser('idor-attacker-update');
+    const attackerHouseholdId = await createTestHousehold(attackerUserId);
+
+    const result = await shoppingListRepo.updateItem(item.id, attackerHouseholdId, { quantity: 99 });
+    assert.equal(result, null, 'saldırganın householdId\'siyle güncelleme null dönmeli');
+
+    const unchanged = await shoppingListRepo.findItemById(item.id);
+    assert.equal(unchanged.quantity, 1, 'kurbanın kalemi değişmemiş olmalı');
+  });
+
+  test('updateItem doğru householdId ile çalışmaya devam eder', async () => {
+    const userId = await createTestUser('idor-owner-update');
+    const householdId = await createTestHousehold(userId);
+    const productId = await createTestProduct(householdId, 'Sahibi Ürün', 'piece');
+
+    const list = await shoppingListRepo.getOrCreateActiveList({ householdId, userId });
+    const item = await shoppingListRepo.addItem({
+      shoppingListId: list.id, productId, quantity: 1, unit: 'piece', addedBy: userId,
+    });
+
+    const result = await shoppingListRepo.updateItem(item.id, householdId, { quantity: 5 });
+    assert.ok(result, 'doğru householdId ile item dönmeli');
+    assert.equal(result.quantity, 5);
+  });
+
+  test('removeItem başka evin kalemini silemez (yanlış householdId -> false)', async () => {
+    const victimUserId = await createTestUser('idor-victim-remove');
+    const victimHouseholdId = await createTestHousehold(victimUserId);
+    const productId = await createTestProduct(victimHouseholdId, 'Kurban Ürün 2', 'piece');
+
+    const victimList = await shoppingListRepo.getOrCreateActiveList({ householdId: victimHouseholdId, userId: victimUserId });
+    const item = await shoppingListRepo.addItem({
+      shoppingListId: victimList.id, productId, quantity: 1, unit: 'piece', addedBy: victimUserId,
+    });
+
+    const attackerUserId = await createTestUser('idor-attacker-remove');
+    const attackerHouseholdId = await createTestHousehold(attackerUserId);
+
+    const removed = await shoppingListRepo.removeItem(item.id, attackerHouseholdId);
+    assert.equal(removed, false, 'saldırganın householdId\'siyle silme false dönmeli');
+
+    const stillThere = await shoppingListRepo.findItemById(item.id);
+    assert.ok(stillThere, 'kurbanın kalemi hâlâ var olmalı');
+  });
+
+  test('removeItem doğru householdId ile çalışmaya devam eder', async () => {
+    const userId = await createTestUser('idor-owner-remove');
+    const householdId = await createTestHousehold(userId);
+    const productId = await createTestProduct(householdId, 'Sahibi Ürün 2', 'piece');
+
+    const list = await shoppingListRepo.getOrCreateActiveList({ householdId, userId });
+    const item = await shoppingListRepo.addItem({
+      shoppingListId: list.id, productId, quantity: 1, unit: 'piece', addedBy: userId,
+    });
+
+    const removed = await shoppingListRepo.removeItem(item.id, householdId);
+    assert.equal(removed, true);
+
+    const gone = await shoppingListRepo.findItemById(item.id);
+    assert.equal(gone, undefined);
+  });
+});

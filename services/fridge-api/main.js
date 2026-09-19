@@ -34,6 +34,7 @@ const shutdown = async () => {
   scanProcessor.stop();
   retentionWorker.stop();
   server.close();
+  await container.cache.close();
   await container.datasource.close();
   process.exit(0);
 };

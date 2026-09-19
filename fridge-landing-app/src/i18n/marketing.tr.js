@@ -10,7 +10,7 @@ export const marketing = {
   },
   hero: {
     eyebrow: 'Mutfağın dijital defteri',
-    title: 'Fişi tara, gerisini Fridge halletsin.',
+    title: 'Fişi tara, gerisini Elde halletsin.',
     subtitle:
       'Market fişinin fotoğrafını çek — ürünler fiyatlarıyla envanterine düşsün. Buzdolabı, dondurucu, kiler; ne kadar biriktirdiğini, ne kadar israf ettiğini ay ay gör.',
     ctaPrimary: 'Ücretsiz indir',

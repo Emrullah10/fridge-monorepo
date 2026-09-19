@@ -10,6 +10,11 @@ const loginRateLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 10
 // çağrılabilirse DB'de sınırsız kullanıcı/household yaratılabilir.
 const guestRateLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 5, limitName: 'guest-signup' });
 
+// login/guest/forgot/reset'in hepsinde rate limiter varken register'da hiç
+// yoktu — sınırsız hesap oluşturma + her denemede bcrypt.hash çalıştığı
+// için CPU tüketimiyle DoS'a açıktı. guestRateLimiter ile aynı pencere/limit.
+const registerRateLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 5, limitName: 'register' });
+
 // Mail gönderimini (ve enumeration denemelerini) sınırlar — kod doğrulama
 // deneme sınırı use-case içinde (MAX_ATTEMPTS) ayrıca var.
 const forgotPasswordRateLimiter = rateLimiter({ windowMs: 15 * 60 * 1000, maxRequests: 3, limitName: 'forgot-password' });
@@ -57,7 +62,7 @@ const buildAuthRouter = ({ container }) => {
   const router = Router();
   const { useCases, repos } = container;
 
-  router.post('/register', asyncHandler(async (req, res) => {
+  router.post('/register', registerRateLimiter, asyncHandler(async (req, res) => {
     const { email, password, displayName, locale, deviceId } = req.body ?? {};
     assertValidRegisterInput({ email, password, displayName });
     const user = await useCases.registerUser({ email, password, displayName, locale });

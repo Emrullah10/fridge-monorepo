@@ -10,7 +10,7 @@ import { buildRecipeRouter } from './recipe.routes.js';
 import { buildShoppingRouter } from './shopping.routes.js';
 import { buildProductRouter } from './product.routes.js';
 import { buildInsightsRouter } from './insights.routes.js';
-import { buildChefRouter } from './chef.routes.js';
+import { buildAssistantRouter } from './assistant.routes.js';
 import { buildDeviceRouter, buildNotificationRouter } from './notification.routes.js';
 import { buildBillingRouter } from './billing.routes.js';
 
@@ -49,7 +49,12 @@ const buildRouter = ({ container, authenticate }) => {
   router.use('/households/:householdId/shopping-list', unlockedHouseholdGate, buildShoppingRouter({ container }));
   router.use('/households/:householdId/products', unlockedHouseholdGate, buildProductRouter({ container }));
   router.use('/households/:householdId/insights', unlockedHouseholdGate, buildInsightsRouter({ container }));
-  router.use('/households/:householdId/chef', unlockedHouseholdGate, buildChefRouter({ container }));
+  // AI Asistan kök seviyede mount edilir (household ağacının DIŞINDA) —
+  // alansız sohbette :householdId path parametresi yok, unlockedHouseholdGate
+  // burada çalışamaz. Sahiplik + kilit kontrolü assistant.routes.js içindeki
+  // load-conversation.js middleware'i tarafından KAYITTAN yapılır (bkz. plan
+  // §C2).
+  router.use('/assistant', requireAuth(), buildAssistantRouter({ container }));
   router.use('/devices', buildDeviceRouter({ container }));
   router.use('/notifications', buildNotificationRouter({ container }));
   router.use('/', buildBillingRouter({ container })); // /me/entitlements, /me/subscription/manage-url

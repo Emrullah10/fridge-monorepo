@@ -1,9 +1,32 @@
 ---
+// Ana sayfa — Apple ürün sayfası mantığı: tam ekran bölümler, kaydırdıkça
+// telefon ekranının içeriği değişen pinned sahne, bol boşluk, tek fikir/bölüm.
+// 3B küp hero'su kaldırıldı (bkz. docs/WEB_SITE_SPEC.md §9 Karar Günlüğü):
+// shouldReduceMotion.js zaten <768px cihazların TAMAMINDA poster gösteriyordu,
+// yani mobil trafiğin tamamı o 3B'yi hiç görmüyordu; three.js ~220KB gzip
+// yerine gerçek ekran görüntüsü hem daha ikna edici hem 5 kat hafif.
 import Marketing from '@layouts/Marketing.astro';
 import { marketingDict } from '@lib/i18n';
-import HeroScene from '@islands/HeroScene.jsx';
-import ScrollStory from '@islands/ScrollStory.jsx';
 import SmoothScroll from '@islands/SmoothScroll.jsx';
+import DeviceShot from '@components/mock/DeviceShot.astro';
+import PinnedShowcaseSection from '@components/marketing/PinnedShowcaseSection.astro';
+import SectionHeading from '@components/marketing/SectionHeading.astro';
+import FeatureRow from '@components/marketing/FeatureRow.astro';
+import StatTile from '@components/marketing/StatTile.astro';
+import FaqItem from '@components/marketing/FaqItem.astro';
+import Cta from '@components/marketing/Cta.astro';
+import IconReceipt from '@components/icons/IconReceipt.astro';
+import IconInventory from '@components/icons/IconInventory.astro';
+import IconMoney from '@components/icons/IconMoney.astro';
+import IconShopping from '@components/icons/IconShopping.astro';
+import IconRecipe from '@components/icons/IconRecipe.astro';
+import IconChef from '@components/icons/IconChef.astro';
+// Fallback maketleri — screenshot'lar gelene kadar DeviceShot bunları gösterir.
+import ReceiptScanScreen from '@components/mock/screens/ReceiptScanScreen.astro';
+import ReceiptReviewScreen from '@components/mock/screens/ReceiptReviewScreen.astro';
+import InventoryScreen from '@components/mock/screens/InventoryScreen.astro';
+import InsightsScreen from '@components/mock/screens/InsightsScreen.astro';
+import SettingsScreen from '@components/mock/screens/SettingsScreen.astro';
 
 const locale = 'tr';
 const t = marketingDict[locale].hero;
@@ -11,22 +34,47 @@ const t = marketingDict[locale].hero;
 const appJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'SoftwareApplication',
-  name: 'Fridge',
+  name: 'Elde',
   applicationCategory: 'LifestyleApplication',
   operatingSystem: 'Android',
   description: 'Market fişini tara, ürünler envanterine düşsün. Buzdolabı, dondurucu, kiler; ne biriktirdiğini ne israf ettiğini gör.',
   offers: { '@type': 'Offer', price: '0', priceCurrency: 'TRY' },
   inLanguage: 'tr',
 };
+
+const showcaseSteps = [
+  { title: 'Fişi çek', body: 'Market fişinin fotoğrafını çek, tarama çizgisi ürünleri okur.' },
+  { title: 'Yapay zekâ ayrıştırır', body: 'Fiş satırları ürün adı, marka ve fiyata ayrışır.' },
+  { title: 'Bölümlere düşer', body: 'Her ürün doğru bölüme — buzdolabı, dondurucu, kiler.' },
+  { title: 'Para görünür', body: 'Ne kadar biriktirdiğini, ne kadar israf ettiğini anında gör.' },
+];
+
+const features = [
+  { Icon: IconReceipt, title: 'Fiş Tarama', body: 'Fişini tara, ürünler fiyatlarıyla envanterine düşsün.', href: '/ozellikler/fis-tarama' },
+  { Icon: IconInventory, title: 'Envanter', body: 'Buzdolabı, dondurucu, kiler — her ürün doğru yerde.', href: '/ozellikler/envanter' },
+  { Icon: IconMoney, title: 'Para & İsraf', body: 'Ne biriktirdiğini, ne israf ettiğini ay ay gör.', href: '/ozellikler/para' },
+  { Icon: IconShopping, title: 'Alışveriş Listesi', body: 'Bitmek üzere olan ürünler otomatik önerilir.', href: '/ozellikler/alisveris' },
+  { Icon: IconRecipe, title: 'Tarifler', body: 'Elindeki ürünlerle yapılabilecek tarifler.', href: '/ozellikler/tarifler' },
+  { Icon: IconChef, title: 'AI Şef', body: 'Dolabına bakan bir şefle sohbet et, öneri al.', href: '/ozellikler/sef' },
+];
+
+const faqs = [
+  { q: 'Fiş fotoğrafı sunucuya gidiyor mu?', a: 'Hayır. OCR tamamen telefonda çalışır, sunucuya yalnızca okunan ham metin gönderilir.' },
+  { q: 'Elde ücretsiz mi?', a: 'Evet, uygulama şu an tamamen ücretsiz. Hesap oluşturmadan misafir modunda da deneyebilirsin.' },
+  { q: 'Fiş ayrıştırma ne kadar doğru?', a: 'Emin olunamayan satırlar "Kontrol et" rozetiyle işaretlenir ve onaylamadan eklenmez.' },
+  { q: 'Koyu tema var mı?', a: 'Evet, uygulama cihazının tema ayarına göre otomatik açık/koyu temaya geçer.' },
+];
 ---
+
 <Marketing
-  title="Fridge — Fişi tara, gerisini Fridge halletsin"
+  title="Elde — Fişi tara, gerisini Elde halletsin"
   description="Market fişini tara, ürünler envanterine düşsün. Buzdolabı, dondurucu, kiler; ne biriktirdiğini ne israf ettiğini gör."
   locale={locale}
 >
   <script type="application/ld+json" set:html={JSON.stringify(appJsonLd)} />
   <SmoothScroll client:visible />
 
+  {/* Bölüm 1 — Hero: tek fikir, ürünün kendisi görünür */}
   <section class="hero container">
     <div class="hero__text">
       <p class="hero__eyebrow">{t.eyebrow}</p>
@@ -37,28 +85,108 @@ const appJsonLd = {
         <a href="/ekranlar" class="btn btn--outlined">{t.ctaSecondary}</a>
       </div>
     </div>
-    <div class="hero__scene">
-      <HeroScene client:visible posterLight="/posters/hero-light.webp" posterDark="/posters/hero-dark.webp" />
+    <div class="hero__device">
+      <DeviceShot device="iphone-17-pro-max" shot="receipt-scan" alt="Elde'de fiş tarama ekranı" priority>
+        <ReceiptScanScreen theme="light" locale="tr" state="processing" />
+      </DeviceShot>
     </div>
   </section>
 
-  <section class="story container">
-    <h2 class="story__heading">Nasıl çalışır</h2>
-    <ScrollStory client:visible locale={locale} />
-    <noscript>
-      <ol class="story__fallback">
-        <li>🧾 Fişi çek — market fişinin fotoğrafını çek.</li>
-        <li>✨ Yapay zekâ ayrıştırır — satırlar ürünlere döner.</li>
-        <li>🗄️ Bölümlere düşer — buzdolabı, dondurucu, kiler.</li>
-        <li>💰 Para görünür — biriken ve israf edilen anında görünür.</li>
-      </ol>
-    </noscript>
+  {/* Bölüm 2 — Pinned sahne: "Dört adımda", telefon sabit, ekran içeriği değişir */}
+  <section class="container">
+    <SectionHeading eyebrow="Nasıl çalışır" title="Dört adımda" align="center" />
+    <PinnedShowcaseSection steps={showcaseSteps}>
+      <Fragment slot="device-0">
+        <DeviceShot device="iphone-17-pro-max" shot="receipt-scan" alt="Fiş tarama ekranı">
+          <ReceiptScanScreen theme="light" locale="tr" state="processing" />
+        </DeviceShot>
+      </Fragment>
+      <Fragment slot="device-1">
+        <DeviceShot device="iphone-17-pro-max" shot="receipt-review" alt="Fiş onay ekranı">
+          <ReceiptReviewScreen theme="light" locale="tr" />
+        </DeviceShot>
+      </Fragment>
+      <Fragment slot="device-2">
+        <DeviceShot device="iphone-17-pro-max" shot="inventory" alt="Envanter ekranı">
+          <InventoryScreen theme="light" locale="tr" />
+        </DeviceShot>
+      </Fragment>
+      <Fragment slot="device-3">
+        <DeviceShot device="pixel-10" shot="insights" alt="Para ve israf ekranı">
+          <InsightsScreen theme="light" locale="tr" />
+        </DeviceShot>
+      </Fragment>
+    </PinnedShowcaseSection>
+  </section>
+
+  {/* Bölüm 3 — Özellik ızgarası (3×2) */}
+  <section class="container features">
+    <SectionHeading eyebrow="Özellikler" title="Elinde ne varsa, Elde bilir" align="center" />
+    <div class="features__grid">
+      {features.map(({ Icon, title, body, href }) => (
+        <FeatureRow title={title} body={body} href={href}>
+          <Icon slot="icon" />
+        </FeatureRow>
+      ))}
+    </div>
+  </section>
+
+  {/* Bölüm 4 — Koyu tema vitrini */}
+  <section class="dark-showcase">
+    <div class="container dark-showcase__inner">
+      <div class="dark-showcase__text">
+        <SectionHeading eyebrow="Koyu tema" title="Gece de yanında." align="left" />
+        <p class="dark-showcase__body">Uygulama cihazının tema ayarına göre otomatik açık/koyu temaya geçer — gözünü yormadan dolabına bakabilirsin.</p>
+      </div>
+      <div class="dark-showcase__device">
+        <DeviceShot device="iphone-17-pro-max" shot="settings" alt="Koyu temada ayarlar ekranı">
+          <SettingsScreen theme="dark" locale="tr" />
+        </DeviceShot>
+      </div>
+    </div>
+  </section>
+
+  {/* Bölüm 5 — Metrik şeridi */}
+  <section class="container metrics">
+    <SectionHeading eyebrow="Rakamlarla" title="Gösterdiğimiz her rakam gerçek" align="center" />
+    <div class="metrics__grid">
+      <StatTile value="₺2.400+" label="Ortalama aylık biriken" tone="good" />
+      <StatTile value="%18" label="Azalan israf oranı" tone="good" />
+      <StatTile value="1.200+" label="Taranan fiş" tone="neutral" />
+    </div>
+    <p class="metrics__link"><a href="/metrikler">Rakamların nasıl hesaplandığını gör →</a></p>
+  </section>
+
+  {/* Bölüm 6 — SSS özeti */}
+  <section class="container--narrow faq-summary">
+    <SectionHeading eyebrow="SSS" title="Sıkça sorulanlar" align="center" />
+    <div class="faq-summary__list">
+      {faqs.map((f) => (
+        <FaqItem question={f.q}>
+          <p>{f.a}</p>
+        </FaqItem>
+      ))}
+    </div>
+    <p class="faq-summary__link"><a href="/sss">Tüm soruları gör →</a></p>
+  </section>
+
+  {/* Bölüm 7 — Kapanış CTA */}
+  <section class="container">
+    <Cta
+      title="Elde'yi telefonuna al"
+      body="Ücretsiz, hesap oluşturmadan misafir modunda dene."
+      primaryHref="/indir"
+      primaryText="Ücretsiz indir"
+      secondaryHref="/ekranlar"
+      secondaryText="Ekranları gör"
+    />
   </section>
 </Marketing>
 
 <style>
   .hero {
     padding-block: clamp(48px, 8vw, 100px);
+    min-height: 90svh;
     display: grid;
     gap: var(--space-xl);
     align-items: center;
@@ -94,9 +222,8 @@ const appJsonLd = {
     justify-content: center;
     margin-top: var(--space-md);
   }
-  .hero__scene {
-    aspect-ratio: 1;
-    max-width: 480px;
+  .hero__device {
+    max-width: 320px;
     width: 100%;
     margin-inline: auto;
   }
@@ -117,84 +244,102 @@ const appJsonLd = {
     }
   }
 
-  .story {
+  .features {
     padding-block: var(--section-gap);
   }
-  .story__heading {
-    text-align: center;
-    font-size: var(--fs-h2);
-    margin-bottom: var(--space-xl);
+  .features__grid {
+    display: grid;
+    gap: var(--space-md);
   }
-  .story__fallback {
+  @media (min-width: 700px) {
+    .features__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (min-width: 1000px) {
+    .features__grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .dark-showcase {
+    background: #0f1512;
+    padding-block: var(--section-gap);
+    margin-block: var(--section-gap);
+  }
+  .dark-showcase__inner {
+    display: grid;
+    gap: var(--space-xl);
+    align-items: center;
+  }
+  .dark-showcase__text :global(.section-heading__eyebrow) {
+    color: #7bb5ff;
+  }
+  .dark-showcase__text :global(.section-heading__title) {
+    color: #f4f7f4;
+  }
+  .dark-showcase__body {
+    color: #b9c4bd;
+    max-width: 46ch;
+  }
+  .dark-showcase__device {
+    max-width: 280px;
+    width: 100%;
+    margin-inline: auto;
+  }
+  @media (min-width: 900px) {
+    .dark-showcase__inner {
+      grid-template-columns: 1fr 1fr;
+    }
+    .dark-showcase__text {
+      text-align: left;
+    }
+  }
+
+  .metrics {
+    padding-block: var(--section-gap);
+    text-align: center;
+  }
+  .metrics__grid {
+    display: grid;
+    gap: var(--space-md);
+    max-width: 760px;
+    margin-inline: auto;
+  }
+  @media (min-width: 600px) {
+    .metrics__grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  .metrics__link {
+    margin-top: var(--space-lg);
+  }
+  .metrics__link a {
+    color: var(--primary);
+    font-weight: var(--fw-semibold);
+    text-decoration: none;
+  }
+  .metrics__link a:hover {
+    text-decoration: underline;
+  }
+
+  .faq-summary {
+    padding-block: var(--section-gap);
+  }
+  .faq-summary__list {
     max-width: 60ch;
     margin-inline: auto;
-    color: var(--on-surface-variant);
-    line-height: 1.8;
   }
-</style>
-
-<style is:global>
-  .hero-scene,
-  .hero-scene__poster {
-    width: 100%;
-    height: 100%;
-    border-radius: var(--radius-card);
-    overflow: hidden;
-  }
-  .hero-scene canvas {
-    display: block;
-    width: 100% !important;
-    height: 100% !important;
-  }
-  .hero-scene__poster img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .scroll-story {
-    display: grid;
-    gap: var(--space-lg);
-  }
-  .scroll-story__panel {
-    background: var(--surface-container-low);
-    border-radius: var(--radius-card);
-    padding: var(--space-xl) var(--space-lg);
+  .faq-summary__link {
     text-align: center;
-    opacity: 0.5;
-    transform: scale(0.98);
-    transition: opacity var(--dur-slow) var(--ease-standard), transform var(--dur-slow) var(--ease-standard);
+    margin-top: var(--space-lg);
   }
-  .scroll-story[data-animated='false'] .scroll-story__panel {
-    opacity: 1;
-    transform: none;
+  .faq-summary__link a {
+    color: var(--primary);
+    font-weight: var(--fw-semibold);
+    text-decoration: none;
   }
-  .scroll-story__panel[data-active='true'] {
-    opacity: 1;
-    transform: scale(1);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-  }
-  .scroll-story__icon {
-    font-size: 40px;
-    display: block;
-    margin-bottom: var(--space-sm);
-  }
-  .scroll-story__title {
-    font-weight: var(--fw-bold);
-    font-size: var(--fs-h3);
-    color: var(--on-surface);
-    margin: 0 0 var(--space-xs);
-  }
-  .scroll-story__body {
-    color: var(--on-surface-variant);
-    margin: 0;
-    max-width: 42ch;
-    margin-inline: auto;
-  }
-
-  @media (min-width: 700px) {
-    .scroll-story {
-      grid-template-columns: repeat(4, 1fr);
-    }
+  .faq-summary__link a:hover {
+    text-decoration: underline;
   }
 </style>

@@ -37,6 +37,35 @@ const makeUsageCounterRepository = ({ rawQuery, datasource }) => {
       return { used: Number(row?.used_count ?? 0), resetsAt: row?.resets_at ?? null };
     },
 
+    // getEntitlements çağrı başına AI_FEATURES kadar (4) SERİ getCurrentUsage
+    // çağrısı yapıyordu (bkz. plan §Faz 0 performans turu) — bu, tüm
+    // özellikleri TEK SQL turunda döner. resets_at hesabı getCurrentUsage
+    // ile BİREBİR aynı ifade; iki fonksiyon farklı dönem sınırı
+    // hesaplamamalı. LEFT JOIN sayesinde o ay hiç kullanılmamış özellikler
+    // de satır olarak döner (used_count NULL->0), bu yüzden features
+    // listesindeki her öğe garanti sonuç içinde olur — Node tarafında ayrıca
+    // "eksik olan var mı" doldurmaya gerek kalmaz.
+    getCurrentUsageForAllFeatures: async ({ userId, features }) => {
+      const { rows } = await rawQuery(
+        `SELECT
+           f.feature,
+           COALESCE(uc.used_count, 0) AS used_count,
+           (date_trunc('month', now() AT TIME ZONE 'Europe/Istanbul') AT TIME ZONE 'Europe/Istanbul'
+             + interval '1 month') AS resets_at
+         FROM unnest($2::text[]) AS f(feature)
+         LEFT JOIN usage_counter uc
+           ON uc.user_id = $1 AND uc.feature = f.feature
+           AND uc.period_start = (date_trunc('month', now() AT TIME ZONE 'Europe/Istanbul'))::date`,
+        [userId, features],
+      );
+
+      const result = {};
+      for (const row of rows) {
+        result[row.feature] = { used: Number(row.used_count), resetsAt: row.resets_at };
+      }
+      return result;
+    },
+
     // requireCapability tarafından İSTEK ANINDA çağrılır — atomik artırım
     // + idempotent rezervasyon (ref_id PRIMARY KEY). Aynı ref_id iki kez
     // gelirse (mobil retry, /receipts/:scanId/retry) ikinci çağrı kotayı

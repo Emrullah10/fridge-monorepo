@@ -10,7 +10,7 @@ export const marketing = {
   },
   hero: {
     eyebrow: "Your kitchen's digital ledger",
-    title: 'Scan the receipt, Fridge does the rest.',
+    title: 'Scan the receipt, Elde does the rest.',
     subtitle:
       'Snap a photo of your grocery receipt — items land in your inventory with prices attached. Fridge, freezer, pantry; see what you saved and wasted, month by month.',
     ctaPrimary: 'Download free',

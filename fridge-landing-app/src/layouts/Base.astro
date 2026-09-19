@@ -1,5 +1,6 @@
 ---
 import '@styles/global.scss';
+import { Font } from 'astro:assets';
 
 /**
  * @typedef {Object} Props
@@ -10,6 +11,7 @@ import '@styles/global.scss';
  */
 
 const { title, description, lang = 'tr', ogImage = '/og/default.png' } = Astro.props;
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 ---
 <!doctype html>
 <html lang={lang}>
@@ -17,12 +19,24 @@ const { title, description, lang = 'tr', ogImage = '/og/default.png' } = Astro.p
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#096444" />
+    <link rel="canonical" href={canonicalURL} />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <meta property="og:site_name" content="Elde" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalURL} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImage} />
     <meta name="twitter:card" content="summary_large_image" />
+    {/* Sadece 700 (h1/başlıklar, LCP elementi) preload edilir — preload'un
+       varsayılanı (true) 2 subset × 3 ağırlık = 6 dosyayı önceden indirtiyor,
+       bu da ilk boyayı geciktirip /ekranlar'da LCP bütçesini (3000ms) aşırdı. */}
+    <Font cssVariable="--font-inter" preload={[{ weight: 700 }]} />
     <script is:inline>
       // Tema flash'ını önlemek için ilk boyamadan önce çalışır.
       (function () {

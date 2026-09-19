@@ -1,7 +1,8 @@
 ---
 /**
  * @typedef {Object} Props
- * @property {string} icon
+ * @property {string} [icon] - emoji (geriye dönük uyumluluk). Verilmezse
+ *   `icon` named slot kullanılır — SVG ikon bileşenleri için (bkz. index.astro).
  * @property {string} title
  * @property {string} body
  * @property {string} [href]
@@ -10,7 +11,9 @@
 const { icon, title, body, href, linkText } = Astro.props;
 ---
 <div class="feature-row">
-  <div class="feature-row__icon" aria-hidden="true">{icon}</div>
+  <div class="feature-row__icon" aria-hidden="true">
+    {icon ? icon : <slot name="icon" />}
+  </div>
   <div class="feature-row__body">
     <h3 class="feature-row__title">{title}</h3>
     <p class="feature-row__text">{body}</p>
@@ -37,6 +40,11 @@ const { icon, title, body, href, linkText } = Astro.props;
     background: var(--primary-container);
     border-radius: var(--radius-storage-icon);
     flex-shrink: 0;
+    color: var(--on-primary-container);
+  }
+  .feature-row__icon :global(svg) {
+    width: 28px;
+    height: 28px;
   }
   .feature-row__title {
     margin: 0 0 var(--space-xs);

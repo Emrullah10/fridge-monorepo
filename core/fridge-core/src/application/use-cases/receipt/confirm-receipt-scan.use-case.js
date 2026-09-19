@@ -11,9 +11,12 @@ const makeConfirmReceiptScan = ({
   makeInventoryItemRepo,
   makeStockMovementRepo,
 }) => {
-  return async ({ scanId, actorUserId, storageLocationId, itemSelections }) => {
+  // householdId opsiyonel (geriye dönük uyumluluk) — geçirildiğinde
+  // savunma derinliği: route zaten assertOwnedByHousehold ile doğruluyor,
+  // burası yeni bir çağıranın o korumayı devralmasını sağlar.
+  return async ({ scanId, householdId, actorUserId, storageLocationId, itemSelections }) => {
     const scan = await receiptScanRepo.findById(scanId);
-    if (!scan) {
+    if (!scan || (householdId !== undefined && scan.householdId !== householdId)) {
       throw new NotFoundError('Receipt scan not found');
     }
     if (scan.status !== 'review_pending') {

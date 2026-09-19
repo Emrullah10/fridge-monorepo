@@ -39,6 +39,23 @@ const makeSessionRepository = ({ rawQuery }) => {
         [userId],
       );
     },
+
+    // Tablo revoke edilen/süresi geçmiş satırları hiç SİLMİYOR (sadece
+    // revoked_at set ediliyor) — bu yüzden 30 günlük refresh + her
+    // yenilemede yeni satır ile sürekli büyür (bkz. plan §Faz 0, idx_user_
+    // session_active_refresh_hash migration'ının aynı bulgusu). retention-
+    // cleanup.js worker'ı tarafından periyodik çağrılır. 30 günlük tampon
+    // pay: expired/revoked satır silinmeden önce biraz beklenir — audit/
+    // destek talebi ("hesabıma girilmiş miydi") için kısa bir geçmiş kalsın.
+    deleteExpiredAndRevoked: async ({ olderThanDays = 30 } = {}) => {
+      const { rowCount } = await rawQuery(
+        `DELETE FROM user_session
+         WHERE (revoked_at IS NOT NULL OR expires_at <= now())
+           AND created_at < now() - ($1 || ' days')::interval`,
+        [olderThanDays],
+      );
+      return rowCount;
+    },
   };
 };
 

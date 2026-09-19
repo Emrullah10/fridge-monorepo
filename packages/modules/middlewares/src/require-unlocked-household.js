@@ -10,7 +10,7 @@ const requireUnlockedHousehold = ({ getEntitlements, listMembershipsWithJoinedAt
     try {
       const userId = req.user.id;
       const householdId = req.params[householdIdParam];
-      const entitlements = await getEntitlements({ userId, platform: req.clientPlatform });
+      const entitlements = await getEntitlements({ userId, platform: req.clientPlatform }, req);
       const limit = entitlements.householdCountLimit;
 
       if (limit === null || limit === undefined) return next(); // sınırsız

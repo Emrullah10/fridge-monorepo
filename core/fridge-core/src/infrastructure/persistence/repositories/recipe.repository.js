@@ -13,6 +13,7 @@ const mapRow = (row) => row && ({
   sourceUrl: row.source_url,
   createdBy: row.created_by,
   generatedBy: row.generated_by,
+  kind: row.kind,
 });
 
 const makeRecipeRepository = ({ rawQuery }) => {
@@ -22,11 +23,11 @@ const makeRecipeRepository = ({ rawQuery }) => {
       return mapRow(rows[0]);
     },
 
-    create: async ({ householdId = null, title, description = null, instructions, steps = null, servings = null, prepMinutes = null, cookMinutes = null, sourceUrl = null, createdBy, generatedBy = 'user' }) => {
+    create: async ({ householdId = null, title, description = null, instructions, steps = null, servings = null, prepMinutes = null, cookMinutes = null, sourceUrl = null, createdBy, generatedBy = 'user', kind = 'food' }) => {
       const { rows } = await rawQuery(
-        `INSERT INTO recipe (household_id, title, description, instructions, steps, servings, prep_minutes, cook_minutes, source_url, created_by, generated_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
-        [householdId, title, description, instructions, steps ? JSON.stringify(steps) : null, servings, prepMinutes, cookMinutes, sourceUrl, createdBy, generatedBy],
+        `INSERT INTO recipe (household_id, title, description, instructions, steps, servings, prep_minutes, cook_minutes, source_url, created_by, generated_by, kind)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
+        [householdId, title, description, instructions, steps ? JSON.stringify(steps) : null, servings, prepMinutes, cookMinutes, sourceUrl, createdBy, generatedBy, kind],
       );
       return mapRow(rows[0]);
     },
@@ -61,10 +62,15 @@ const makeRecipeRepository = ({ rawQuery }) => {
       await rawQuery('DELETE FROM recipe WHERE id = $1', [id]);
     },
 
-    listByHousehold: async (householdId) => {
+    // kind: null/undefined -> filtrelenmez (tüm türler). Sunucu food-kapalı
+    // alanda kind='task' zorlar (bkz. recipe.routes.js).
+    listByHousehold: async (householdId, { kind = null } = {}) => {
       const { rows } = await rawQuery(
-        `SELECT * FROM recipe WHERE household_id IS NULL OR household_id = $1 ORDER BY created_at DESC`,
-        [householdId],
+        `SELECT * FROM recipe
+         WHERE (household_id IS NULL OR household_id = $1)
+           AND ($2::text IS NULL OR kind = $2)
+         ORDER BY created_at DESC`,
+        [householdId, kind],
       );
       return rows.map(mapRow);
     },
@@ -113,11 +119,14 @@ const makeRecipeRepository = ({ rawQuery }) => {
     // matematiği burada tekrarlamak yerine tek doğruluk kaynağını
     // (matchRecipeIngredients) çağırıyoruz.
     listSuggestionsForHousehold: async (householdId) => {
+      // Öneri motoru yemek-özgü mantık kullanır (eşleşme yüzdesi = "ne
+      // pişirebilirim") — task tarifleri (tamir kılavuzları) burada anlamsız.
       const { rows: recipeRows } = await rawQuery(
         `SELECT DISTINCT r.*
          FROM recipe r
          JOIN recipe_ingredient ri ON ri.recipe_id = r.id
-         WHERE r.household_id IS NULL OR r.household_id = $1`,
+         WHERE (r.household_id IS NULL OR r.household_id = $1)
+           AND r.kind = 'food'`,
         [householdId],
       );
       if (recipeRows.length === 0) return [];

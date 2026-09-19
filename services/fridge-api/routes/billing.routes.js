@@ -1,7 +1,25 @@
 import { Router } from 'express';
+import crypto from 'node:crypto';
 import { asyncHandler, log } from '@fridge/helper';
 import { requireAuth } from '@fridge/middlewares';
 import { parseRevenueCatWebhookPayload } from '@fridge/core/src/domain/billing-event-mapping.js';
+
+// crypto.timingSafeEqual eşit uzunlukta buffer ister — farklı uzunluk
+// erken dönülürse bu erken dönüş zaten sızdıracak bir şey yok (uzunluk
+// secret'ın kendisi değil), ama karşılaştırmayı hep sabit-zamanlı tutmak
+// için ikisini de aynı uzunluğa (hash'e) indirgemek yerine burada basit
+// bir uzunluk ön-kontrolü + timingSafeEqual kullanılıyor.
+const secretsMatch = (a, b) => {
+  // İkisi de boşsa (örn. her iki argüman da undefined) eşleşmiş sayılmaz —
+  // çağıran taraf zaten config.revenueCatWebhookSecret boşken 503 ile önceden
+  // reddediyor, ama bu fonksiyon tek başına "iki boş secret eşleşir" gibi
+  // yanlış bir sonuç vermemeli (defense-in-depth).
+  if (!a || !b) return false;
+  const bufA = Buffer.from(String(a));
+  const bufB = Buffer.from(String(b));
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+};
 
 // GET /api/me/entitlements — mobilin tek doğruluk kaynağı (plan §Mimari
 // ilke). RevenueCat webhook'u BURADA DEĞİL — authenticate'ten ÖNCE mount
@@ -59,14 +77,21 @@ const buildBillingWebhookHandler = ({ container }) => {
     }
 
     const authHeader = req.headers.authorization;
-    if (authHeader !== config.revenueCatWebhookSecret) {
+    if (!secretsMatch(authHeader, config.revenueCatWebhookSecret)) {
       log.warn('revenuecat_webhook_unauthorized', { hasHeader: Boolean(authHeader) });
       return res.status(401).json({ error: { code: 'UNAUTHORIZED', message: 'Geçersiz webhook imzası' } });
     }
 
     const parsed = parseRevenueCatWebhookPayload(req.body);
     if (!parsed) {
-      log.warn('revenuecat_webhook_malformed', { body: req.body });
+      // Tüm gövde değil — yalnızca teşhis için event tipi + app_user_id
+      // (RC payload şekli standarttır, bunlar zaten PII değil). Tam gövde
+      // subscriber id / store purchase token / diğer alanları içerebilir,
+      // loglara PII yığmamak için basılmıyor.
+      log.warn('revenuecat_webhook_malformed', {
+        eventType: req.body?.event?.type ?? null,
+        appUserId: req.body?.event?.app_user_id ?? null,
+      });
       return res.status(400).json({ error: { code: 'MALFORMED_PAYLOAD', message: 'Beklenmeyen webhook gövdesi' } });
     }
 
@@ -85,4 +110,4 @@ const buildBillingWebhookHandler = ({ container }) => {
   });
 };
 
-export { buildBillingRouter, buildBillingWebhookHandler };
+export { buildBillingRouter, buildBillingWebhookHandler, secretsMatch };
