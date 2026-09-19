@@ -15,6 +15,12 @@ const PLAN = Object.freeze({
   PREMIUM: 'premium',
 });
 
+// 'chef' feature anahtarı TARİHSEL — ürün adı artık "AI Asistan" (AI Chef'in
+// genellemesi, bkz. plan "AI Chef -> AI Asistan Dönüşümü" §A5). Yeniden
+// adlandırma BİLİNÇLİ OLARAK yapılmadı: ai_usage_log.feature/usage_counter.
+// feature/plans.test.js hepsi 'chef' değerini bekliyor, değiştirmek
+// kullanıcıların cari ay sayaçlarını sıfırlar ve 3+ test kırar. Bu anahtar
+// hiçbir zaman UI'da görünmez.
 const AI_FEATURES = Object.freeze(['receipt', 'recipe', 'chef', 'shopping']);
 
 // household.owner planına göre ÜCRETSİZ üyeye tanınan çarpan — "Karma"

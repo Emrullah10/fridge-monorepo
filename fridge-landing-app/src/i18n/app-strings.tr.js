@@ -4,7 +4,7 @@
 // Pazarlama metinleri (hero, SSS, hukuki) için src/i18n/marketing.tr.js kullanın.
 
 export const appStrings = {
-  "appTitle": "Fridge",
+  "appTitle": "Elde",
   "navAreas": "Alanlarım",
   "navShopping": "Alışveriş",
   "navRecipes": "Tarifler",
@@ -44,4 +44,12 @@ export const appStrings = {
   "dietKcalTarget": "Günlük kalori hedefi (opsiyonel)",
   "nutritionPerServing": "Porsiyon başına",
   "nutritionApprox": "yaklaşık",
+  "updateAvailableMessage": "Elde'nin yeni bir sürümü mevcut.",
+  "updateAction": "Güncelle",
+  "dismissAction": "Kapat",
+  "forceUpdateTitle": "Elde'yi kullanmaya devam etmek için güncellemen gerekiyor",
+  "forceUpdateAction": "Şimdi güncelle",
+  "updateReadyMessage": "Güncelleme indirildi.",
+  "updateRestartAction": "Yeniden başlat",
+  "storeOpenFailedMessage": "Mağaza açılamadı",
 };

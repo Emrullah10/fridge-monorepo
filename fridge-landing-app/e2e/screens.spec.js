@@ -42,3 +42,19 @@ test.describe('ana sayfa', () => {
     await expect(page.locator('h1')).toBeVisible();
   });
 });
+
+test.describe('marka', () => {
+  test('kabuk "Elde" diyor', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('.site-header__brand')).toHaveText('Elde');
+    await expect(page.locator('.site-footer__brand strong')).toHaveText('Elde');
+  });
+
+  test('sayfalarda marka anlamında "Fridge" kalmadı', async ({ page }) => {
+    for (const path of ['/', '/ozellikler', '/nasil-calisir', '/sss', '/indir', '/basin']) {
+      await page.goto(path);
+      expect(await page.title()).not.toContain('Fridge');
+      expect(await page.locator('main').innerText()).not.toContain('Fridge');
+    }
+  });
+});

@@ -169,9 +169,12 @@ const makeProcessReceiptScan = ({
       const merchantHint = extractMerchantFromRawText(rawText);
 
       // 2) Sadece tanınmayan satırlar modele gider. Hepsi tanındıysa AI parser
-      //    hiç çağrılmaz — asıl hız kazancı burada.
+      //    hiç çağrılmaz — asıl hız kazancı burada. householdId, Faz 2 AI
+      //    cache'inin (bkz. zai-text.adapter.js) key'ine giriyor — her alan
+      //    kendi cache'ini kullanır, cache özelliği kapalıysa/yoksa bu alan
+      //    adaptör tarafından hiç okunmaz.
       const parsed = unmatchedLines.length > 0
-        ? await receiptParserPort.parse({ rawText: unmatchedLines.join('\n'), merchantHint })
+        ? await receiptParserPort.parse({ rawText: unmatchedLines.join('\n'), merchantHint, householdId: scan.householdId })
         : { lineItems: [], merchantName: null, purchasedAt: null, totalAmount: null, provider: 'alias-only', model: null };
 
       // 3) Modelin döndürdüğü satırlar kademe 3'ten (AI ürün oluşturma) geçer.

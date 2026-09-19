@@ -1,5 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { makeDatasource } from '@fridge/core/src/infrastructure/persistence/datasource.js';
+import { makeRedisCache } from '@fridge/core/src/infrastructure/cache/redis-cache.adapter.js';
+import { makeMemoryCache } from '@fridge/core/src/infrastructure/cache/memory-cache.adapter.js';
 import { makeTokenService } from '@fridge/core/src/infrastructure/token-service.js';
 import { makeLocalDiskStorage } from '@fridge/core/src/infrastructure/storage/local-disk.adapter.js';
 import { makeTesseractOcr } from '@fridge/core/src/infrastructure/ocr/tesseract.adapter.js';
@@ -7,7 +9,7 @@ import { makeZaiTextParser } from '@fridge/core/src/infrastructure/parser/zai-te
 import { makeRuleBasedParser } from '@fridge/core/src/infrastructure/parser/rule-based.adapter.js';
 import { makeZaiRecipeGenerator } from '@fridge/core/src/infrastructure/recipe/zai-recipe.adapter.js';
 import { makeZaiShoppingSuggester } from '@fridge/core/src/infrastructure/shopping/zai-shopping.adapter.js';
-import { makeZaiChefChat } from '@fridge/core/src/infrastructure/chef/zai-chef.adapter.js';
+import { makeZaiAssistantChat } from '@fridge/core/src/infrastructure/assistant/zai-assistant.adapter.js';
 import { makeOpenFoodFactsLookup } from '@fridge/core/src/infrastructure/barcode/openfoodfacts.adapter.js';
 import { makeFcmNotifier } from '@fridge/core/src/infrastructure/notification/fcm.adapter.js';
 import { makeNoopNotifier } from '@fridge/core/src/infrastructure/notification/noop.adapter.js';
@@ -40,7 +42,7 @@ import { makeDeviceTokenRepository } from '@fridge/core/src/infrastructure/persi
 import { makeNotificationRepository } from '@fridge/core/src/infrastructure/persistence/repositories/notification.repository.js';
 import { makeNotificationPreferenceRepository } from '@fridge/core/src/infrastructure/persistence/repositories/notification-preference.repository.js';
 import { makeInsightsRepository } from '@fridge/core/src/infrastructure/persistence/repositories/insights.repository.js';
-import { makeChefChatRepository } from '@fridge/core/src/infrastructure/persistence/repositories/chef-chat.repository.js';
+import { makeAssistantConversationRepository } from '@fridge/core/src/infrastructure/persistence/repositories/assistant-conversation.repository.js';
 import { makeSubscriptionRepository } from '@fridge/core/src/infrastructure/persistence/repositories/subscription.repository.js';
 import { makeUsageCounterRepository } from '@fridge/core/src/infrastructure/persistence/repositories/usage-counter.repository.js';
 import { makeBillingEventRepository } from '@fridge/core/src/infrastructure/persistence/repositories/billing-event.repository.js';
@@ -112,15 +114,31 @@ import { makeAddShoppingItemsFromText } from '@fridge/core/src/application/use-c
 import { makeAddRecipeMissingToList } from '@fridge/core/src/application/use-cases/shopping/add-recipe-missing-to-list.use-case.js';
 import { makeTransferCheckedToInventory } from '@fridge/core/src/application/use-cases/shopping/transfer-checked-to-inventory.use-case.js';
 import { makeGetHouseholdInsights } from '@fridge/core/src/application/use-cases/insights/get-household-insights.use-case.js';
-import { makeSendChefMessage } from '@fridge/core/src/application/use-cases/chef/send-chef-message.use-case.js';
+import { makeSendAssistantMessage } from '@fridge/core/src/application/use-cases/assistant/send-assistant-message.js';
+import { makeCreateConversation } from '@fridge/core/src/application/use-cases/assistant/create-conversation.js';
+import { makeBuildAreaContext } from '@fridge/core/src/application/use-cases/assistant/build-area-context.js';
+import { makeSaveGuideAsRecipe } from '@fridge/core/src/application/use-cases/assistant/save-guide-as-recipe.js';
+import { resolveLockedHouseholdIds } from '@fridge/core/src/domain/access-lock.js';
 import { makeLookupBarcode } from '@fridge/core/src/application/use-cases/product/lookup-barcode.use-case.js';
 
 import { makeSystemClock, log } from '@fridge/helper';
+import { memoizeGetEntitlementsPerRequest } from './memoize-per-request.js';
 
 const buildContainer = (config) => {
   const datasource = makeDatasource({ connectionString: config.databaseUrl });
   const rawQuery = datasource.query;
   const clock = makeSystemClock();
+
+  // REDIS_URL yoksa (dev, ya da Redis container'ı ayakta değilse) in-memory
+  // cache'e düşülür — tek process'te davranış neredeyse aynıdır, yalnızca
+  // restart'ta cache boşalır. FCM'in no-op notifier'ıyla AYNI ilke (bkz.
+  // plan §Redis Faz 1). Bağlantı KURULAMAZSA (ör. yanlış URL) da boot
+  // PATLAMAZ — redis-cache.adapter.js kendi hata yönetimini yapıyor, `ready`
+  // olayı hiç gelmezse `healthy` sürekli false kalır ve her çağrı sessizce
+  // cache-miss/fail-soft yoluna düşer.
+  const cache = config.redisUrl
+    ? makeRedisCache({ url: config.redisUrl })
+    : makeMemoryCache();
 
   const tokenService = makeTokenService({
     accessSecret: config.jwtAccessSecret,
@@ -142,8 +160,20 @@ const buildContainer = (config) => {
   const onUsage = (entry) => { aiUsageLogRepo.record(entry); };
 
   // Fiş ayrıştırma: Z.ai API anahtarı varsa Z.ai, yoksa kural tabanlı fallback.
+  // cacheEnabled: Faz 2 AI cache'i (bkz. plan §Redis) — fiş parser AI
+  // özelliklerinin içinde cache'lenmeye en uygun olanı (deterministik,
+  // kullanıcıya özel bağlam taşımıyor). config.aiCacheEnabled=false ile tek
+  // env'den kapatılabilir, REDIS_URL yoksa zaten memory-cache üzerinden
+  // çalışmaya devam eder (Redis'in yokluğu AI özelliğini KAPATMAZ).
   const receiptParserPort = config.zaiApiKey
-    ? makeZaiTextParser({ apiKey: config.zaiApiKey, model: config.zaiModel, onUsage })
+    ? makeZaiTextParser({
+        apiKey: config.zaiApiKey,
+        model: config.zaiModel,
+        onUsage,
+        cache,
+        cacheEnabled: config.aiCacheEnabled,
+        cacheTtlSeconds: config.aiCacheTtlSeconds,
+      })
     : makeRuleBasedParser();
 
   // recipeAiEnabled=false veya zaiApiKey yoksa null kalır — recipe.routes.js bunu görüp 503 döner.
@@ -152,13 +182,22 @@ const buildContainer = (config) => {
     : null;
 
   // shoppingAiEnabled=false veya zaiApiKey yoksa null kalır — shopping.routes.js bunu görüp 503 döner.
+  // cacheEnabled SADECE fromText'i etkiler (bkz. zai-shopping.adapter.js) —
+  // suggest (satın alma ritmi) her zaman cacheable:false ile çağrılır.
   const shoppingSuggesterPort = config.shoppingAiEnabled && config.zaiApiKey
-    ? makeZaiShoppingSuggester({ apiKey: config.zaiApiKey, model: config.zaiShoppingModel, onUsage })
+    ? makeZaiShoppingSuggester({
+        apiKey: config.zaiApiKey,
+        model: config.zaiShoppingModel,
+        onUsage,
+        cache,
+        cacheEnabled: config.aiCacheEnabled,
+        cacheTtlSeconds: config.aiCacheTtlSeconds,
+      })
     : null;
 
-  // chefAiEnabled=false veya zaiApiKey yoksa null kalır — chef.routes.js bunu görüp 503 döner.
-  const chefChatPort = config.chefAiEnabled && config.zaiApiKey
-    ? makeZaiChefChat({ apiKey: config.zaiApiKey, model: config.zaiChefModel, onUsage })
+  // assistantAiEnabled=false veya zaiApiKey yoksa null kalır — assistant.routes.js bunu görüp 503 döner.
+  const assistantChatPort = config.assistantAiEnabled && config.zaiApiKey
+    ? makeZaiAssistantChat({ apiKey: config.zaiApiKey, model: config.zaiAssistantModel, onUsage })
     : null;
 
   // Kimlik bilgisi eksikse (dosya yok/okunamıyor) no-op'a düş — push'un
@@ -219,10 +258,11 @@ const buildContainer = (config) => {
   }
 
   // Aynı ilke: RESEND_API_KEY yoksa boot patlamaz, no-op mailer'a düşer —
-  // dev'de kod konsola basılır, forgot-password akışı yine 204 döner.
+  // dev'de kod konsola basılır, prod'da kod loglanmaz (bkz. noop-mailer.
+  // adaptör içi NODE_ENV kontrolü), forgot-password akışı yine 204 döner.
   const mailer = config.resendApiKey
     ? makeResendMailer({ apiKey: config.resendApiKey, from: config.mailFrom })
-    : makeNoopMailer();
+    : makeNoopMailer({ nodeEnv: config.nodeEnv });
 
   const repos = {
     userRepo: makeUserRepository({ rawQuery }),
@@ -247,7 +287,7 @@ const buildContainer = (config) => {
     notificationRepo: makeNotificationRepository({ rawQuery }),
     notificationPreferenceRepo: makeNotificationPreferenceRepository({ rawQuery }),
     insightsRepo: makeInsightsRepository({ rawQuery }),
-    chefChatRepo: makeChefChatRepository({ rawQuery }),
+    assistantConversationRepo: makeAssistantConversationRepository({ rawQuery }),
     aiUsageLogRepo,
     subscriptionRepo: makeSubscriptionRepository({ rawQuery }),
     usageCounterRepo: makeUsageCounterRepository({ rawQuery, datasource }),
@@ -297,6 +337,18 @@ const buildContainer = (config) => {
     storageLocationRepo: repos.storageLocationRepo,
   });
 
+  // createConversation (assistant), useCases objesinin kendisine dairesel
+  // referans vermemek için (createHousehold/releaseAiUsage ile aynı desen)
+  // önce ayrı bir değişkende kuruluyor, useCases'e de aynı referans atanıyor.
+  const getEntitlements = memoizeGetEntitlementsPerRequest(makeGetEntitlements({
+    userRepo: repos.userRepo,
+    subscriptionRepo: repos.subscriptionRepo,
+    usageCounterRepo: repos.usageCounterRepo,
+    householdMemberRepo: repos.householdMemberRepo,
+    planLimitsFor,
+    clock,
+  }));
+
   const useCases = {
     registerUser: makeRegisterUser({ userRepo: repos.userRepo }),
     loginUser: makeLoginUser({ userRepo: repos.userRepo, sessionRepo: repos.sessionRepo, tokenService }),
@@ -307,14 +359,12 @@ const buildContainer = (config) => {
       createHousehold,
     }),
     upgradeGuestUser: makeUpgradeGuestUser({ userRepo: repos.userRepo }),
-    getEntitlements: makeGetEntitlements({
-      userRepo: repos.userRepo,
-      subscriptionRepo: repos.subscriptionRepo,
-      usageCounterRepo: repos.usageCounterRepo,
-      householdMemberRepo: repos.householdMemberRepo,
-      planLimitsFor,
-      clock,
-    }),
+    // memoizeGetEntitlementsPerRequest: aynı HTTP isteğinde middleware
+    // zincirinin bu fonksiyonu 2-3 kez çağırmasını (bkz. plan §Faz 0) tek
+    // gerçek çağrıya indirger — middleware'ler zaten üçüncü parametre olarak
+    // `req` geçiyor (require-capability.js vb.), o olmadan (route'un kendisi
+    // elle çağırırsa) davranış DEĞİŞMEZ, sarmalayıcı asıl fonksiyona düşer.
+    getEntitlements,
     getPlanCatalog: makeGetPlanCatalog({ planLimitsFor, productTiersByProductId }),
     startReverseTrial: makeStartReverseTrial({ userRepo: repos.userRepo, clock }),
     reserveAiUsage: makeReserveAiUsage({ usageCounterRepo: repos.usageCounterRepo }),
@@ -486,20 +536,41 @@ const buildContainer = (config) => {
 
     lookupBarcode: makeLookupBarcode({ productRepo: repos.productRepo, barcodeLookupPort }),
 
-    sendChefMessage: chefChatPort
-      ? makeSendChefMessage({
-        chefChatRepo: repos.chefChatRepo,
-        inventoryItemRepo: repos.inventoryItemRepo,
-        shoppingListRepo: repos.shoppingListRepo,
-        recipeCookLogRepo: repos.recipeCookLogRepo,
-        householdMemberRepo: repos.householdMemberRepo,
-        chefChatPort,
+    createConversation: makeCreateConversation({
+      conversationRepo: repos.assistantConversationRepo,
+      householdMemberRepo: repos.householdMemberRepo,
+      resolveLockedHouseholdIds,
+      getEntitlements,
+      listMembershipsWithJoinedAt: (userId) => repos.householdRepo.findMembershipsWithJoinedAtByUserId(userId),
+    }),
+
+    sendAssistantMessage: assistantChatPort
+      ? makeSendAssistantMessage({
+        conversationRepo: repos.assistantConversationRepo,
+        buildAreaContext: makeBuildAreaContext({
+          householdRepo: repos.householdRepo,
+          inventoryItemRepo: repos.inventoryItemRepo,
+          shoppingListRepo: repos.shoppingListRepo,
+          recipeCookLogRepo: repos.recipeCookLogRepo,
+          householdMemberRepo: repos.householdMemberRepo,
+          clock,
+        }),
+        assistantChatPort,
         clock,
       })
       : null,
+
+    // AI çağırmaz (§C4) — guide zaten assistant_message.meta'da saklı.
+    saveGuideAsRecipe: makeSaveGuideAsRecipe({
+      conversationRepo: repos.assistantConversationRepo,
+      householdMemberRepo: repos.householdMemberRepo,
+      datasource,
+      makeProductRepo: makeProductRepository,
+      makeRecipeRepo: makeRecipeRepository,
+    }),
   };
 
-  return { config, datasource, tokenService, storagePort, notificationPort, cachedPlayVersion, cachedAppStoreVersion, repos, useCases, planLimitsByPlan, canUseAiFeature };
+  return { config, datasource, cache, tokenService, storagePort, notificationPort, cachedPlayVersion, cachedAppStoreVersion, repos, useCases, planLimitsByPlan, canUseAiFeature };
 };
 
 export { buildContainer };

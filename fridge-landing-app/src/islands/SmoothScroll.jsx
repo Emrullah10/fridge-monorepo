@@ -1,7 +1,6 @@
 // Lenis yumuşak scroll — sadece client:visible ile hidrate olur ve
 // reduced-motion'da hiç kurulmaz (CLAUDE.md kural: hafif alt sayfalar).
 import { useEffect } from 'react';
-import { shouldReduceMotion } from './shouldReduceMotion';
 
 export default function SmoothScroll() {
   useEffect(() => {

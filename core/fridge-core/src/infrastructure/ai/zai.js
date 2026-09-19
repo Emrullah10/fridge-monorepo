@@ -1,4 +1,5 @@
 import { callAiModel, extractJson } from './ai-client.js';
+import { callAiModelCached } from './cached-ai-call.js';
 
 // Z.ai'ye özgü sabitler — ai-client.js sağlayıcıdan bağımsız kalır, burada
 // yalnızca URL/etiket/varsayılan model/thinking ayarı toplanır. Bkz.
@@ -23,4 +24,18 @@ const callZai = (params) =>
     thinking: params.thinking ?? DEFAULT_THINKING,
   });
 
-export { callZai, extractJson, DEFAULT_MODEL };
+// callZai'nin cache-farkında versiyonu — SADECE deterministik/kullanıcıya
+// özel bağlam TAŞIMAYAN özellikler (receipt, shopping.fromText) bunu
+// kullanmalı (bkz. plan §Redis Faz 2, cached-ai-call.js). cache/cacheable
+// verilmezse (veya cacheable:false ise) davranış callZai ile BİREBİR aynı —
+// var olan adaptörleri (recipe/chef) bozmaz, çünkü onlar bu fonksiyonu hiç
+// çağırmıyor.
+const callZaiCached = (params) =>
+  callAiModelCached({
+    ...params,
+    baseUrl: ZAI_CHAT_COMPLETIONS_URL,
+    providerLabel: 'zai',
+    thinking: params.thinking ?? DEFAULT_THINKING,
+  });
+
+export { callZai, callZaiCached, extractJson, DEFAULT_MODEL };

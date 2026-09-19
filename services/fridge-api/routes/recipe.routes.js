@@ -4,6 +4,7 @@ import { requireAuth, requireHouseholdRole, requireHouseholdFeature, requireCapa
 import { ValidationError } from '@fridge/errors';
 import { resolveFeatures } from '@fridge/core/src/domain/household-profile.js';
 import { canUseAiFeature } from '@fridge/core/src/domain/entitlements.js';
+import { assertOwnedByHousehold } from './helpers/assert-owned-by-household.js';
 
 const buildRecipeRouter = ({ container }) => {
   const router = Router({ mergeParams: true });
@@ -11,13 +12,23 @@ const buildRecipeRouter = ({ container }) => {
 
   router.use(requireAuth());
   router.use(requireHouseholdRole({ householdMemberRepo: repos.householdMemberRepo, minRole: 'viewer' }));
-  // Yemek özelliği kapalı alanlarda (ör. atölye/dükkan) tarifler anlamsız —
-  // mobil navbar zaten gizliyor, ama doğrudan istek atılabildiği için
-  // sunucu da uygulamalı.
-  router.use(requireHouseholdFeature('food', { householdRepo: repos.householdRepo, resolveFeatures }));
+
+  // requireHouseholdFeature('food') artık router-geneli DEĞİL — AI Asistan
+  // her alanda çalıştığı için task tarifleri (kind='task') food-kapalı
+  // alanlarda da okunabilmeli. Kapı yalnızca yemek-özgü 2 route'a iner
+  // (bkz. plan §C3): GET /suggestions (öneri motoru yemek mantığı) ve
+  // POST /generate (generate-ai-recipes yemek-özgü). GET /:recipeId,
+  // PATCH/DELETE, /cook, /favorite kapısız — get-recipe-detail.use-case.js
+  // zaten household sahipliğini doğruluyor.
+  const foodGate = requireHouseholdFeature('food', { householdRepo: repos.householdRepo, resolveFeatures });
 
   router.get('/', asyncHandler(async (req, res) => {
-    const recipes = await repos.recipeRepo.listByHousehold(req.params.householdId);
+    // food kapalıysa sunucu kind='task'a ZORLAR — food-kapalı alanda yemek
+    // tarifi listelenemez (bkz. plan §C3).
+    const household = await repos.householdRepo.findById(req.params.householdId);
+    const { food: foodEnabled } = resolveFeatures(household);
+    const kind = foodEnabled ? (req.query.kind ?? null) : 'task';
+    const recipes = await repos.recipeRepo.listByHousehold(req.params.householdId, { kind });
     res.json({ recipes });
   }));
 
@@ -45,7 +56,7 @@ const buildRecipeRouter = ({ container }) => {
     res.status(201).json({ recipe });
   }));
 
-  router.get('/suggestions', asyncHandler(async (req, res) => {
+  router.get('/suggestions', foodGate, asyncHandler(async (req, res) => {
     const suggestions = await useCases.suggestRecipes({ householdId: req.params.householdId });
     res.json({ suggestions });
   }));
@@ -68,6 +79,7 @@ const buildRecipeRouter = ({ container }) => {
   // SONRA, rateLimiter'dan ÖNCE (402, 429'dan önce dönmeli).
   router.post(
     '/generate',
+    foodGate,
     requireCapability('recipe', {
       getEntitlements: useCases.getEntitlements,
       reserveAiUsage: useCases.reserveAiUsage,
@@ -134,6 +146,12 @@ const buildRecipeRouter = ({ container }) => {
   }));
 
   router.post('/:recipeId/favorite', asyncHandler(async (req, res) => {
+    // IDOR koruması: recipeId varlığı/sahipliği doğrulanmadan kör INSERT
+    // yapılıyordu — başka evin recipeId'sini favorileyip ID varlığını
+    // sızdırabiliyordu. assertOwnedByHousehold 404 ile reddeder.
+    const recipe = await repos.recipeRepo.findById(req.params.recipeId);
+    assertOwnedByHousehold(recipe, req.params.householdId, 'Recipe not found');
+
     await repos.recipeFavoriteRepo.add({
       householdId: req.params.householdId,
       recipeId: req.params.recipeId,
@@ -143,6 +161,9 @@ const buildRecipeRouter = ({ container }) => {
   }));
 
   router.delete('/:recipeId/favorite', asyncHandler(async (req, res) => {
+    const recipe = await repos.recipeRepo.findById(req.params.recipeId);
+    assertOwnedByHousehold(recipe, req.params.householdId, 'Recipe not found');
+
     await repos.recipeFavoriteRepo.remove({ recipeId: req.params.recipeId, userId: req.user.id });
     res.status(204).end();
   }));

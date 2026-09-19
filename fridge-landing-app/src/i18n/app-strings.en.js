@@ -4,7 +4,7 @@
 // Pazarlama metinleri (hero, SSS, hukuki) için src/i18n/marketing.en.js kullanın.
 
 export const appStrings = {
-  "appTitle": "Fridge",
+  "appTitle": "Elde",
   "navAreas": "My Spaces",
   "navShopping": "Shopping",
   "navRecipes": "Recipes",
@@ -44,4 +44,12 @@ export const appStrings = {
   "dietKcalTarget": "Daily calorie target (optional)",
   "nutritionPerServing": "Per serving",
   "nutritionApprox": "approx.",
+  "updateAvailableMessage": "A new version of Elde is available.",
+  "updateAction": "Update",
+  "dismissAction": "Dismiss",
+  "forceUpdateTitle": "You need to update to keep using Elde",
+  "forceUpdateAction": "Update now",
+  "updateReadyMessage": "Update downloaded.",
+  "updateRestartAction": "Restart",
+  "storeOpenFailedMessage": "Couldn't open the store",
 };

@@ -11,7 +11,7 @@ const t = marketingDict[locale].nav;
 ---
 <header class="site-header">
   <div class="container site-header__inner">
-    <a href={localePath(locale, '/')} class="site-header__brand">Fridge</a>
+    <a href={localePath(locale, '/')} class="site-header__brand">Elde</a>
     <nav class="site-header__nav">
       <a href={localePath(locale, '/ozellikler')}>{t.features}</a>
       <a href={localePath(locale, '/ekranlar')}>{t.screens}</a>
@@ -20,9 +20,7 @@ const t = marketingDict[locale].nav;
       <a href={localePath(locale, '/sss')}>{t.faq}</a>
     </nav>
     <div class="site-header__actions">
-      <a href={locale === 'tr' ? '/en' : '/'} class="site-header__lang" aria-label="Dil değiştir / Switch language">
-        {locale === 'tr' ? 'EN' : 'TR'}
-      </a>
+      {/* Dil değiştirici geçici olarak gizli: /en sayfaları henüz yayınlanmadı (404 olurdu). */}
       <a href={localePath(locale, '/indir')} class="btn btn--primary">{t.download}</a>
     </div>
   </div>

@@ -101,8 +101,12 @@ const makeShoppingListRepository = ({ rawQuery }) => {
       return findItemById(id);
     },
 
-    updateItem: async (id, { quantity, unit, note, isChecked, checkedBy }) => {
-      await rawQuery(
+    // householdId zorunlu — IDOR koruması: item id'si tek başına başka bir
+    // evin kalemine erişmeyi engellemez, shopping_list JOIN'i ile sahiplik
+    // doğrulanır. Eşleşen satır yoksa (yanlış ev ya da olmayan id) rowCount
+    // 0 döner, çağıran taraf NotFoundError fırlatır.
+    updateItem: async (id, householdId, { quantity, unit, note, isChecked, checkedBy }) => {
+      const { rowCount } = await rawQuery(
         `UPDATE shopping_list_item SET
            quantity = COALESCE($2, quantity),
            unit = COALESCE($3, unit),
@@ -110,14 +114,22 @@ const makeShoppingListRepository = ({ rawQuery }) => {
            is_checked = COALESCE($6, is_checked),
            checked_by = CASE WHEN $6 = true THEN $7 WHEN $6 = false THEN NULL ELSE checked_by END,
            checked_at = CASE WHEN $6 = true THEN now() WHEN $6 = false THEN NULL ELSE checked_at END
-         WHERE id = $1`,
-        [id, quantity ?? null, unit ?? null, note !== undefined, note ?? null, isChecked ?? null, checkedBy ?? null],
+         WHERE id = $1
+           AND shopping_list_id IN (SELECT id FROM shopping_list WHERE household_id = $8)`,
+        [id, quantity ?? null, unit ?? null, note !== undefined, note ?? null, isChecked ?? null, checkedBy ?? null, householdId],
       );
+      if (rowCount === 0) return null;
       return findItemById(id);
     },
 
-    removeItem: async (id) => {
-      await rawQuery('DELETE FROM shopping_list_item WHERE id = $1', [id]);
+    removeItem: async (id, householdId) => {
+      const { rowCount } = await rawQuery(
+        `DELETE FROM shopping_list_item
+         WHERE id = $1
+           AND shopping_list_id IN (SELECT id FROM shopping_list WHERE household_id = $2)`,
+        [id, householdId],
+      );
+      return rowCount > 0;
     },
 
     reorder: async ({ shoppingListId, orderedIds }) => {

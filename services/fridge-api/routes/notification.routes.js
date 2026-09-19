@@ -45,7 +45,9 @@ const buildNotificationRouter = ({ container }) => {
   router.use(requireAuth());
 
   router.get('/', asyncHandler(async (req, res) => {
-    const limit = req.query.limit ? Number(req.query.limit) : 30;
+    // receipt.routes.js'teki aynı desen: sınırsız/NaN limit sorgusuna
+    // izin vermeden (?limit=99999999 gibi) tam tablo taramasını önle.
+    const limit = Math.min(Number(req.query.limit) || 30, 100);
     const before = req.query.before ? new Date(req.query.before) : undefined;
     const [notifications, unreadCount] = await Promise.all([
       repos.notificationRepo.listByUser(req.user.id, { limit, before }),

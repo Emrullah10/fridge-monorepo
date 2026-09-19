@@ -1,0 +1,148 @@
+---
+// Ana sayfa Bölüm 2: "Dört adımda" pinned sahne. DOM'u burada (Astro,
+// server-side) kuruyoruz; PinnedShowcase.jsx adası sadece görünürlük
+// durumunu yönetiyor (bkz. o dosyanın başındaki not). Böylece:
+//   - reduced-motion / JS'siz / GSAP hiç çalışmasa bile sayfa TAM ve
+//     anlamlı: her adım kendi görseliyle dikey liste olarak görünür
+//   - masaüstünde JS devreye girince aynı DOM pin+scrub sahnesine döner
+//
+// Kullanım: named slot ile her adımın DeviceShot'ı geçirilir —
+// <PinnedShowcaseSection steps={[{title,body}, ...]}>
+//   <Fragment slot="device-0"><DeviceShot ... /></Fragment>
+//   <Fragment slot="device-1"><DeviceShot ... /></Fragment>
+//   ...
+// </PinnedShowcaseSection>
+import PinnedShowcase from '@islands/PinnedShowcase.jsx';
+
+/**
+ * @typedef {Object} Step
+ * @property {string} title
+ * @property {string} body
+ */
+
+/** @type {{ steps: Step[] }} */
+const { steps } = Astro.props;
+---
+
+<section class="pinned-showcase" data-pinned="false">
+  <div class="pinned-showcase__stage">
+    {steps.map((step, i) => (
+      <div class="pinned-showcase__frame" data-active={i === 0 ? 'true' : 'false'} aria-hidden={i !== 0}>
+        <slot name={`device-${i}`} />
+      </div>
+    ))}
+  </div>
+  <div class="pinned-showcase__steps">
+    {steps.map((step, i) => (
+      <div class="pinned-showcase__step" data-active={i === 0 ? 'true' : 'false'}>
+        <span class="pinned-showcase__step-number">{i + 1}</span>
+        <p class="pinned-showcase__step-title">{step.title}</p>
+        <p class="pinned-showcase__step-body">{step.body}</p>
+        <div class="pinned-showcase__step-device">
+          <slot name={`device-${i}`} />
+        </div>
+      </div>
+    ))}
+  </div>
+  <PinnedShowcase client:visible stepCount={steps.length} />
+</section>
+
+<style>
+  .pinned-showcase {
+    position: relative;
+    padding-block: var(--section-gap);
+  }
+
+  /* Mobil / reduced-motion / JS'siz varsayılan: stage gizli, steps dikey liste,
+     her adım kendi görseliyle. Bu, JS hiç çalışmasa bile TAM ve doğru sayfa. */
+  .pinned-showcase__stage {
+    display: none;
+  }
+  .pinned-showcase__step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+    text-align: center;
+    max-width: 60ch;
+    margin-inline: auto;
+    padding-block: var(--space-xl);
+  }
+  .pinned-showcase__step:not(:last-child) {
+    border-bottom: 1px solid var(--outline-variant);
+  }
+  .pinned-showcase__step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    background: var(--primary-container);
+    color: var(--on-primary-container);
+    font-weight: var(--fw-bold);
+    font-size: var(--fs-small);
+  }
+  .pinned-showcase__step-title {
+    font-size: var(--fs-h3);
+    font-weight: var(--fw-bold);
+    margin: 0;
+    color: var(--on-surface);
+  }
+  .pinned-showcase__step-body {
+    color: var(--on-surface-variant);
+    margin: 0;
+  }
+  .pinned-showcase__step-device {
+    width: 100%;
+    max-width: 280px;
+    margin-top: var(--space-md);
+  }
+
+  /* Masaüstü + JS aktif (data-pinned="true"): stage sabitlenir, cross-fade
+     ile ekranlar değişir, sağ tarafta metin akışı devam eder. */
+  @media (min-width: 900px) {
+    .pinned-showcase[data-pinned='true'] {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-xl);
+      align-items: start;
+    }
+    .pinned-showcase[data-pinned='true'] .pinned-showcase__stage {
+      display: flex;
+      position: relative;
+      height: 100vh;
+      align-items: center;
+      justify-content: center;
+    }
+    .pinned-showcase[data-pinned='true'] .pinned-showcase__frame {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity var(--dur-slow) var(--ease-standard);
+      pointer-events: none;
+    }
+    .pinned-showcase[data-pinned='true'] .pinned-showcase__frame[data-active='true'] {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .pinned-showcase[data-pinned='true'] .pinned-showcase__step-device {
+      display: none;
+    }
+    .pinned-showcase[data-pinned='true'] .pinned-showcase__step {
+      align-items: flex-start;
+      text-align: left;
+      min-height: 60vh;
+      justify-content: center;
+      border-bottom: none;
+      opacity: 0.4;
+      transition: opacity var(--dur-base) var(--ease-standard);
+    }
+    .pinned-showcase[data-pinned='true'] .pinned-showcase__step[data-active='true'] {
+      opacity: 1;
+    }
+  }
+</style>

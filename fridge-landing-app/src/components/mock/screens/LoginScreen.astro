@@ -13,7 +13,7 @@ const { theme = 'light', locale = 'tr', showError = false } = Astro.props;
 ---
 <PhoneFrame theme={theme} label="Giriş">
   <div class="login-screen">
-    <p class="login-screen__title">Fridge</p>
+    <p class="login-screen__title">Elde</p>
     <div class="login-screen__form">
       <MockInput label={locale === 'tr' ? 'E-posta' : 'Email'} placeholder="ornek@eposta.com" error={showError} />
       <MockInput label={locale === 'tr' ? 'Şifre' : 'Password'} type="password" error={showError}

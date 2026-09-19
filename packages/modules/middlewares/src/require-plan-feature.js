@@ -6,7 +6,7 @@
 const requirePlanFeature = (featureKey, { getEntitlements }) => {
   return async (req, res, next) => {
     try {
-      const entitlements = await getEntitlements({ userId: req.user.id, platform: req.clientPlatform });
+      const entitlements = await getEntitlements({ userId: req.user.id, platform: req.clientPlatform }, req);
       if (entitlements.features[featureKey]) return next();
 
       return res.status(402).json({

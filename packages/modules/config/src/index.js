@@ -1,7 +1,12 @@
-const REQUIRED_KEYS = ['DATABASE_URL'];
-// Production'da bu ikisi de zorunlu — sessiz fallback'e izin verilirse
-// secret unutulduğunda herkes geçerli token üretebilir hale gelir.
-const REQUIRED_IN_PRODUCTION_KEYS = ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'];
+// JWT_ACCESS_SECRET/JWT_REFRESH_SECRET her ortamda zorunlu — sadece
+// production'da değil. Önceden yalnızca NODE_ENV === 'production' tam
+// eşleşmesinde zorunluydu; NODE_ENV tanımsız bir container, bir staging
+// kurulumu veya "prod" gibi bir yazım hatası, koda gömülü sabit
+// 'dev-access-secret'/'dev-refresh-secret' ile sessizce açılabiliyordu —
+// o durumda herkes istediği userId için geçerli token üretebilirdi.
+// Artık DATABASE_URL ile aynı kategoride: env yoksa ortam ne olursa olsun
+// boot patlar.
+const REQUIRED_KEYS = ['DATABASE_URL', 'JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'];
 
 const readEnv = (env = process.env) => {
   const nodeEnv = env.NODE_ENV || 'development';
@@ -9,13 +14,15 @@ const readEnv = (env = process.env) => {
 
   const missing = REQUIRED_KEYS.filter((key) => !env[key]);
   if (isProduction) {
-    missing.push(...REQUIRED_IN_PRODUCTION_KEYS.filter((key) => !env[key]));
     // Tüm AI özellikleri (fiş, tarif, alışveriş, şef) Z.ai kullanır.
     // Herhangi bir AI özelliği devredeyse ZAI_API_KEY zorunludur.
     const recipeAiEnabled = env.RECIPE_AI_ENABLED !== 'false';
     const shoppingAiEnabled = env.SHOPPING_AI_ENABLED !== 'false';
-    const chefAiEnabled = env.CHEF_AI_ENABLED !== 'false';
-    if ((recipeAiEnabled || shoppingAiEnabled || chefAiEnabled) && !env.ZAI_API_KEY) {
+    // ASSISTANT_AI_ENABLED yeni ad (AI Chef -> AI Asistan genellemesi),
+    // CHEF_AI_ENABLED eski env değişkenine geriye dönük fallback (mevcut
+    // deploy'larda .env yeniden yazılmadan çalışmaya devam etsin diye).
+    const assistantAiEnabled = (env.ASSISTANT_AI_ENABLED ?? env.CHEF_AI_ENABLED) !== 'false';
+    if ((recipeAiEnabled || shoppingAiEnabled || assistantAiEnabled) && !env.ZAI_API_KEY) {
       missing.push('ZAI_API_KEY');
     }
   }
@@ -27,8 +34,8 @@ const readEnv = (env = process.env) => {
     nodeEnv,
     port: Number(env.PORT || 4000),
     databaseUrl: env.DATABASE_URL,
-    jwtAccessSecret: env.JWT_ACCESS_SECRET || 'dev-access-secret',
-    jwtRefreshSecret: env.JWT_REFRESH_SECRET || 'dev-refresh-secret',
+    jwtAccessSecret: env.JWT_ACCESS_SECRET,
+    jwtRefreshSecret: env.JWT_REFRESH_SECRET,
     uploadsDir: env.UPLOADS_DIR || 'uploads',
     // Tüm AI özellikleri Z.ai üzerinden çalışır — glm-4.6 (ücretli, $0.60/$2.20
     // per 1M token), thinking kapalı (bkz. infrastructure/ai/zai.js). Ücretsiz
@@ -43,8 +50,10 @@ const readEnv = (env = process.env) => {
     zaiRecipeModel: env.ZAI_RECIPE_MODEL || env.ZAI_MODEL || 'glm-4.6',
     shoppingAiEnabled: env.SHOPPING_AI_ENABLED !== 'false',
     zaiShoppingModel: env.ZAI_SHOPPING_MODEL || env.ZAI_MODEL || 'glm-4.6',
-    chefAiEnabled: env.CHEF_AI_ENABLED !== 'false',
-    zaiChefModel: env.ZAI_CHEF_MODEL || env.ZAI_MODEL || 'glm-4.6',
+    // ASSISTANT_AI_ENABLED / ZAI_ASSISTANT_MODEL yeni adlar — CHEF_AI_ENABLED
+    // / ZAI_CHEF_MODEL eski deploy'lar için fallback olarak okunur.
+    assistantAiEnabled: (env.ASSISTANT_AI_ENABLED ?? env.CHEF_AI_ENABLED) !== 'false',
+    zaiAssistantModel: env.ZAI_ASSISTANT_MODEL || env.ZAI_CHEF_MODEL || env.ZAI_MODEL || 'glm-4.6',
     scanWorkerIntervalMs: Number(env.SCAN_WORKER_INTERVAL_MS || 5000),
     retentionCleanupIntervalMs: Number(env.RETENTION_CLEANUP_INTERVAL_MS || 24 * 60 * 60 * 1000),
     // FCM_ENABLED=true olsa bile kimlik bilgisi eksikse container no-op
@@ -59,6 +68,17 @@ const readEnv = (env = process.env) => {
     resendApiKey: env.RESEND_API_KEY,
     mailFrom: env.MAIL_FROM || 'Fridge <onboarding@resend.dev>',
     passwordResetTtlMinutes: Number(env.PASSWORD_RESET_TTL_MINUTES || 15),
+    // REDIS_URL yoksa container in-memory cache'e düşer — Redis'in yokluğu
+    // boot'u patlatmamalı (resendApiKey/fcm ile aynı ilke). Bilinçli olarak
+    // REQUIRED_IN_PRODUCTION_KEYS'E EKLENMEDİ: cache verisi kaybolabilir
+    // veridir, yokluğu yalnızca yavaşlık üretir, yanlış sonuç değil (bkz.
+    // plan §Redis Faz 1 — kota/session/fiş kuyruğu HİÇBİR ZAMAN Redis'e
+    // taşınmıyor, o yüzden Redis'in yokluğu asla yanlış bir karara yol açmaz).
+    redisUrl: env.REDIS_URL || null,
+    // AI yanıt cache'ini acil durumda tek env ile kapatabilmek için — bir
+    // "bayat cevap" şikayeti gelirse deploy beklemeden kapatılabilir.
+    aiCacheEnabled: env.AI_CACHE_ENABLED !== 'false',
+    aiCacheTtlSeconds: Number(env.AI_CACHE_TTL_SECONDS || 24 * 60 * 60),
     // Mobil açılışta GET /app-config ile karşılaştırır — buradan kapatılabilir
     // banner ("yeni sürüm var") ya da kapatılamaz zorunlu güncelleme ekranı
     // tetiklenir. APP_LATEST_VERSION artık sadece FALLBACK: playServiceAccount

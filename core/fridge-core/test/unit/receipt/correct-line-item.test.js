@@ -3,13 +3,14 @@ import assert from 'node:assert/strict';
 
 import { makeCorrectLineItem } from '../../../src/application/use-cases/receipt/correct-line-item.use-case.js';
 
-const makeFakes = ({ products = new Map() } = {}) => {
+const makeFakes = ({ products = new Map(), lineItems = new Map([['line-1', { id: 'line-1', householdId: 'hh-1', rawText: 'RAW TEXT' }]]) } = {}) => {
   const lineItemUpdates = [];
   const aliasesUpserted = [];
   const brandUpdates = [];
   const nameUpdates = [];
 
   const receiptLineItemRepo = {
+    findById: async (id) => lineItems.get(id),
     update: async (id, data) => {
       const updated = { id, rawText: 'RAW TEXT', ...data };
       lineItemUpdates.push(updated);
@@ -110,5 +111,33 @@ describe('makeCorrectLineItem', () => {
 
     assert.deepEqual(fakes.nameUpdates, []);
     assert.deepEqual(fakes.aliasesUpserted, []);
+  });
+
+  test('yanlış householdId ile NotFoundError fırlatır — başka evin satırı düzeltilemez (IDOR regresyon testi, savunma derinliği)', async () => {
+    const products = new Map([['product-1', { id: 'product-1', source: 'ai_generated', canonicalName: 'İsim' }]]);
+    const fakes = makeFakes({ products });
+    const correctLineItem = makeCorrectLineItem(fakes);
+
+    await assert.rejects(
+      () => correctLineItem({
+        lineItemId: 'line-1',
+        householdId: 'hh-2', // line-1 aslında hh-1'e ait
+        parsedName: 'Saldırgan İsmi',
+        matchedProductId: 'product-1',
+      }),
+      (error) => error.code === 'NOT_FOUND',
+    );
+
+    assert.deepEqual(fakes.nameUpdates, [], 'yetkisiz güncelleme uygulanmamalı');
+  });
+
+  test('olmayan lineItemId ile NotFoundError fırlatır', async () => {
+    const fakes = makeFakes();
+    const correctLineItem = makeCorrectLineItem(fakes);
+
+    await assert.rejects(
+      () => correctLineItem({ lineItemId: 'ghost-line', householdId: 'hh-1', parsedName: 'X' }),
+      (error) => error.code === 'NOT_FOUND',
+    );
   });
 });

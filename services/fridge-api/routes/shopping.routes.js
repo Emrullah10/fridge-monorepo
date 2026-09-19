@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { asyncHandler } from '@fridge/helper';
 import { requireAuth, requireHouseholdRole, requireCapability, rateLimiter } from '@fridge/middlewares';
-import { ValidationError } from '@fridge/errors';
+import { ValidationError, NotFoundError } from '@fridge/errors';
 import { canUseAiFeature } from '@fridge/core/src/domain/entitlements.js';
 
 const buildShoppingRouter = ({ container }) => {
@@ -116,18 +116,24 @@ const buildShoppingRouter = ({ container }) => {
   }));
 
   router.patch('/items/:itemId', asyncHandler(async (req, res) => {
-    const item = await repos.shoppingListRepo.updateItem(req.params.itemId, {
+    // householdId zorunlu geçiriliyor — repo sahipliği doğrular (IDOR
+    // koruması), eşleşmeyen id 404 döner (kaydın varlığını sızdırmamak
+    // için 403 değil, receipt route'larındaki assertOwnedByHousehold
+    // deseniyle tutarlı).
+    const item = await repos.shoppingListRepo.updateItem(req.params.itemId, req.params.householdId, {
       quantity: req.body.quantity,
       unit: req.body.unit,
       note: req.body.note,
       isChecked: req.body.isChecked,
       checkedBy: req.body.isChecked ? req.user.id : undefined,
     });
+    if (!item) throw new NotFoundError('Shopping list item not found');
     res.json({ item });
   }));
 
   router.delete('/items/:itemId', asyncHandler(async (req, res) => {
-    await repos.shoppingListRepo.removeItem(req.params.itemId);
+    const removed = await repos.shoppingListRepo.removeItem(req.params.itemId, req.params.householdId);
+    if (!removed) throw new NotFoundError('Shopping list item not found');
     res.status(204).end();
   }));
 

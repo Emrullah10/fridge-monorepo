@@ -13,6 +13,10 @@ DO $$ BEGIN
   CREATE TYPE storage_kind AS ENUM ('fridge', 'freezer', 'pantry', 'other');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+-- Artık kullanılmayan tip tanımı: 28-unit-kind-text.sql ile ilgili 7
+-- kolon TEXT + CHECK'e geçirildi (storage_kind'ın 07'de geçirilmesiyle
+-- aynı gerekçe). Bu CREATE TYPE sadece eski deploy'larda tip zaten
+-- varsa idempotent kalsın diye duruyor, yeni kolonlar bunu kullanmaz.
 DO $$ BEGIN
   CREATE TYPE unit_kind AS ENUM ('piece', 'gram', 'kilogram', 'milliliter', 'liter', 'package');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;

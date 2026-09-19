@@ -1,0 +1,23 @@
+Cihaz mockup görselleri — kaynak ve lisans
+==========================================
+
+Kaynak: Mobile FIRST (webmobilefirst.com)
+https://www.webmobilefirst.com/en/mockups/
+
+Lisans (sitenin SSS/lisans sayfasından, 2026-09-17'de doğrulandı):
+"Yes, personal and commercial use allowed, without mandatory attribution."
+Tek kısıt: dosyanın tek başına yeniden satılması yasak.
+Marka ve cihaz modelleri kendi sahiplerine aittir (Apple, Google) —
+bu sadece görsel bir mockup çerçevesidir, marka onayı iddia etmez.
+
+Dosyalar:
+- iphone-17-pro-max.webp
+  Kaynak sayfa: https://www.webmobilefirst.com/en/mockups/apple-iphone-17-pro-max-2025/
+  Orijinal: mockup-apple-iphone-17-pro-max-2025-transparent.png (389×800, şeffaf, filigransız)
+
+- pixel-10.webp
+  Kaynak sayfa: https://www.webmobilefirst.com/en/mockups/google-pixel-10-2026/
+  Orijinal: mockup-google-pixel-10-2026-transparent.png (379×800, şeffaf, filigransız)
+
+Ekran deliği koordinatları (yüzde cinsinden, src/lib/devices.js içinde tanımlı)
+merkezden dışa doğru alfa-kanalı taramasıyla ölçülmüştür.

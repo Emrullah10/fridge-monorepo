@@ -1,0 +1,107 @@
+---
+// Gerçek ekran görüntüsünü fotogerçekçi telefon mockup'ının şeffaf ekran deliğine
+// oturtan bileşen. PhoneFrame.astro'dan AYRI TUTULUR (bkz. plan §C1): PhoneFrame
+// canlı DOM (<slot>) alır ve 24 yerde kullanılıyor, DeviceShot bir görsel dosyası
+// (`src`) alır — API'leri temelden farklı, tek bileşene sıkıştırmak riski katlar.
+//
+// `shot` dosyası henüz yoksa (screenshot'lar çekilene kadar) verilen fallback
+// slot'u çerçevenin içine gömer — böylece ana sayfa screenshot'ları beklemeden
+// tam olarak inşa edilip test edilebilir; görsel düşünce tek satır kod
+// değişmeden gerçek fotoğrafa geçer.
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { getDevice } from '@lib/devices';
+
+/**
+ * @typedef {Object} Props
+ * @property {string} device - devices.js anahtarı, örn. 'iphone-17-pro-max'
+ * @property {string} shot - public/shots/tr/<shot>@<platform>.webp kökü (uzantısız)
+ * @property {string} alt
+ * @property {boolean} [priority] - true ise eager + fetchpriority=high (hero için)
+ */
+const { device, shot, alt, priority = false } = Astro.props;
+const d = getDevice(device);
+
+const shotBase = `/shots/tr/${shot}@${d.platform}`;
+const shotPath = fileURLToPath(new URL(`../../../public${shotBase}.webp`, import.meta.url));
+const has2x = existsSync(fileURLToPath(new URL(`../../../public${shotBase}@2x.webp`, import.meta.url)));
+const hasShot = existsSync(shotPath);
+
+const style = `--sx:${d.screen.x}%;--sy:${d.screen.y}%;--sw:${d.screen.w}%;--sh:${d.screen.h}%;--sr:${d.radius};`;
+---
+
+<figure class="device-shot" style={style}>
+  {
+    hasShot ? (
+      <img
+        class="device-shot__screen"
+        src={`${shotBase}.webp`}
+        srcset={has2x ? `${shotBase}.webp 1x, ${shotBase}@2x.webp 2x` : undefined}
+        alt={alt}
+        loading={priority ? 'eager' : 'lazy'}
+        decoding="async"
+        fetchpriority={priority ? 'high' : undefined}
+      />
+    ) : (
+      <div class="device-shot__fallback">
+        <slot />
+      </div>
+    )
+  }
+  <img
+    class="device-shot__frame"
+    src={d.frame}
+    width={d.frameW}
+    height={d.frameH}
+    alt=""
+    aria-hidden="true"
+    loading={priority ? 'eager' : 'lazy'}
+    decoding="async"
+  />
+</figure>
+
+<style>
+  .device-shot {
+    position: relative;
+    margin-inline: auto;
+    max-width: 380px;
+  }
+  .device-shot__frame {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .device-shot__screen,
+  .device-shot__fallback {
+    position: absolute;
+    z-index: 1;
+    left: var(--sx);
+    top: var(--sy);
+    width: var(--sw);
+    height: var(--sh);
+    border-radius: var(--sr);
+    overflow: hidden;
+  }
+  .device-shot__screen {
+    object-fit: cover;
+    width: var(--sw);
+    height: var(--sh);
+  }
+  .device-shot__fallback {
+    background: var(--surface);
+  }
+  .device-shot__fallback :global(.phone-frame) {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    aspect-ratio: auto;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .device-shot__fallback :global(.phone-frame__notch) {
+    display: none;
+  }
+</style>

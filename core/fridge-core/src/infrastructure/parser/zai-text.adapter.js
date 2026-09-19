@@ -1,6 +1,6 @@
 import { normalizeOcrArtifacts } from './text-normalize.js';
 import { RESPONSE_SCHEMA, SYSTEM_PROMPT, finalizeItem, extractTotalAmount } from './line-item-finalizer.js';
-import { callZai, extractJson, DEFAULT_MODEL } from '../ai/zai.js';
+import { callZaiCached, extractJson, DEFAULT_MODEL } from '../ai/zai.js';
 
 // gemini-text.adapter.js ile AYNI ReceiptParserPort sözleşmesi, AYNI
 // SYSTEM_PROMPT/RESPONSE_SCHEMA/finalizeItem post-processing zinciri —
@@ -11,16 +11,22 @@ import { callZai, extractJson, DEFAULT_MODEL } from '../ai/zai.js';
 // JSON.stringify edilerek), modelin buna uyması promptun gücüne kalıyor.
 // finalizeItem zaten modelin çıktısını normalize ediyor, eksik/yanlış tip
 // gelirse orada elenir.
-const makeZaiTextParser = ({ apiKey, model = DEFAULT_MODEL, fetchFn = fetch, onUsage }) => {
+//
+// cache/cacheEnabled: Faz 2 AI cache'i (bkz. plan §Redis) — fiş parser
+// deterministik (temperature 0.1), kullanıcıya özel bağlam TAŞIMIYOR (sadece
+// rawText+merchantHint), bu yüzden AI özelliklerinin içinde cache'lenmeye en
+// uygun olanı. cache verilmezse veya cacheEnabled:false ise callZaiCached
+// aynen callZai gibi davranır (bkz. cached-ai-call.js).
+const makeZaiTextParser = ({ apiKey, model = DEFAULT_MODEL, fetchFn = fetch, onUsage, cache, cacheEnabled = false, cacheTtlSeconds }) => {
   return {
-    parse: async ({ rawText, merchantHint = null }) => {
+    parse: async ({ rawText, merchantHint = null, householdId = null }) => {
       const cleanedRawText = normalizeOcrArtifacts(rawText);
       const userMessage = merchantHint
         ? `MARKET: ${merchantHint}\n${cleanedRawText}`
         : cleanedRawText;
       const userPrompt = `${userMessage}\n\nJSON şemasına uygun cevap ver: ${JSON.stringify(RESPONSE_SCHEMA)}`;
 
-      const body = await callZai({
+      const body = await callZaiCached({
         apiKey,
         model,
         feature: 'receipt',
@@ -31,6 +37,10 @@ const makeZaiTextParser = ({ apiKey, model = DEFAULT_MODEL, fetchFn = fetch, onU
         timeoutMs: 30_000,
         fetchFn,
         onUsage,
+        cache,
+        cacheable: cacheEnabled,
+        householdId,
+        ttlSeconds: cacheTtlSeconds,
       });
 
       const parsed = extractJson(body);
