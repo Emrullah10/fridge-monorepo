@@ -35,8 +35,19 @@ const buildAssistantRouter = ({ container }) => {
   }));
 
   router.patch('/conversations/:id', loadConversation, asyncHandler(async (req, res) => {
+    // householdId createConversation'daki AYNI üyelik+kilit kontrolünden
+    // geçer (bkz. update-conversation.js) — önceden repo'ya doğrudan
+    // yazılıyordu, kullanıcı kendi konuşmasını üye olmadığı bir evin
+    // id'sine bağlayabiliyordu (bkz. güvenlik denetimi bulgusu).
     const { title, householdId, mode } = req.body ?? {};
-    const conversation = await repos.assistantConversationRepo.update(req.conversation.id, { title, householdId, mode });
+    const conversation = await useCases.updateConversation({
+      conversationId: req.conversation.id,
+      userId: req.user.id,
+      platform: req.clientPlatform,
+      title,
+      householdId,
+      mode,
+    });
     res.json({ conversation });
   }));
 

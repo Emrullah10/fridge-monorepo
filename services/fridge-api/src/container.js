@@ -116,6 +116,7 @@ import { makeTransferCheckedToInventory } from '@fridge/core/src/application/use
 import { makeGetHouseholdInsights } from '@fridge/core/src/application/use-cases/insights/get-household-insights.use-case.js';
 import { makeSendAssistantMessage } from '@fridge/core/src/application/use-cases/assistant/send-assistant-message.js';
 import { makeCreateConversation } from '@fridge/core/src/application/use-cases/assistant/create-conversation.js';
+import { makeUpdateConversation } from '@fridge/core/src/application/use-cases/assistant/update-conversation.js';
 import { makeBuildAreaContext } from '@fridge/core/src/application/use-cases/assistant/build-area-context.js';
 import { makeSaveGuideAsRecipe } from '@fridge/core/src/application/use-cases/assistant/save-guide-as-recipe.js';
 import { resolveLockedHouseholdIds } from '@fridge/core/src/domain/access-lock.js';
@@ -537,6 +538,14 @@ const buildContainer = (config) => {
     lookupBarcode: makeLookupBarcode({ productRepo: repos.productRepo, barcodeLookupPort }),
 
     createConversation: makeCreateConversation({
+      conversationRepo: repos.assistantConversationRepo,
+      householdMemberRepo: repos.householdMemberRepo,
+      resolveLockedHouseholdIds,
+      getEntitlements,
+      listMembershipsWithJoinedAt: (userId) => repos.householdRepo.findMembershipsWithJoinedAtByUserId(userId),
+    }),
+
+    updateConversation: makeUpdateConversation({
       conversationRepo: repos.assistantConversationRepo,
       householdMemberRepo: repos.householdMemberRepo,
       resolveLockedHouseholdIds,
