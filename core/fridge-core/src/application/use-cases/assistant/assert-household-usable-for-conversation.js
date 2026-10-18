@@ -23,7 +23,7 @@ const assertHouseholdUsableForConversation = async ({
 
   const membership = await householdMemberRepo.findMembership({ householdId, userId });
   if (!membership) {
-    throw new NotFoundError('Household not found');
+    throw new NotFoundError('Alan bulunamadı');
   }
 
   const entitlements = await getEntitlements({ userId, platform });

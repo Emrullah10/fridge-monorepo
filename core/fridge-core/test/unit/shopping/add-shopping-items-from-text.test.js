@@ -61,4 +61,20 @@ describe('makeAddShoppingItemsFromText', () => {
     const result = await useCase({ householdId: 'h1', text: 'liste' });
     assert.equal(result.suggestions.length, 10);
   });
+
+  test('eksik/enum dışı unit ve quantity güvenli varsayılana indirgenir', async () => {
+    const useCase = makeAddShoppingItemsFromText({
+      inventoryItemRepo: { listByHousehold: async () => [] },
+      shoppingSuggesterPort: {
+        fromText: async () => ({
+          suggestions: [{ name: ' Peynir ', unit: 'kg' }, { name: 'Süt', unit: 'liter', quantity: '2' }, { name: '' }],
+        }),
+      },
+    });
+    const { suggestions } = await useCase({ householdId: 'h1', text: 'kahvaltı' });
+    assert.deepEqual(
+      suggestions.map((s) => [s.name, s.unit, s.quantity]),
+      [['Peynir', 'piece', 1], ['Süt', 'liter', 2]],
+    );
+  });
 });

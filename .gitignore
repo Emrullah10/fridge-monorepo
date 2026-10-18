@@ -42,3 +42,21 @@ Thumbs.db
 .idea/
 *.iml
 .vscode/
+
+# AI / ajan araçları — repoya girmez
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
+GEMINI.md
+.claude/
+.wolf/
+.codex/
+.codegraph/
+.cursor/
+.cursorrules
+.windsurf/
+.aider*
+.mcp.json
+.serena/
+.github/copilot-instructions.md
+docs/superpowers/

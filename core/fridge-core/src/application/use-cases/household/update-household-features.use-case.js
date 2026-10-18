@@ -11,7 +11,7 @@ const makeUpdateHouseholdFeatures = ({ householdRepo }) => {
     }
     const household = await householdRepo.findById(householdId);
     if (!household) {
-      throw new NotFoundError('Household not found');
+      throw new NotFoundError('Alan bulunamadı');
     }
     return householdRepo.updateFeatures(householdId, { ...household.features, food });
   };

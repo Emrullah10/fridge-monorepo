@@ -8,32 +8,32 @@ class DomainError extends Error {
 }
 
 class NotFoundError extends DomainError {
-  constructor(message) {
-    super(message, { code: 'NOT_FOUND', httpStatus: 404 });
+  constructor(message, { code = 'NOT_FOUND' } = {}) {
+    super(message, { code, httpStatus: 404 });
   }
 }
 
 class ValidationError extends DomainError {
-  constructor(message) {
-    super(message, { code: 'VALIDATION_ERROR', httpStatus: 422 });
+  constructor(message, { code = 'VALIDATION_ERROR' } = {}) {
+    super(message, { code, httpStatus: 422 });
   }
 }
 
 class ConflictError extends DomainError {
-  constructor(message) {
-    super(message, { code: 'CONFLICT', httpStatus: 409 });
+  constructor(message, { code = 'CONFLICT' } = {}) {
+    super(message, { code, httpStatus: 409 });
   }
 }
 
 class UnauthorizedError extends DomainError {
-  constructor(message) {
-    super(message, { code: 'UNAUTHORIZED', httpStatus: 401 });
+  constructor(message, { code = 'UNAUTHORIZED' } = {}) {
+    super(message, { code, httpStatus: 401 });
   }
 }
 
 class ForbiddenError extends DomainError {
-  constructor(message) {
-    super(message, { code: 'FORBIDDEN', httpStatus: 403 });
+  constructor(message, { code = 'FORBIDDEN' } = {}) {
+    super(message, { code, httpStatus: 403 });
   }
 }
 
@@ -62,6 +62,14 @@ class AiTimeoutError extends DomainError {
   }
 }
 
+// Model yanıtı JSON olarak ayrıştırılamadı (çitli/kesik/boş) — kullanıcıya
+// genel 500 yerine "tekrar dene" denebilsin diye ayrı kod.
+class AiBadResponseError extends DomainError {
+  constructor(message = 'Öneri oluşturulamadı, tekrar dene.') {
+    super(message, { code: 'AI_BAD_RESPONSE', httpStatus: 502 });
+  }
+}
+
 // Plan/kota yetersizliği — misafir bir AI özelliğine dokunduğunda ya da
 // kota/yapısal limit (üye/bölüm/alan sayısı) dolduğunda. 402 Payment
 // Required: 401 KULLANILMAZ çünkü auth_interceptor.dart 401'de refresh+
@@ -84,7 +92,7 @@ const translateDomainError = (error) => {
 
   return {
     httpStatus: 500,
-    body: { error: { code: 'INTERNAL_ERROR', message: 'Unexpected server error' } },
+    body: { error: { code: 'INTERNAL_ERROR', message: 'Sunucuda beklenmedik bir sorun oldu, birazdan tekrar dene.' } },
   };
 };
 
@@ -97,6 +105,7 @@ export {
   ForbiddenError,
   AiQuotaError,
   AiBusyError,
+  AiBadResponseError,
   AiTimeoutError,
   PaymentRequiredError,
   translateDomainError,

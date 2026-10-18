@@ -1,4 +1,4 @@
-import { AiQuotaError, AiBusyError, AiTimeoutError } from '@fridge/errors';
+import { AiQuotaError, AiBusyError, AiTimeoutError, AiBadResponseError } from '@fridge/errors';
 
 // Z.ai'nin OpenAI-uyumlu chat/completions ucu için ortak istemci —
 // gemini-client.js ile aynı sözleşme (onUsage, retry/backoff, hata
@@ -143,6 +143,28 @@ const callAiModel = async ({
   }
 };
 
-const extractJson = (body) => JSON.parse(body.choices[0].message.content);
+// Model bazen JSON'u ```json çitiyle ya da önüne/ardına metin ekleyerek döner;
+// düz JSON.parse bunlarda SyntaxError → 500 "Unexpected server error" oluyordu.
+// Çiti soyar, ilk dengeli {...} bloğunu çıkarır; yine olmazsa 502 AI_BAD_RESPONSE.
+const extractJson = (body) => {
+  const content = body?.choices?.[0]?.message?.content;
+  if (typeof content !== 'string' || !content.trim()) throw new AiBadResponseError();
+
+  const candidates = [content.trim()];
+  const unfenced = content.replace(/^\s*```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+  candidates.push(unfenced);
+  const first = unfenced.indexOf('{');
+  const last = unfenced.lastIndexOf('}');
+  if (first !== -1 && last > first) candidates.push(unfenced.slice(first, last + 1));
+
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(candidate);
+    } catch {
+      // sıradaki adayı dene
+    }
+  }
+  throw new AiBadResponseError();
+};
 
 export { callAiModel, extractJson };

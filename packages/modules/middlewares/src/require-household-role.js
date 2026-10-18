@@ -27,11 +27,11 @@ const requireHouseholdRole = ({ householdMemberRepo, minRole = 'viewer', paramNa
         // ile "üye değilsin" ayrımı sızdırılmaz) ama sunucu tarafında ayrım
         // kaydedilir — aksi halde teşhis DB kazısı gerektiriyordu (bkz.
         log.warn('household_access_denied', { householdId, userId: req.user.id });
-        throw new NotFoundError('Household not found');
+        throw new NotFoundError('Alan bulunamadı');
       }
 
       if (ROLE_RANK[membership.role] < ROLE_RANK[minRole]) {
-        throw new ForbiddenError(`Requires role ${minRole} or higher`);
+        throw new ForbiddenError('Bu işlem için yetkin yok');
       }
 
       req.household = { id: householdId, role: membership.role };

@@ -13,11 +13,11 @@ const makeRetryReceiptScan = ({ receiptScanRepo }) => {
     }
 
     if (scan.status !== 'failed') {
-      throw new ValidationError('Only failed scans can be retried');
+      throw new ValidationError('Yalnızca başarısız fişler yeniden denenebilir');
     }
 
     if (scan.attemptCount >= MAX_ATTEMPTS) {
-      throw new ValidationError(`Max retry attempts (${MAX_ATTEMPTS}) reached`);
+      throw new ValidationError(`En fazla ${MAX_ATTEMPTS} kez yeniden denenebilir`);
     }
 
     return receiptScanRepo.resetToUploaded(scanId);

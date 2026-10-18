@@ -36,7 +36,7 @@ const makeSaveGuideAsRecipe = ({
 
     const membership = await householdMemberRepo.findMembership({ householdId: targetHouseholdId, userId });
     if (!membership) {
-      throw new NotFoundError('Household not found');
+      throw new NotFoundError('Alan bulunamadı');
     }
 
     const steps = (guide.steps ?? []).map((s, idx) => ({

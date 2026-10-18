@@ -8,7 +8,7 @@ const makeUpdateHouseholdProfile = ({ householdRepo }) => {
   return async ({ householdId, name, icon }) => {
     const household = await householdRepo.findById(householdId);
     if (!household) {
-      throw new NotFoundError('Household not found');
+      throw new NotFoundError('Alan bulunamadı');
     }
 
     const trimmed = typeof name === 'string' ? name.trim() : undefined;

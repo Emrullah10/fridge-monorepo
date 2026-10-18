@@ -1,5 +1,5 @@
 import { ValidationError, NotFoundError } from '@fridge/errors';
-import { ReceiptNotReadyError } from '../../../domain/errors/index.js';
+import { ReceiptNotReadyError, ReceiptAlreadyConfirmedError } from '../../../domain/errors/index.js';
 
 // Onaylanan her satır için tek transaction içinde envanteri upsert eder ve
 // stock_movement kaydı açar. Yarısı işlenip yarısı işlenmemiş bir fiş
@@ -19,19 +19,36 @@ const makeConfirmReceiptScan = ({
     if (!scan || (householdId !== undefined && scan.householdId !== householdId)) {
       throw new NotFoundError('Receipt scan not found');
     }
+    if (scan.status === 'completed') {
+      throw new ReceiptAlreadyConfirmedError();
+    }
     if (scan.status !== 'review_pending') {
       throw new ReceiptNotReadyError(scan.status);
     }
 
     const lineItems = await receiptLineItemRepo.listByScanId(scanId);
     const selectedIds = new Set(itemSelections.map((s) => s.lineItemId));
-    const toConfirm = lineItems.filter((item) => selectedIds.has(item.id));
+    // Zaten onaylanmış satır tekrar stoğa eklenmesin.
+    const toConfirm = lineItems.filter((item) => selectedIds.has(item.id) && item.status !== 'confirmed');
 
     if (toConfirm.length === 0) {
       throw new ValidationError('No line items selected for confirmation');
     }
 
     await datasource.withTransaction(async ({ query }) => {
+      // Eşzamanlı iki onay stoğu iki kez eklemesin: satırı kilitleyip durumu
+      // transaction İÇİNDE yeniden doğrula.
+      const { rows: lockedRows } = await query(
+        'SELECT status FROM receipt_scan WHERE id = $1 FOR UPDATE',
+        [scanId],
+      );
+      if (lockedRows[0]?.status === 'completed') {
+        throw new ReceiptAlreadyConfirmedError();
+      }
+      if (lockedRows[0]?.status !== 'review_pending') {
+        throw new ReceiptNotReadyError(lockedRows[0]?.status);
+      }
+
       const inventoryItemRepo = makeInventoryItemRepo({ rawQuery: query });
       const stockMovementRepo = makeStockMovementRepo({ rawQuery: query });
 

@@ -53,7 +53,7 @@ const makeZaiShoppingSuggester = ({ apiKey, model = DEFAULT_MODEL, fetchFn = fet
         onUsage,
         systemPrompt: RHYTHM_SYSTEM_PROMPT,
         userPrompt: buildRhythmUserPrompt({ profile }),
-        timeoutMs: 20_000,
+        timeoutMs: 45_000,
         context,
         // cacheable verilmedi -> false, callZai ile birebir aynı davranış.
       });
@@ -72,7 +72,7 @@ const makeZaiShoppingSuggester = ({ apiKey, model = DEFAULT_MODEL, fetchFn = fet
         onUsage,
         systemPrompt: TEXT_SYSTEM_PROMPT,
         userPrompt: buildTextUserPrompt({ text, inventorySummary }),
-        timeoutMs: 20_000,
+        timeoutMs: 45_000,
         context,
         cache,
         cacheable: cacheEnabled,

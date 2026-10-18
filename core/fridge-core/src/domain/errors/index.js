@@ -8,37 +8,50 @@ class EmailAlreadyRegisteredError extends ConflictError {
 
 class InvalidCredentialsError extends ValidationError {
   constructor() {
-    super('Invalid email or password');
+    super('E-posta veya şifre hatalı', { code: 'INVALID_CREDENTIALS' });
   }
 }
 
 class InviteExpiredError extends ValidationError {
   constructor() {
-    super('Invite code has expired');
+    super('Davet kodunun süresi dolmuş', { code: 'INVITE_EXPIRED' });
   }
 }
 
 class InviteAlreadyUsedError extends ValidationError {
   constructor() {
-    super('Invite code has already been used');
+    super('Bu davet kodu zaten kullanılmış', { code: 'INVITE_USED' });
   }
 }
 
 class InsufficientStockError extends ValidationError {
   constructor(productName) {
-    super(`Not enough stock to consume: ${productName}`);
+    super(`Yeterli stok yok: ${productName}`, { code: 'INSUFFICIENT_STOCK' });
   }
 }
 
 class ReceiptNotReadyError extends ValidationError {
   constructor(status) {
-    super(`Receipt is not ready for this action (status: ${status})`);
+    super('Fiş henüz onaylanabilir durumda değil', { code: 'RECEIPT_NOT_READY' });
+    this.status = status;
+  }
+}
+
+class ReceiptAlreadyConfirmedError extends ValidationError {
+  constructor() {
+    super('Bu fiş zaten dolaba eklenmiş', { code: 'RECEIPT_ALREADY_CONFIRMED' });
+  }
+}
+
+class InvalidResetCodeError extends ValidationError {
+  constructor() {
+    super('Doğrulama kodu hatalı veya süresi dolmuş', { code: 'INVALID_RESET_CODE' });
   }
 }
 
 class HouseholdNotFoundError extends NotFoundError {
   constructor() {
-    super('Household not found');
+    super('Alan bulunamadı', { code: 'HOUSEHOLD_NOT_FOUND' });
   }
 }
 
@@ -62,6 +75,8 @@ export {
   InviteAlreadyUsedError,
   InsufficientStockError,
   ReceiptNotReadyError,
+  ReceiptAlreadyConfirmedError,
+  InvalidResetCodeError,
   HouseholdNotFoundError,
   LocationNotEmptyError,
   OwnerCannotLeaveError,

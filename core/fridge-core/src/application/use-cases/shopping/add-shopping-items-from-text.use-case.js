@@ -5,6 +5,20 @@ import { ValidationError } from '@fridge/errors';
 // aksine), yeni kullanıcıda da çalışır. Aynı şekilde listeye doğrudan
 // yazmaz — yalnızca öneri döndürür, kullanıcı dokununca eklenir.
 const MAX_SUGGESTIONS = 10;
+const VALID_UNITS = new Set(['piece', 'gram', 'kilogram', 'milliliter', 'liter', 'package']);
+
+// Model şemayı her zaman tutmaz (eksik/enum dışı unit, string miktar) — istemci
+// katı tip dönüşümü yaptığı için burada güvenli varsayılanlara indirgenir.
+const normalizeSuggestion = (s) => {
+  const quantity = Number(s.quantity);
+  return {
+    ...s,
+    name: s.name.trim(),
+    unit: VALID_UNITS.has(s.unit) ? s.unit : 'piece',
+    quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
+    productId: null,
+  };
+};
 
 const makeAddShoppingItemsFromText = ({ inventoryItemRepo, shoppingSuggesterPort }) => {
   return async ({ householdId, text, userId = null, isGuest = false }) => {
@@ -24,8 +38,8 @@ const makeAddShoppingItemsFromText = ({ inventoryItemRepo, shoppingSuggesterPort
 
     return {
       suggestions: suggestions
-        .filter((s) => s.name?.trim())
-        .map((s) => ({ ...s, productId: null }))
+        .filter((s) => typeof s?.name === 'string' && s.name.trim())
+        .map(normalizeSuggestion)
         .slice(0, MAX_SUGGESTIONS),
     };
   };

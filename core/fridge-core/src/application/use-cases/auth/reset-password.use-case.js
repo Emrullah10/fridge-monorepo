@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { ValidationError } from '@fridge/errors';
-import { InvalidCredentialsError } from '../../../domain/errors/index.js';
+import { InvalidResetCodeError } from '../../../domain/errors/index.js';
 
 const MIN_PASSWORD_LENGTH = 8;
 const BCRYPT_ROUNDS = 10;
@@ -17,18 +17,18 @@ const makeResetPassword = ({ userRepo, passwordResetRepo, sessionRepo }) => {
 
     const user = await userRepo.findByEmail(email);
     if (!user) {
-      throw new InvalidCredentialsError();
+      throw new InvalidResetCodeError();
     }
 
     const token = await passwordResetRepo.findActiveByUserId(user.id);
     if (!token || token.attempts >= MAX_ATTEMPTS) {
-      throw new InvalidCredentialsError();
+      throw new InvalidResetCodeError();
     }
 
     const providedHash = hashCode(String(code ?? ''));
     if (providedHash !== token.codeHash) {
       await passwordResetRepo.incrementAttempts(token.id);
-      throw new InvalidCredentialsError();
+      throw new InvalidResetCodeError();
     }
 
     const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);

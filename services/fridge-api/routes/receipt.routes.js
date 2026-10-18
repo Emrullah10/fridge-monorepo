@@ -226,6 +226,10 @@ const buildReceiptRouter = ({ container }) => {
     const scan = await repos.receiptScanRepo.findById(req.params.scanId);
     assertOwnedByHousehold(scan, req.params.householdId, 'Receipt scan not found');
 
+    if (!Array.isArray(req.body.itemSelections)) {
+      throw new ValidationError('Onaylanacak ürün listesi eksik');
+    }
+
     const confirmed = await useCases.confirmReceiptScan({
       scanId: req.params.scanId,
       householdId: req.params.householdId,

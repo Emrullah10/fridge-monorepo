@@ -15,7 +15,7 @@ const requireHouseholdFeature = (featureKey, { householdRepo, resolveFeatures, p
       const householdId = req.params[paramName];
       const household = await householdRepo.findById(householdId);
       if (!household) {
-        throw new NotFoundError('Household not found');
+        throw new NotFoundError('Alan bulunamadı');
       }
       const features = resolveFeatures(household);
       if (!features[featureKey]) {
