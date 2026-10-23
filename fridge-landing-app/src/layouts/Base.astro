@@ -50,6 +50,33 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     </script>
   </head>
   <body>
+    <div class="atmosphere" aria-hidden="true"></div>
+    <div class="atmosphere-grid" aria-hidden="true"></div>
     <slot />
+    <script is:inline>
+      // Kademeli beliriş + bento spotlight. JS yoksa/hareket kısıtlıysa her şey görünür kalır.
+      (function () {
+        var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var els = document.querySelectorAll('.reveal');
+        if (!reduce && 'IntersectionObserver' in window) {
+          document.documentElement.classList.add('js');
+          var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) {
+              if (e.isIntersecting) { e.target.classList.add('is-visible'); io.unobserve(e.target); }
+            });
+          }, { rootMargin: '0px 0px -8% 0px' });
+          els.forEach(function (el) { io.observe(el); });
+        }
+        if (!reduce && window.matchMedia('(hover: hover)').matches) {
+          document.querySelectorAll('.spotlight').forEach(function (el) {
+            el.addEventListener('pointermove', function (ev) {
+              var r = el.getBoundingClientRect();
+              el.style.setProperty('--mx', (ev.clientX - r.left) + 'px');
+              el.style.setProperty('--my', (ev.clientY - r.top) + 'px');
+            });
+          });
+        }
+      })();
+    </script>
   </body>
 </html>

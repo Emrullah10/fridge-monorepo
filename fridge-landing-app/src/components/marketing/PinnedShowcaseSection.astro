@@ -99,19 +99,21 @@ const { steps } = Astro.props;
     margin-top: var(--space-md);
   }
 
-  /* Masaüstü + JS aktif (data-pinned="true"): stage sabitlenir, cross-fade
-     ile ekranlar değişir, sağ tarafta metin akışı devam eder. */
+  /* Masaüstü + JS aktif (data-pinned="true"): stage CSS sticky ile sabit,
+     adımlar sağda kayar, aktif adım IntersectionObserver ile belirlenir. */
   @media (min-width: 900px) {
     .pinned-showcase[data-pinned='true'] {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: var(--space-xl);
       align-items: start;
+      padding-block: var(--space-xl);
     }
     .pinned-showcase[data-pinned='true'] .pinned-showcase__stage {
       display: flex;
-      position: relative;
-      height: 100vh;
+      position: sticky;
+      top: var(--header-h);
+      height: calc(100vh - var(--header-h));
       align-items: center;
       justify-content: center;
     }
@@ -122,23 +124,64 @@ const { steps } = Astro.props;
       align-items: center;
       justify-content: center;
       opacity: 0;
-      transition: opacity var(--dur-slow) var(--ease-standard);
+      transform: translateY(16px) scale(0.98);
+      transition: opacity var(--dur-slow) var(--ease-standard),
+                  transform var(--dur-slow) var(--ease-standard);
       pointer-events: none;
     }
     .pinned-showcase[data-pinned='true'] .pinned-showcase__frame[data-active='true'] {
       opacity: 1;
+      transform: none;
       pointer-events: auto;
+    }
+    /* Telefon ekrana TAM sığsın: yükseklik, header payı düşülerek sınırlanır
+       (çerçeve en/boy oranı ≈ 0.47). */
+    .pinned-showcase[data-pinned='true'] .pinned-showcase__frame :global(.device-shot) {
+      width: min(380px, calc((100vh - var(--header-h) - 64px) * 0.47));
+    }
+    .pinned-showcase[data-pinned='true'] .pinned-showcase__stage::before {
+      content: '';
+      position: absolute;
+      width: 520px;
+      height: 520px;
+      max-width: 100%;
+      background: var(--shell-glow-primary);
+      pointer-events: none;
     }
     .pinned-showcase[data-pinned='true'] .pinned-showcase__step-device {
       display: none;
     }
+    /* Sağ kolon: ilerleme rayı + adımlar */
+    .pinned-showcase[data-pinned='true'] .pinned-showcase__steps {
+      position: relative;
+      padding-left: var(--space-xl);
+    }
+    .pinned-showcase[data-pinned='true'] .pinned-showcase__steps::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--shell-card-border);
+    }
+    .pinned-showcase[data-pinned='true'] .pinned-showcase__steps::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 2px;
+      height: calc(100% * var(--pin-progress, 0.25));
+      background: var(--shell-accent-gradient);
+      transition: height var(--dur-slow) var(--ease-standard);
+    }
     .pinned-showcase[data-pinned='true'] .pinned-showcase__step {
       align-items: flex-start;
       text-align: left;
-      min-height: 60vh;
+      min-height: 80vh;
       justify-content: center;
       border-bottom: none;
-      opacity: 0.4;
+      opacity: 0.35;
       transition: opacity var(--dur-base) var(--ease-standard);
     }
     .pinned-showcase[data-pinned='true'] .pinned-showcase__step[data-active='true'] {

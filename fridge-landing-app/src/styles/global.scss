@@ -2,6 +2,7 @@
 @use './typography';
 @use './spacing';
 @use './motion';
+@use './shell';
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -9,6 +10,7 @@
 
 html {
   color-scheme: light dark;
+  overflow-x: clip; // dekoratif ışıltılar (hero ::before/::after) yatay scroll yaratmasın
 }
 
 html[data-theme='light'] {
@@ -22,8 +24,9 @@ html[data-theme='dark'] {
 body {
   margin: 0;
   background: var(--surface);
+  position: relative;
   min-height: 100vh;
-  overflow-x: hidden; // yatay scroll asla — bkz. WEB_SITE_SPEC doğrulama listesi
+  overflow-x: clip; // yatay scroll asla (hidden, body'yi scroll kabı yapıp sticky'yi bozar) — bkz. WEB_SITE_SPEC doğrulama listesi
 }
 
 img, svg, video {
@@ -57,7 +60,7 @@ button {
   text-decoration: none;
   border: none;
   cursor: pointer;
-  transition: transform var(--dur-fast) var(--ease-standard), opacity var(--dur-fast);
+  transition: transform var(--dur-fast) var(--ease-standard), box-shadow var(--dur-base) var(--ease-standard);
 }
 .btn:hover {
   transform: translateY(-1px);
@@ -66,6 +69,7 @@ button {
   background: var(--primary);
   color: var(--on-primary);
 }
+
 .btn--outlined {
   background: transparent;
   color: var(--primary);

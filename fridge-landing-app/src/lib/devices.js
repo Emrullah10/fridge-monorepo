@@ -19,7 +19,8 @@ export const devices = {
     frame: '/devices/iphone-17-pro-max.webp',
     frameW: 389,
     frameH: 800,
-    screen: { x: 4.88, y: 7.5, w: 90.23, h: 90.0 },
+    // Ölçüm: çerçeve PNG'sinin alfa kanalındaki şeffaf deliğin gerçek sınırları.
+    screen: { x: 4.63, y: 1.75, w: 91.0, h: 96.5 },
     radius: '11%',
     platform: 'ios',
   },
@@ -27,7 +28,7 @@ export const devices = {
     frame: '/devices/pixel-10.webp',
     frameW: 379,
     frameH: 800,
-    screen: { x: 5.28, y: 7.38, w: 88.65, h: 89.62 },
+    screen: { x: 5.01, y: 2.5, w: 89.45, h: 95.12 },
     radius: '9%',
     platform: 'android',
   },

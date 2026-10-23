@@ -1,0 +1,165 @@
+// Site kabuğu yüzey/ışıltı token'ları — _tokens.scss'teki renklerden TÜRETİLİR (elle hex yok).
+// Maket içleri bunları kullanmaz; yalnız pazarlama kabuğu (header, kartlar, bölümler).
+
+:root {
+  --shell-card: var(--surface-container-lowest);
+  --shell-card-border: color-mix(in srgb, var(--outline-variant) 70%, transparent);
+  --shell-card-hover-border: color-mix(in srgb, var(--primary) 55%, transparent);
+  --shell-shadow-sm: 0 1px 2px color-mix(in srgb, var(--on-surface) 8%, transparent);
+  --shell-shadow-md: 0 8px 24px color-mix(in srgb, var(--on-surface) 10%, transparent);
+  --shell-tint: color-mix(in srgb, var(--primary) 10%, transparent);
+  --shell-glow-primary: radial-gradient(closest-side, color-mix(in srgb, var(--primary) 28%, transparent), transparent);
+  --shell-glow-tertiary: radial-gradient(closest-side, color-mix(in srgb, var(--tertiary) 18%, transparent), transparent);
+  --shell-accent-gradient: linear-gradient(135deg, var(--primary), var(--primary-container));
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme='light']) {
+    --shell-card: var(--surface-container-low);
+    --shell-shadow-sm: none;
+    --shell-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+}
+
+[data-theme='dark'] {
+  --shell-card: var(--surface-container-low);
+  --shell-shadow-sm: none;
+  --shell-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-pill);
+  background: var(--shell-tint);
+  border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
+  color: var(--primary);
+  font-size: var(--fs-small);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.card {
+  background: var(--shell-card);
+  border: 1px solid var(--shell-card-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shell-shadow-sm);
+  transition: transform var(--dur-base) var(--ease-standard),
+              border-color var(--dur-base) var(--ease-standard),
+              box-shadow var(--dur-base) var(--ease-standard);
+}
+
+// ── Aurora + Bento katmanı ─────────────────────────────────────────────
+:root {
+  --header-h: 72px;
+  --shell-glass: color-mix(in srgb, var(--surface) 62%, transparent);
+  --shell-grid-line: color-mix(in srgb, var(--on-surface) 6%, transparent);
+  --shell-text-gradient: linear-gradient(120deg, var(--primary), var(--tertiary));
+}
+
+// Sayfa boyu sabit atmosfer: aurora ışıltıları + ince ızgara (kenarlarda söner)
+// Gerçek elementler (pseudo değil): axe ::before/::after'ı metnin üstünde sanıp kontrastı yanlış ölçüyordu.
+.atmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 50% at 15% 0%, color-mix(in srgb, var(--primary) 22%, transparent), transparent 70%),
+    radial-gradient(50% 45% at 90% 10%, color-mix(in srgb, var(--tertiary) 16%, transparent), transparent 70%),
+    radial-gradient(60% 50% at 50% 100%, color-mix(in srgb, var(--primary-container) 20%, transparent), transparent 70%);
+}
+
+.atmosphere-grid {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--shell-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--shell-grid-line) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 20%, #000 20%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 20%, #000 20%, transparent 75%);
+}
+
+.text-gradient {
+  background: var(--shell-text-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+// Kademeli beliriş: yalnız JS çalışıyorsa gizli başlar (Base.astro `js` sınıfını ekler)
+html.js .reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity var(--dur-slow) var(--ease-standard),
+              transform var(--dur-slow) var(--ease-standard);
+  transition-delay: calc(var(--i, 0) * 80ms);
+}
+html.js .reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  html.js .reveal {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+// Cam yüzey + imleç takipli spotlight (bento kartları)
+.glass {
+  background: var(--shell-glass);
+  border: 1px solid var(--shell-card-border);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.spotlight {
+  position: relative;
+  overflow: hidden;
+}
+.spotlight::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(240px circle at var(--mx, 50%) var(--my, 0%),
+    color-mix(in srgb, var(--primary) 18%, transparent), transparent 70%);
+  opacity: 0;
+  transition: opacity var(--dur-base);
+  pointer-events: none;
+}
+.spotlight:hover::before {
+  opacity: 1;
+}
+
+// Site kabuğu butonları (hap + cam/gradyan). Telefon maketlerindeki .btn'ler (DESIGN_SPEC
+// birebir) bu seçicilerin DIŞINDA kalır, o yüzden global .btn'e dokunulmaz.
+.site-header .btn,
+.hero__cta .btn,
+.cta__actions .btn {
+  border-radius: var(--radius-pill);
+  padding: var(--space-md) var(--space-lg);
+}
+.site-header .btn--primary,
+.hero__cta .btn--primary {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--primary) 88%, #fff), var(--primary));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25),
+              0 4px 16px color-mix(in srgb, var(--primary) 30%, transparent);
+}
+.site-header .btn--primary:hover,
+.hero__cta .btn--primary:hover {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25),
+              0 8px 24px color-mix(in srgb, var(--primary) 40%, transparent);
+}
+.hero__cta .btn--outlined {
+  background: var(--shell-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-color: var(--shell-card-border);
+}

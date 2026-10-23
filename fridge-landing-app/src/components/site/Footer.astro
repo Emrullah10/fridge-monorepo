@@ -13,7 +13,7 @@ const year = new Date().getFullYear();
 <footer class="site-footer">
   <div class="container site-footer__inner">
     <div class="site-footer__brand">
-      <strong>Elde</strong>
+      <strong><img src="/icons/icon-192.png" alt="" width="24" height="24" />Elde</strong>
       <p>{t.footer.tagline}</p>
     </div>
     <div class="site-footer__cols">
@@ -54,6 +54,9 @@ const year = new Date().getFullYear();
     gap: var(--space-lg);
   }
   .site-footer__brand strong {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
     font-family: var(--font-display);
     color: var(--primary);
     font-size: 1.1rem;

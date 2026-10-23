@@ -7,26 +7,46 @@
  */
 const { value, label, tone = 'neutral' } = Astro.props;
 ---
-<div class:list={['stat-tile', `stat-tile--${tone}`]}>
+<div class:list={['stat-tile', 'reveal', `stat-tile--${tone}`]}>
   <p class="stat-tile__value">{value}</p>
   <p class="stat-tile__label">{label}</p>
 </div>
 
 <style>
   .stat-tile {
-    background: var(--surface-container-low);
+    position: relative;
+    overflow: hidden;
+    background: var(--shell-glass);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--shell-card-border);
+    box-shadow: var(--shell-shadow-sm);
     border-radius: var(--radius-card);
-    padding: var(--space-lg);
+    padding: var(--space-xl) var(--space-lg);
     text-align: center;
   }
+  .stat-tile::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 4px;
+    background: var(--shell-accent-gradient);
+  }
+  .stat-tile--bad::before {
+    background: var(--error);
+  }
   .stat-tile__value {
-    font-size: var(--fs-h2);
+    font-size: var(--fs-h1);
     font-weight: var(--fw-bold);
-    margin: 0 0 4px;
+    font-variant-numeric: tabular-nums;
+    margin: 0 0 var(--space-xs);
     color: var(--on-surface);
   }
   .stat-tile--good .stat-tile__value {
-    color: var(--primary);
+    background: var(--shell-text-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
   .stat-tile--bad .stat-tile__value {
     color: var(--error);

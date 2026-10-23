@@ -30,6 +30,7 @@ import SettingsScreen from '@components/mock/screens/SettingsScreen.astro';
 
 const locale = 'tr';
 const t = marketingDict[locale].hero;
+const [titleBefore, titleAfter] = t.title.split('Elde');
 
 const appJsonLd = {
   '@context': 'https://schema.org',
@@ -76,16 +77,25 @@ const faqs = [
 
   {/* Bölüm 1 — Hero: tek fikir, ürünün kendisi görünür */}
   <section class="hero container">
+    <span class="hero__glow--a" aria-hidden="true"></span>
+    <span class="hero__glow--b" aria-hidden="true"></span>
     <div class="hero__text">
-      <p class="hero__eyebrow">{t.eyebrow}</p>
-      <h1 class="hero__title">{t.title}</h1>
+      <p class="hero__eyebrow badge"><span class="hero__dot" aria-hidden="true"></span>{t.eyebrow}</p>
+      <h1 class="hero__title">{titleBefore}<span class="text-gradient">Elde</span>{titleAfter}</h1>
       <p class="hero__subtitle">{t.subtitle}</p>
       <div class="hero__cta">
         <a href="/indir" class="btn btn--primary">{t.ctaPrimary}</a>
         <a href="/ekranlar" class="btn btn--outlined">{t.ctaSecondary}</a>
       </div>
+      <ul class="hero__trust">
+        <li>Ücretsiz</li>
+        <li>Misafir modu, hesap gerekmez</li>
+        <li>Fiş fotoğrafı telefonda kalır</li>
+      </ul>
     </div>
     <div class="hero__device">
+      <div class="hero__chip hero__chip--a glass" aria-hidden="true">✓ 6 ürün eklendi</div>
+      <div class="hero__chip hero__chip--b glass" aria-hidden="true">₺301,08 · bu fiş</div>
       <DeviceShot device="iphone-17-pro-max" shot="receipt-scan" alt="Elde'de fiş tarama ekranı" priority>
         <ReceiptScanScreen theme="light" locale="tr" state="processing" />
       </DeviceShot>
@@ -123,10 +133,19 @@ const faqs = [
   <section class="container features">
     <SectionHeading eyebrow="Özellikler" title="Elinde ne varsa, Elde bilir" align="center" />
     <div class="features__grid">
-      {features.map(({ Icon, title, body, href }) => (
-        <FeatureRow title={title} body={body} href={href}>
-          <Icon slot="icon" />
-        </FeatureRow>
+      {features.map(({ Icon, title, body, href }, i) => (
+        <div class={`features__cell features__cell--${i} reveal`} style={`--i:${i}`}>
+          <FeatureRow title={title} body={body} href={href} size={i === 0 ? 'lg' : 'md'}>
+            <Icon slot="icon" />
+            {i === 0 && (
+              <Fragment slot="preview">
+                <DeviceShot device="iphone-17-pro-max" shot="receipt-review" alt="">
+                  <ReceiptReviewScreen theme="light" locale="tr" />
+                </DeviceShot>
+              </Fragment>
+            )}
+          </FeatureRow>
+        </div>
       ))}
     </div>
   </section>
@@ -185,8 +204,8 @@ const faqs = [
 
 <style>
   .hero {
-    padding-block: clamp(48px, 8vw, 100px);
-    min-height: 90svh;
+    position: relative;
+    padding-block: clamp(32px, 6vw, 72px);
     display: grid;
     gap: var(--space-xl);
     align-items: center;
@@ -198,11 +217,81 @@ const faqs = [
     text-align: center;
   }
   .hero__eyebrow {
-    color: var(--primary);
-    font-weight: var(--fw-semibold);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    align-self: center;
+  }
+  .hero__trust {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm) var(--space-md);
+    justify-content: center;
+    color: var(--on-surface-variant);
     font-size: var(--fs-small);
+  }
+  .hero__trust li::before {
+    content: '✓';
+    color: var(--primary);
+    font-weight: var(--fw-bold);
+    margin-right: var(--space-xs);
+  }
+  .hero__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 60%, transparent);
+    animation: hero-pulse 2s infinite;
+  }
+  @keyframes hero-pulse {
+    70% { box-shadow: 0 0 0 8px transparent; }
+    100% { box-shadow: 0 0 0 0 transparent; }
+  }
+  .hero__device {
+    position: relative;
+  }
+  .hero__chip {
+    position: absolute;
+    z-index: 3;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-pill);
+    font-size: var(--fs-small);
+    font-weight: var(--fw-semibold);
+    box-shadow: var(--shell-shadow-md);
+    display: none;
+  }
+  .hero__chip--a { left: -48px; top: 22%; }
+  .hero__chip--b { right: -40px; bottom: 26%; }
+  @media (min-width: 900px) {
+    .hero__chip { display: block; }
+    .hero__trust { justify-content: flex-start; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero__dot { animation: none; }
+  }
+  .hero__glow--a {
+    position: absolute;
+    width: 640px;
+    height: 640px;
+    max-width: 100%;
+    right: -80px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--shell-glow-primary);
+    pointer-events: none;
+    z-index: -1;
+  }
+  .hero__glow--b {
+    position: absolute;
+    width: 480px;
+    height: 480px;
+    max-width: 100%;
+    left: -120px;
+    bottom: -80px;
+    background: var(--shell-glow-tertiary);
+    pointer-events: none;
+    z-index: -1;
   }
   .hero__title {
     font-size: var(--fs-hero);
@@ -235,6 +324,9 @@ const faqs = [
     .hero__text {
       text-align: left;
     }
+    .hero__eyebrow {
+      align-self: flex-start;
+    }
     .hero__title,
     .hero__subtitle {
       margin-inline: 0;
@@ -251,21 +343,42 @@ const faqs = [
     display: grid;
     gap: var(--space-md);
   }
+  .features__cell > :global(.feature-row) {
+    height: 100%;
+  }
   @media (min-width: 700px) {
     .features__grid {
       grid-template-columns: repeat(2, 1fr);
     }
+    .features__cell--0 {
+      grid-column: span 2;
+    }
   }
+  /* Bento: büyük Fiş Tarama kartı 2 satır, yanında 2 kart; altta 3 kart */
   @media (min-width: 1000px) {
     .features__grid {
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(6, 1fr);
     }
+    .features__cell--0 { grid-column: span 3; grid-row: span 2; }
+    .features__cell--1 { grid-column: span 3; }
+    .features__cell--2 { grid-column: span 3; }
+    .features__cell--3,
+    .features__cell--4,
+    .features__cell--5 { grid-column: span 2; }
   }
 
   .dark-showcase {
-    background: #0f1512;
+    background: linear-gradient(135deg, #0a0f0c, #005236);
+    border: 1px solid color-mix(in srgb, #88d6af 20%, transparent);
+    border-radius: var(--radius-logo);
+    max-width: calc(var(--container-max) - 2 * var(--space-md));
+    margin: var(--section-gap) var(--space-md);
     padding-block: var(--section-gap);
-    margin-block: var(--section-gap);
+  }
+  @media (min-width: 1232px) {
+    .dark-showcase {
+      margin-inline: auto;
+    }
   }
   .dark-showcase__inner {
     display: grid;
@@ -273,7 +386,7 @@ const faqs = [
     align-items: center;
   }
   .dark-showcase__text :global(.section-heading__eyebrow) {
-    color: #7bb5ff;
+    color: #88d6af;
   }
   .dark-showcase__text :global(.section-heading__title) {
     color: #f4f7f4;

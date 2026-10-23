@@ -5,7 +5,7 @@
  */
 const { question } = Astro.props;
 ---
-<details class="faq-item">
+<details class="faq-item reveal">
   <summary class="faq-item__question">{question}</summary>
   <div class="faq-item__answer">
     <slot />
@@ -14,8 +14,17 @@ const { question } = Astro.props;
 
 <style>
   .faq-item {
-    border-bottom: 1px solid var(--outline-variant);
-    padding-block: var(--space-md);
+    background: var(--shell-glass);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--shell-card-border);
+    border-radius: var(--radius-card);
+    padding: var(--space-md) var(--space-lg);
+    margin-bottom: var(--space-sm);
+    transition: border-color var(--dur-base) var(--ease-standard);
+  }
+  .faq-item[open] {
+    border-color: var(--shell-card-hover-border);
   }
   .faq-item__question {
     font-weight: var(--fw-semibold);
@@ -27,20 +36,28 @@ const { question } = Astro.props;
   .faq-item__question::-webkit-details-marker {
     display: none;
   }
-  .faq-item__question::before {
-    content: '+';
-    display: inline-block;
-    width: 1.2em;
-    color: var(--primary);
-    font-weight: var(--fw-bold);
+  .faq-item__question {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-md);
   }
-  .faq-item[open] .faq-item__question::before {
-    content: '−';
+  .faq-item__question::after {
+    content: '';
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid var(--primary);
+    border-bottom: 2px solid var(--primary);
+    transform: rotate(45deg);
+    transition: transform var(--dur-base) var(--ease-standard);
+  }
+  .faq-item[open] .faq-item__question::after {
+    transform: rotate(-135deg);
   }
   .faq-item__answer {
     color: var(--on-surface-variant);
     margin-top: var(--space-sm);
-    padding-left: 1.2em;
     line-height: 1.6;
   }
 </style>

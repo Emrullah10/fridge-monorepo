@@ -27,7 +27,11 @@ const shotPath = fileURLToPath(new URL(`../../../public${shotBase}.webp`, import
 const has2x = existsSync(fileURLToPath(new URL(`../../../public${shotBase}@2x.webp`, import.meta.url)));
 const hasShot = existsSync(shotPath);
 
-const style = `--sx:${d.screen.x}%;--sy:${d.screen.y}%;--sw:${d.screen.w}%;--sh:${d.screen.h}%;--sr:${d.radius};`;
+// Köşe yarıçapı: yüzde değerler genişliğe/yüksekliğe ayrı uygulanır → elips köşe olur.
+// Dikey yarıçap, ekranın gerçek en/boy oranına göre ölçeklenerek daire köşe elde edilir.
+const rH = parseFloat(d.radius);
+const rV = (rH * (d.screen.w * d.frameW)) / (d.screen.h * d.frameH);
+const style = `--sx:${d.screen.x}%;--sy:${d.screen.y}%;--sw:${d.screen.w}%;--sh:${d.screen.h}%;--sr:${rH}% / ${rV.toFixed(2)}%;`;
 ---
 
 <figure class="device-shot" style={style}>
@@ -91,10 +95,17 @@ const style = `--sx:${d.screen.x}%;--sy:${d.screen.y}%;--sw:${d.screen.w}%;--sh:
   }
   .device-shot__fallback {
     background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    /* Dynamic Island / kamera deliği çerçevenin üstünde; maket içeriği altından başlasın. */
+    padding-top: 9%;
   }
   .device-shot__fallback :global(.phone-frame) {
     width: 100%;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
+    height: auto;
     max-width: none;
     aspect-ratio: auto;
     border: none;

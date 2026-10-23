@@ -15,8 +15,14 @@ const { title, description, locale = 'tr', ogImage } = Astro.props;
 ---
 <Base title={title} description={description} lang={locale} ogImage={ogImage}>
   <Header locale={locale} />
-  <main>
+  <main class="marketing-main">
     <slot />
   </main>
   <Footer locale={locale} />
 </Base>
+
+<style>
+  .marketing-main {
+    padding-top: var(--header-h);
+  }
+</style>

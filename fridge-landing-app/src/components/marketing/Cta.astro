@@ -10,7 +10,7 @@
  */
 const { title, body, primaryHref, primaryText, secondaryHref, secondaryText } = Astro.props;
 ---
-<section class="cta container--narrow">
+<section class="cta container--narrow reveal">
   <h2 class="cta__title">{title}</h2>
   {body && <p class="cta__body">{body}</p>}
   <div class="cta__actions">
@@ -22,10 +22,29 @@ const { title, body, primaryHref, primaryText, secondaryHref, secondaryText } = 
 <style>
   .cta {
     text-align: center;
-    background: var(--primary-container);
-    border-radius: var(--radius-card);
+    position: relative;
+    overflow: hidden;
+    background:
+      linear-gradient(var(--shell-grid-line) 1px, transparent 1px) 0 0 / 32px 32px,
+      linear-gradient(90deg, var(--shell-grid-line) 1px, transparent 1px) 0 0 / 32px 32px,
+      linear-gradient(135deg, var(--primary-container), color-mix(in srgb, var(--primary-container) 60%, #000));
+    border-radius: var(--radius-logo);
     padding: var(--space-xl) var(--space-lg);
     margin-inline: auto;
+  }
+  .cta::after {
+    content: '';
+    position: absolute;
+    width: 360px;
+    height: 360px;
+    right: -120px;
+    top: -160px;
+    background: radial-gradient(closest-side, rgba(255, 255, 255, 0.16), transparent);
+    pointer-events: none;
+  }
+  .cta > * {
+    position: relative;
+    z-index: 1;
   }
   .cta__title {
     /* --on-primary-container bu zeminde (--primary-container) yalnızca
@@ -52,6 +71,7 @@ const { title, body, primaryHref, primaryText, secondaryHref, secondaryText } = 
      — M3'ün container/on-container eşleşmesi her font ağırlığında AA
      garantilemiyor. Beyaz metin/kenarlık burada 5.0:1 ile güvenli. */
   .cta__actions .btn--outlined {
+    background: transparent;
     color: #ffffff;
     border-color: #ffffff;
   }

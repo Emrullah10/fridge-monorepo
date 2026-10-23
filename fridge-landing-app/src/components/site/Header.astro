@@ -8,20 +8,35 @@ import { marketingDict, localePath } from '@lib/i18n';
 
 const { locale } = Astro.props;
 const t = marketingDict[locale].nav;
+const path = Astro.url.pathname.replace(/\/$/, '');
+const cur = (href) => (path === localePath(locale, href).replace(/\/$/, '') || (href !== '/' && path.startsWith(localePath(locale, href))) ? 'page' : undefined);
 ---
 <header class="site-header">
   <div class="container site-header__inner">
-    <a href={localePath(locale, '/')} class="site-header__brand">Elde</a>
+    <a href={localePath(locale, '/')} class="site-header__brand">
+      <img src="/icons/icon-192.png" alt="" width="28" height="28" class="site-header__logo" />
+      Elde
+    </a>
     <nav class="site-header__nav">
-      <a href={localePath(locale, '/ozellikler')}>{t.features}</a>
-      <a href={localePath(locale, '/ekranlar')}>{t.screens}</a>
-      <a href={localePath(locale, '/nasil-calisir')}>{t.howItWorks}</a>
-      <a href={localePath(locale, '/metrikler')}>{t.metrics}</a>
-      <a href={localePath(locale, '/sss')}>{t.faq}</a>
+      <a href={localePath(locale, '/ozellikler')} aria-current={cur('/ozellikler')}>{t.features}</a>
+      <a href={localePath(locale, '/ekranlar')} aria-current={cur('/ekranlar')}>{t.screens}</a>
+      <a href={localePath(locale, '/nasil-calisir')} aria-current={cur('/nasil-calisir')}>{t.howItWorks}</a>
+      <a href={localePath(locale, '/metrikler')} aria-current={cur('/metrikler')}>{t.metrics}</a>
+      <a href={localePath(locale, '/sss')} aria-current={cur('/sss')}>{t.faq}</a>
     </nav>
     <div class="site-header__actions">
       {/* Dil değiştirici geçici olarak gizli: /en sayfaları henüz yayınlanmadı (404 olurdu). */}
-      <a href={localePath(locale, '/indir')} class="btn btn--primary">{t.download}</a>
+      <a href={localePath(locale, '/indir')} class="btn btn--primary site-header__cta">{t.download}</a>
+      <details class="site-header__menu">
+        <summary aria-label="Menü"><span></span></summary>
+        <nav class="site-header__menu-panel">
+          <a href={localePath(locale, '/ozellikler')} aria-current={cur('/ozellikler')}>{t.features}</a>
+          <a href={localePath(locale, '/ekranlar')} aria-current={cur('/ekranlar')}>{t.screens}</a>
+          <a href={localePath(locale, '/nasil-calisir')} aria-current={cur('/nasil-calisir')}>{t.howItWorks}</a>
+          <a href={localePath(locale, '/metrikler')} aria-current={cur('/metrikler')}>{t.metrics}</a>
+          <a href={localePath(locale, '/sss')} aria-current={cur('/sss')}>{t.faq}</a>
+        </nav>
+      </details>
     </div>
   </div>
 </header>
@@ -29,20 +44,29 @@ const t = marketingDict[locale].nav;
 <style>
   .site-header {
     position: sticky;
-    top: 0;
+    top: var(--space-md);
     z-index: 40;
-    background: color-mix(in srgb, var(--surface) 85%, transparent);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid var(--outline-variant);
+    height: 0; /* sticky katman akışta yer kaplamaz, hap havada durur */
+    padding-inline: var(--space-md);
   }
   .site-header__inner {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--space-md);
-    padding-block: var(--space-sm);
+    max-width: 1100px;
+    padding: var(--space-sm) var(--space-sm) var(--space-sm) var(--space-lg);
+    border-radius: var(--radius-pill);
+    background: var(--shell-glass);
+    border: 1px solid var(--shell-card-border);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: var(--shell-shadow-md);
   }
   .site-header__brand {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
     font-family: var(--font-display);
     font-weight: var(--fw-bold);
     font-size: 1.25rem;
@@ -55,11 +79,80 @@ const t = marketingDict[locale].nav;
     font-size: var(--fs-body);
     font-weight: var(--fw-semibold);
   }
+  .site-header__logo {
+    border-radius: var(--radius-storage-icon);
+  }
   .site-header__nav a {
     text-decoration: none;
     color: var(--on-surface-variant);
+    padding: var(--space-xs) var(--space-md);
+    border-radius: var(--radius-pill);
+    transition: background var(--dur-fast), color var(--dur-fast);
+  }
+  .site-header__nav a[aria-current='page'] {
+    color: var(--primary);
+    background: var(--shell-tint);
   }
   .site-header__nav a:hover {
+    color: var(--primary);
+    background: var(--shell-tint);
+  }
+  .site-header__cta {
+    padding: var(--space-sm) var(--space-lg);
+  }
+  .site-header__menu {
+    position: relative;
+  }
+  .site-header__menu summary {
+    list-style: none;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--shell-card-border);
+    background: var(--shell-card);
+  }
+  .site-header__menu summary::-webkit-details-marker {
+    display: none;
+  }
+  .site-header__menu summary span,
+  .site-header__menu summary span::before {
+    display: block;
+    width: 16px;
+    height: 2px;
+    background: var(--on-surface);
+    border-radius: 2px;
+    position: relative;
+  }
+  .site-header__menu summary span::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+  }
+  .site-header__menu-panel {
+    position: absolute;
+    right: 0;
+    top: calc(100% + var(--space-sm));
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-sm);
+    background: var(--shell-card);
+    border: 1px solid var(--shell-card-border);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shell-shadow-md);
+  }
+  .site-header__menu-panel a {
+    padding: var(--space-md);
+    text-decoration: none;
+    font-weight: var(--fw-semibold);
+    border-radius: var(--radius-button);
+  }
+  .site-header__menu-panel a:hover {
+    background: var(--shell-tint);
     color: var(--primary);
   }
   .site-header__actions {
@@ -80,6 +173,9 @@ const t = marketingDict[locale].nav;
   @media (min-width: 900px) {
     .site-header__nav {
       display: flex;
+    }
+    .site-header__menu {
+      display: none;
     }
   }
 </style>
