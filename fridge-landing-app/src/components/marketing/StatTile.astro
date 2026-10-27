@@ -43,10 +43,15 @@ const { value, label, tone = 'neutral' } = Astro.props;
     color: var(--on-surface);
   }
   .stat-tile--good .stat-tile__value {
-    background: var(--shell-text-gradient);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: var(--primary);
+  }
+  @supports ((background-clip: text) or (-webkit-background-clip: text)) {
+    .stat-tile--good .stat-tile__value {
+      background: var(--shell-text-gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
   }
   .stat-tile--bad .stat-tile__value {
     color: var(--error);

@@ -88,10 +88,22 @@
 }
 
 .text-gradient {
-  background: var(--shell-text-gradient);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  // Gradyan desteklenmez/ezilirse yazı en azından marka renginde görünür kalsın.
+  color: var(--primary);
+}
+@supports ((background-clip: text) or (-webkit-background-clip: text)) {
+  .text-gradient {
+    background: var(--shell-text-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+@media (forced-colors: active) {
+  .text-gradient {
+    background: none;
+    -webkit-text-fill-color: currentColor;
+  }
 }
 
 // Kademeli beliriş: yalnız JS çalışıyorsa gizli başlar (Base.astro `js` sınıfını ekler)

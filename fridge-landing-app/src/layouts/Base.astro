@@ -23,6 +23,10 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="theme-color" content="#096444" />
+    {/* Site kendi koyu temasına sahip: tarayıcının zorla karanlık modu (Chrome/Brave auto-dark)
+       ve Dark Reader gradyan yazıları (background-clip:text) görünmez yapıyordu. */}
+    <meta name="color-scheme" content="light dark" />
+    <meta name="darkreader-lock" />
     <link rel="canonical" href={canonicalURL} />
     <title>{title}</title>
     <meta name="description" content={description} />

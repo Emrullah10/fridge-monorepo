@@ -60,3 +60,13 @@ GEMINI.md
 .serena/
 .github/copilot-instructions.md
 docs/superpowers/
+.gemini/
+.antigravity/
+
+# Store / imzalama anahtarları
+*.p8
+*.p12
+*.jks
+*.keystore
+*service-account*.json
+*service_account*.json
